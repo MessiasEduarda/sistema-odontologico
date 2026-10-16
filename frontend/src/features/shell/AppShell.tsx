@@ -285,9 +285,10 @@ const ClinicHeader = styled.div`
   gap: ${({ theme }) => theme.space[2]};
 `;
 
+/** Logo alinhada ao topo do nome da clínica (não ao centro do bloco nome + saudação). */
 const Brand = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: ${({ theme }) => theme.space[3]};
   min-width: 0;
 `;
