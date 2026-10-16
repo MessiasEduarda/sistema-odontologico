@@ -38,5 +38,7 @@ public enum AuditAction {
     SUBSCRIPTION_CHANGED,
     TENANT_STATUS_CHANGED,
     /* Aceite dos Termos de uso e da Política de privacidade. */
-    TERMS_ACCEPTED
+    TERMS_ACCEPTED,
+    /* Exportação dos dados do paciente (portabilidade, LGPD). */
+    PATIENT_DATA_EXPORTED
 }

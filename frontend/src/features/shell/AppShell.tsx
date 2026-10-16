@@ -7,7 +7,7 @@ import { useState, type ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { useQuery } from "@tanstack/react-query";
 import { useLogout, useMe } from "@/features/auth/hooks";
-import { ClinicLogo } from "@/components/domain/ClinicLogo";
+import { ToothMark } from "@/components/domain/ToothMark";
 import { api } from "@/lib/api/endpoints";
 import { usePersistentFlag } from "@/lib/usePersistentFlag";
 import { visibleNav, type NavItem } from "./navigation";
@@ -94,16 +94,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 
   const clinicName = me?.activeClinic?.name ?? "Odonto SaaS";
-  const logoVersion = settings.data?.logoUpdatedAt;
   const header = (compact: boolean) =>
     compact ? (
       <CompactBrand>
-        <ClinicLogo name={clinicName} logoVersion={logoVersion} size={40} />
+        <ToothMark size={40} />
       </CompactBrand>
     ) : (
       <ClinicHeader>
         <Brand>
-          <ClinicLogo name={clinicName} logoVersion={logoVersion} />
+          <ToothMark size={44} />
           <BrandText>
             <ClinicName title={clinicName}>{clinicName}</ClinicName>
             <Greeting>Olá, {me?.user.name.split(" ")[0] ?? ""}</Greeting>

@@ -86,6 +86,17 @@ public class AppointmentController {
         return service.changeStatus(id, request.status(), request.reason());
     }
 
+    @PostMapping("/api/v1/appointments/{id}/patient-link")
+    @PreAuthorize("hasAuthority('schedule:write')")
+    @Operation(
+            summary = "Gera o link do paciente para confirmar ou cancelar a consulta",
+            description = "Usado no lembrete por WhatsApp. Renova o link (o anterior deixa de valer). "
+                    + "Retorna o caminho relativo ao endereço do sistema.")
+    public java.util.Map<String, String> patientLink(@PathVariable UUID id) {
+        service.get(id); // 404 se não for desta clínica
+        return java.util.Map.of("path", "/consulta#token=" + links.issueToken(id));
+    }
+
     @GetMapping("/api/v1/appointments/availability")
     @PreAuthorize("hasAuthority('schedule:read')")
     @Operation(summary = "Horários livres de um profissional num dia")

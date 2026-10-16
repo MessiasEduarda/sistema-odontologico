@@ -2,6 +2,7 @@
 import { Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
 import type {
+  ReceiptData,
   AestheticRecord,
   Anamnesis,
   ClinicalDocument,
@@ -11,8 +12,8 @@ import type {
   Plan,
   Question,
 } from "@/lib/api/types";
-import { ageFrom, formatCpf, formatDate, formatDateTime, formatMoney, formatPhone } from "@/lib/format";
-import { AESTHETIC_TYPES, CONSENT_CATEGORIES, DOCUMENT_TYPES, PLAN_STATUS } from "@/lib/labels";
+import { ageFrom, formatCpf, formatDate, formatDateTime, formatMoney, formatPhone, moneyInWords } from "@/lib/format";
+import { AESTHETIC_TYPES, CONSENT_CATEGORIES, DOCUMENT_TYPES, methodLabel, PLAN_STATUS } from "@/lib/labels";
 
 /**
  * Modelos de PDF (gerados no navegador com @react-pdf/renderer). Texto real e selecionável, A4, cabeçalho com os
@@ -450,6 +451,46 @@ export function PlanPdf({ ctx, plan: p }: { ctx: PdfContext; plan: Plan }) {
         </Text>
       )}
       <Signatures left="De acordo — paciente ou responsável" right={p.professionalName} />
+    </Sheet>
+  );
+}
+
+/** Recibo de pagamento: valor em número e por extenso, referência, forma de pagamento, data e assinatura. */
+export function ReceiptPdf({ ctx, receipt: r }: { ctx: PdfContext; receipt: ReceiptData }) {
+  const net = Number(r.amount) - Number(r.refundedAmount);
+  const payer = ctx.patient.guardianName
+    ? `${ctx.patient.guardianName}, responsável por ${ctx.patient.fullName}`
+    : ctx.patient.fullName;
+  const cpf = ctx.patient.guardianName ? ctx.patient.guardianCpf : ctx.patient.cpf;
+  // Dia do pagamento no fuso do navegador (o mesmo usado no restante do recibo).
+  const paidDay = formatDateTime(r.paidAt).split(",")[0] ?? "";
+  return (
+    <Sheet ctx={ctx} title="Recibo" subtitle={`Nº ${r.id.slice(0, 8).toUpperCase()} · ${formatDateTime(r.paidAt)}`}>
+      <View style={[s.box, { alignItems: "center", paddingVertical: 12 }]}>
+        <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 18 }}>{formatMoney(r.amount)}</Text>
+        <Text style={[s.small, { marginTop: 10 }]}>({moneyInWords(r.amount)})</Text>
+      </View>
+      <Text style={{ marginTop: 6 }}>
+        Recebemos de {payer}
+        {cpf ? `, CPF ${formatCpf(cpf)},` : ""} a importância de {formatMoney(r.amount)} ({moneyInWords(r.amount)}),
+        referente a {r.description}
+        {r.installment ? ` — parcela ${r.installment}` : ""}, paga em {methodLabel(r.method)} no dia {paidDay}. Para
+        clareza, firmamos o presente recibo.
+      </Text>
+      {Number(r.refundedAmount) > 0 && (
+        <Text style={[s.small, { marginTop: 8 }]}>
+          Estorno registrado: {formatMoney(r.refundedAmount)}. Valor líquido recebido: {formatMoney(net)}.
+        </Text>
+      )}
+      {r.notes && <Text style={[s.small, { marginTop: 8 }]}>Observações: {r.notes}</Text>}
+      <Text style={{ marginTop: 24 }}>
+        {ctx.clinic.city ? `${ctx.clinic.city}, ` : ""}
+        {paidDay}.
+      </Text>
+      <Signatures
+        left={`${ctx.clinic.legalName || ctx.clinic.name}${ctx.clinic.document ? ` — CNPJ/CPF ${ctx.clinic.document}` : ""}`}
+        right={r.createdByName ? `Recebido por ${r.createdByName}` : undefined}
+      />
     </Sheet>
   );
 }

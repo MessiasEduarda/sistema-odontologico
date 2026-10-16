@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CalendarPlus, ClipboardPlus } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ClipboardPlus, FileJson } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -25,6 +25,7 @@ import {
 import { CheckboxField } from "@/components/ui/fields";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Tabs } from "@/components/ui/Tabs";
+import { WhatsAppButton } from "@/components/domain/WhatsAppButton";
 import { useFeedback } from "@/components/ui/Feedback";
 import { AestheticsSection, useAestheticsEnabled } from "@/features/aesthetics/AestheticsPage";
 import { AnamnesisSection } from "@/features/clinical/AnamnesisSection";
@@ -39,6 +40,7 @@ import { ageFrom, formatCpf, formatDate, formatDateTime, formatMoney, formatPhon
 import { APPOINTMENT_STATUS, FINANCE_STATUS, PLAN_STATUS, SEX_OPTIONS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { firstName } from "@/lib/whatsapp";
 import { PatientForm, toInput } from "./PatientForm";
 
 export function PatientPage({ patientId }: { patientId: string }) {
@@ -116,6 +118,9 @@ export function PatientPage({ patientId }: { patientId: string }) {
 
 function DataTab({ patientId }: { patientId: string }) {
   const can = useCan();
+  const clinicName =
+    useQuery({ queryKey: ["clinic-settings"], queryFn: api.clinic.settings, staleTime: 60_000 }).data?.name ??
+    "clínica";
   const [editing, setEditing] = useState(false);
   const [toggling, setToggling] = useState(false);
   const { data: p } = useQuery({ queryKey: ["patient", patientId], queryFn: () => api.patients.get(patientId) });
@@ -155,16 +160,27 @@ function DataTab({ patientId }: { patientId: string }) {
 
   return (
     <Stack $gap={4}>
-      {can(P.PATIENTS_WRITE) && (
+      {
         <Row $justify="flex-end">
-          <Button variant="ghost" onClick={() => setToggling(true)}>
-            {p.active ? "Inativar paciente" : "Reativar paciente"}
-          </Button>
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            Editar cadastro
-          </Button>
+          <WhatsAppButton
+            variant="ghost"
+            phone={p.mobile}
+            allowed={p.allowWhatsapp}
+            message={() => `Olá, ${firstName(p.socialName ?? p.fullName)}! Aqui é da ${clinicName}.`}
+          />
+          {can(P.CLINICAL_READ) && <ExportDataButton patientId={p.id} patientName={p.fullName} />}
+          {can(P.PATIENTS_WRITE) && (
+            <Button variant="ghost" onClick={() => setToggling(true)}>
+              {p.active ? "Inativar paciente" : "Reativar paciente"}
+            </Button>
+          )}
+          {can(P.PATIENTS_WRITE) && (
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              Editar cadastro
+            </Button>
+          )}
         </Row>
-      )}
+      }
       <Card>
         <CardTitle>Dados pessoais</CardTitle>
         <DetailList>
@@ -459,3 +475,44 @@ const BackLink = styled(Link)`
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   text-decoration: none;
 `;
+
+/**
+ * Portabilidade (LGPD): baixa todos os dados do paciente em JSON (formato estruturado, que outro sistema consegue
+ * ler). A exportação fica registrada na auditoria.
+ */
+function ExportDataButton({ patientId, patientName }: { patientId: string; patientName: string }) {
+  const feedback = useFeedback();
+  const [pending, setPending] = useState(false);
+  const run = async () => {
+    setPending(true);
+    try {
+      const data = await api.patients.exportData(patientId);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const name = patientName
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      a.href = url;
+      a.download = `dados-${name}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      feedback.success(
+        "Dados do paciente exportados com sucesso!",
+        "Arquivo em formato aberto (JSON) com cadastro, consultas, prontuário, termos, orçamentos e financeiro.",
+      );
+    } catch (error) {
+      feedback.error("Não foi possível exportar os dados", error instanceof Error ? error.message : undefined);
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <Button variant="ghost" onClick={() => void run()} loading={pending}>
+      <FileJson size={16} aria-hidden /> Exportar dados (LGPD)
+    </Button>
+  );
+}

@@ -193,4 +193,21 @@ class SchedulingFlowTest extends PostgresIntegrationTest {
                         appointmentId);
         return raw;
     }
+
+    @Test
+    void staffGeneratesPatientLinkForWhatsappAndPatientCanUseIt() {
+        String id = createAppointment(owner, patient, professional, slot(11));
+        MvcTestResult link = owner.post("/api/v1/appointments/" + id + "/patient-link", "{}");
+        assertThat(link).hasStatusOk();
+        String path = json(link, "$.path");
+        assertThat(path).startsWith("/consulta#token=");
+        String token = path.substring("/consulta#token=".length());
+
+        MvcTestResult lookup = browser().post("/api/v1/public/appointments/lookup", "{\"token\":\"" + token + "\"}");
+        assertThat(lookup).hasStatusOk();
+
+        Browser other = browser().login(data.member(data.clinic(), "OWNER").email(), TestData.PASSWORD);
+        assertThat(other.post("/api/v1/appointments/" + id + "/patient-link", "{}"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+    }
 }

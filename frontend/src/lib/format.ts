@@ -86,3 +86,76 @@ export function isValidCpf(value: string): boolean {
   };
   return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
 }
+
+/** Percentual no padrão brasileiro: 2.1 → "2,1%"; até uma casa decimal. */
+export function formatPercent(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+}
+
+const UNITS = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+const TEENS = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+const TENS = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+const HUNDREDS = [
+  "",
+  "cento",
+  "duzentos",
+  "trezentos",
+  "quatrocentos",
+  "quinhentos",
+  "seiscentos",
+  "setecentos",
+  "oitocentos",
+  "novecentos",
+];
+
+/** 0–999 por extenso ("cento e vinte e três"). */
+function hundredsInWords(n: number): string {
+  if (n === 100) return "cem";
+  const parts: string[] = [];
+  const h = Math.floor(n / 100);
+  const rest = n % 100;
+  if (h) parts.push(HUNDREDS[h] ?? "");
+  if (rest >= 10 && rest < 20) parts.push(TEENS[rest - 10] ?? "");
+  else {
+    const t = Math.floor(rest / 10);
+    const u = rest % 10;
+    if (t) parts.push(TENS[t] ?? "");
+    if (u) parts.push(UNITS[u] ?? "");
+  }
+  return parts.join(" e ");
+}
+
+/** Inteiro por extenso até 999.999.999 ("mil e duzentos", "dois milhões e trinta mil"). */
+export function numberInWords(value: number): string {
+  const n = Math.floor(Math.abs(value));
+  if (n === 0) return "zero";
+  const millions = Math.floor(n / 1_000_000);
+  const thousands = Math.floor((n % 1_000_000) / 1000);
+  const units = n % 1000;
+  const groups: string[] = [];
+  if (millions) groups.push(millions === 1 ? "um milhão" : `${hundredsInWords(millions)} milhões`);
+  if (thousands) groups.push(thousands === 1 ? "mil" : `${hundredsInWords(thousands)} mil`);
+  if (units) groups.push(hundredsInWords(units));
+  // "e" antes do último grupo quando ele é menor que 100 ou centena exata (ex.: "mil e cem", "mil e cinquenta").
+  if (groups.length > 1 && (units < 100 || units % 100 === 0) && units > 0) {
+    const last = groups.pop() ?? "";
+    return `${groups.join(" ")} e ${last}`;
+  }
+  return groups.join(groups.length > 1 && units >= 100 ? " " : " e ");
+}
+
+/** Valor em reais por extenso para recibos: 150.3 → "cento e cinquenta reais e trinta centavos". */
+export function moneyInWords(value: number | string): string {
+  const cents = Math.round(Number(value) * 100);
+  const reais = Math.floor(cents / 100);
+  const centavos = cents % 100;
+  const parts: string[] = [];
+  if (reais) {
+    const words = numberInWords(reais);
+    const de = reais % 1_000_000 === 0 ? " de" : "";
+    parts.push(`${words}${de} ${reais === 1 ? "real" : "reais"}`);
+  }
+  if (centavos) parts.push(`${numberInWords(centavos)} ${centavos === 1 ? "centavo" : "centavos"}`);
+  return parts.length ? parts.join(" e ") : "zero reais";
+}

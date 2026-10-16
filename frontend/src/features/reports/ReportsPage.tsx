@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import styled from "styled-components";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import {
@@ -23,7 +22,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { api } from "@/lib/api/endpoints";
-import { formatDate, formatMoney, toDateInput } from "@/lib/format";
+import { formatDate, formatMoney, formatPercent, toDateInput } from "@/lib/format";
 import { APPOINTMENT_STATUS } from "@/lib/labels";
 import { useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
@@ -81,10 +80,10 @@ function AgendaReportView({ from, to }: { from: string; to: string }) {
         <KpiCard
           icon={CalendarX2}
           label="Taxa de faltas"
-          value={`${data.noShowRate}%`}
+          value={formatPercent(data.noShowRate)}
           tone={data.noShowRate > 10 ? "danger" : "neutral"}
         />
-        <KpiCard icon={Percent} label="Taxa de cancelamento" value={`${data.cancellationRate}%`} />
+        <KpiCard icon={Percent} label="Taxa de cancelamento" value={formatPercent(data.cancellationRate)} />
       </KpiGrid>
       <Row $gap={2}>
         {data.byStatus.map((s) => (
@@ -107,14 +106,17 @@ function AgendaReportView({ from, to }: { from: string; to: string }) {
           {
             key: "occ",
             header: "Ocupação",
-            minWidth: "180px",
+            align: "right",
             render: (p) => (
-              <Occupancy
-                title={`${Math.round(p.bookedMinutes / 60)}h agendadas de ${Math.round(p.availableMinutes / 60)}h disponíveis`}
+              <span
+                title={
+                  p.availableMinutes
+                    ? `${Math.round(p.bookedMinutes / 60)}h agendadas de ${Math.round(p.availableMinutes / 60)}h disponíveis`
+                    : "Profissional sem horário de atendimento cadastrado (Cadastros)."
+                }
               >
-                <span style={{ width: `${Math.min(100, p.occupancyPercent)}%` }} />
-                <strong>{p.availableMinutes ? `${p.occupancyPercent}%` : "sem grade"}</strong>
-              </Occupancy>
+                {p.availableMinutes ? formatPercent(p.occupancyPercent) : "—"}
+              </span>
             ),
           },
         ]}
@@ -248,25 +250,3 @@ function PatientsView() {
     </Stack>
   );
 }
-
-const Occupancy = styled.div`
-  position: relative;
-  height: 22px;
-  background: ${({ theme }) => theme.colors.surfaceMuted};
-  border-radius: ${({ theme }) => theme.radii.pill};
-  overflow: hidden;
-
-  span {
-    position: absolute;
-    inset: 0 auto 0 0;
-    background: ${({ theme }) => theme.colors.primary};
-    opacity: 0.35;
-  }
-  strong {
-    position: relative;
-    display: block;
-    text-align: center;
-    font-size: ${({ theme }) => theme.fontSizes.xs};
-    line-height: 22px;
-  }
-`;

@@ -6,7 +6,15 @@ import type { DocumentProps } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 import type { ClinicSettings, Patient } from "@/lib/api/types";
-import { AestheticPdf, AnamnesisPdf, ClinicalDocumentPdf, ConsentPdf, PlanPdf, type PdfContext } from "./documents";
+import {
+  AestheticPdf,
+  AnamnesisPdf,
+  ClinicalDocumentPdf,
+  ConsentPdf,
+  PlanPdf,
+  ReceiptPdf,
+  type PdfContext,
+} from "./documents";
 
 /** Dados 100% fictícios. Com PDF_OUT=<pasta> os arquivos também são gravados para conferência visual. */
 const clinic = {
@@ -219,6 +227,23 @@ const cases: [string, ReactElement<DocumentProps>][] = [
             doneAt: null,
           },
         ],
+      },
+    }),
+  ],
+  [
+    "recibo",
+    ReceiptPdf({
+      ctx,
+      receipt: {
+        id: "3f2a9c10-0000-0000-0000-000000000000",
+        amount: 450.5,
+        refundedAmount: 0,
+        method: "PIX",
+        paidAt: now,
+        notes: null,
+        createdByName: "Recepção Fictícia",
+        description: "Orçamento: Plano de tratamento",
+        installment: "1/3",
       },
     }),
   ],

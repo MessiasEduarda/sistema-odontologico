@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import styled from "styled-components";
+import { PdfButton } from "@/components/domain/PdfButton";
 import { ReasonDialog } from "@/components/domain/ReasonDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
@@ -109,11 +110,27 @@ export function ReceivableDetail({ receivableId, onClose }: { receivableId: stri
                           )}
                           {p.createdByName && <Muted> · {p.createdByName}</Muted>}
                         </span>
-                        {writable && Number(p.refundedAmount) < Number(p.amount) && (
-                          <Button variant="ghost" onClick={() => setRefunding(p)}>
-                            Estornar
-                          </Button>
-                        )}
+                        <Row $gap={1} $wrap={false}>
+                          <PdfButton
+                            variant="ghost"
+                            label="Recibo"
+                            load={() => ({
+                              kind: "receipt",
+                              patientId: data.patientId,
+                              data: {
+                                ...p,
+                                description: data.description,
+                                installment:
+                                  data.installments.length > 1 ? `${i.number}/${data.installments.length}` : null,
+                              },
+                            })}
+                          />
+                          {writable && Number(p.refundedAmount) < Number(p.amount) && (
+                            <Button variant="ghost" onClick={() => setRefunding(p)}>
+                              Estornar
+                            </Button>
+                          )}
+                        </Row>
                       </li>
                     ))}
                   </Payments>

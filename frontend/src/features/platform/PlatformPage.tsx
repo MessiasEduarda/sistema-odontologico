@@ -318,6 +318,7 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
     trialEndsAt: string;
     currentPeriodEnd: string;
     notes: string;
+    paymentUrl: string;
   } | null>(null);
   const v = draft ?? {
     planCode: current.data?.planCode ?? "PROFISSIONAL",
@@ -325,6 +326,7 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
     trialEndsAt: current.data?.trialEndsAt ?? "",
     currentPeriodEnd: current.data?.currentPeriodEnd ?? "",
     notes: current.data?.notes ?? "",
+    paymentUrl: current.data?.paymentUrl ?? "",
   };
   const save = useAction(
     () =>
@@ -332,6 +334,7 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
         ...v,
         trialEndsAt: v.trialEndsAt || null,
         currentPeriodEnd: v.currentPeriodEnd || null,
+        paymentUrl: v.paymentUrl.trim() || null,
       }),
     {
       success: "Assinatura atualizada com sucesso!",
@@ -387,6 +390,16 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
             onChange={(e) => setDraft({ ...v, currentPeriodEnd: e.target.value })}
           />
           <FullRow>
+            <TextField
+              label="Link de pagamento"
+              type="url"
+              placeholder="https://… (PIX, boleto ou link de cobrança)"
+              maxLength={500}
+              value={v.paymentUrl}
+              onChange={(e) => setDraft({ ...v, paymentUrl: e.target.value })}
+            />
+          </FullRow>
+          <FullRow>
             <TextAreaField
               label="Observações (cobrança)"
               rows={2}
@@ -397,7 +410,9 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
           </FullRow>
           <FullRow>
             <Alert tone="info">
-              Assinatura cancelada bloqueia o acesso da clínica. Inadimplente mantém o acesso e exibe aviso.
+              Com o pagamento vencido (inadimplente, fim do período pago ou da avaliação), a clínica vê um aviso
+              com o botão “Pagar agora”. Passados 5 dias, o acesso fica bloqueado até você registrar o pagamento
+              (situação “Ativa” com novo fim de período). Cancelada bloqueia de vez.
             </Alert>
           </FullRow>
           {save.error && (

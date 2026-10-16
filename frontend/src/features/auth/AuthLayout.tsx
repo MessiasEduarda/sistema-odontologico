@@ -4,6 +4,7 @@ import Image from "next/image";
 import { type ReactNode, useCallback, useState } from "react";
 import styled from "styled-components";
 import brandLogo from "@/assets/odonto-saas-logo.png";
+import { TOOTH_PATH } from "@/components/domain/ToothMark";
 import { media } from "@/styles/theme";
 import { DialogButton, LegalDialog, type LegalTab } from "./LegalDialog";
 
@@ -15,10 +16,7 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/** Contorno de dente (molar) usado na marca e na ilustração. */
-const TOOTH =
-  "M80 30C64 18 40 20 32 40C24 60 30 80 38 98C44 112 44 140 52 158C58 170 70 166 72 150C74 136 76 124 80 124" +
-  "C84 124 86 136 88 150C90 166 102 170 108 158C116 140 116 112 122 98C130 80 136 60 128 40C120 20 96 18 80 30Z";
+const TOOTH = TOOTH_PATH;
 
 /** Paleta da tela de acesso: só cores chapadas (sem degradê). */
 const P = {

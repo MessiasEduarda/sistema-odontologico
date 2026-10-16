@@ -15,6 +15,13 @@ const body = localFont({
   ],
   variable: "--font-body",
   display: "swap",
+  // A Metropolis reserva mais espaço abaixo da linha de base (205) que acima das maiúsculas (108), o que deixa o
+  // texto "alto" em botões, campos e etiquetas. Redistribuir a altura (mesmo total de 1em) centraliza as maiúsculas.
+  declarations: [
+    { prop: "ascent-override", value: "84.35%" },
+    { prop: "descent-override", value: "15.65%" },
+    { prop: "line-gap-override", value: "0%" },
+  ],
 });
 const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 

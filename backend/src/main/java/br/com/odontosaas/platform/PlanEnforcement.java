@@ -19,6 +19,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Aplica o plano da clínica no SERVIDOR (esconder no front-end é só conveniência):
  * <ul>
  *   <li>assinatura cancelada bloqueia a área da clínica (403 SUBSCRIPTION_INACTIVE);
+ *   <li>pagamento vencido além da tolerância bloqueia TODA a área da clínica (402 SUBSCRIPTION_PAST_DUE), exceto a
+ *       consulta da própria assinatura, usada pela tela de pagamento;
  *   <li>funcionalidade fora do plano → 403 FEATURE_NOT_IN_PLAN;
  *   <li>limites de profissionais e pacientes ativos → 403 PLAN_LIMIT_REACHED ao cadastrar.
  * </ul>
@@ -42,6 +44,9 @@ class PlanEnforcement implements WebMvcConfigurer {
             "/api/v1/reports",
             "/api/v1/dashboard",
             "/api/v1/suppliers");
+
+    /** Liberada mesmo com o acesso bloqueado: é ela que mostra o vencimento e o link de pagamento. */
+    static final String SUBSCRIPTION_PATH = "/api/v1/clinic/subscription";
 
     private final SubscriptionService subscriptions;
     private final JdbcClient jdbc;
@@ -67,9 +72,19 @@ class PlanEnforcement implements WebMvcConfigurer {
     private boolean check(HttpServletRequest request, HttpServletResponse response) throws Exception {
         Optional<UUID> tenant = TenantContext.tenantId();
         String path = request.getRequestURI();
-        if (tenant.isEmpty() || CLINIC_PREFIXES.stream().noneMatch(path::startsWith)) return true;
+        if (tenant.isEmpty() || path.equals(SUBSCRIPTION_PATH)) return true;
 
         Optional<SubscriptionView> sub = subscriptions.subscription(tenant.get());
+        if (sub.isPresent() && sub.get().billing().blocked()) {
+            ProblemResponseWriter.write(
+                    response,
+                    402,
+                    "SUBSCRIPTION_PAST_DUE",
+                    "Pagamento pendente",
+                    "O acesso da clínica está suspenso por falta de pagamento da assinatura.");
+            return false;
+        }
+        if (CLINIC_PREFIXES.stream().noneMatch(path::startsWith)) return true;
         if (sub.isPresent() && "CANCELLED".equals(sub.get().status())) {
             return deny(response, "SUBSCRIPTION_INACTIVE", "A assinatura desta clínica está cancelada.");
         }

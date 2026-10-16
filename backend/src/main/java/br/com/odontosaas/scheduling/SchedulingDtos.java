@@ -77,4 +77,51 @@ public final class SchedulingDtos {
             @NotBlank @Pattern(regexp = "CONFIRM|CANCEL") String action) {}
 
     public record TokenRequest(@NotBlank @Size(max = 64) String token) {}
+
+    /** Bloqueio de agenda. {@code professionalId} nulo = clínica inteira. */
+    public record ScheduleBlockRequest(
+            UUID professionalId,
+            @NotNull Instant startsAt,
+            @NotNull Instant endsAt,
+            @NotBlank @Size(max = 160) String reason) {}
+
+    /** {@code appointmentsInside}: atendimentos ativos já marcados dentro do bloqueio (para remarcar). */
+    public record ScheduleBlockView(
+            UUID id,
+            UUID professionalId,
+            String professionalName,
+            Instant startsAt,
+            Instant endsAt,
+            String reason,
+            long appointmentsInside) {}
+    /** Entrada na lista de espera. Profissional e procedimento são opcionais (qualquer um serve). */
+    public record WaitlistRequest(
+            @NotNull UUID patientId,
+            UUID professionalId,
+            UUID procedureId,
+            @Size(max = 200) String preference,
+            @Size(max = 500) String notes,
+            boolean urgent) {}
+
+    /** Resolve a entrada: SCHEDULED (com o atendimento marcado) ou REMOVED (desistência). */
+    public record WaitlistResolveRequest(
+            @NotBlank @Pattern(regexp = "SCHEDULED|REMOVED") String status, UUID appointmentId) {}
+
+    public record WaitlistView(
+            UUID id,
+            UUID patientId,
+            String patientName,
+            String patientMobile,
+            boolean patientAllowWhatsapp,
+            UUID professionalId,
+            String professionalName,
+            UUID procedureId,
+            String procedureName,
+            String preference,
+            String notes,
+            boolean urgent,
+            String status,
+            UUID appointmentId,
+            Instant createdAt,
+            Instant resolvedAt) {}
 }

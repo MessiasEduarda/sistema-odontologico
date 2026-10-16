@@ -16,7 +16,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarOff, CalendarPlus, ChevronLeft, ChevronRight, Hourglass } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type MouseEvent } from "react";
 import styled from "styled-components";
@@ -26,13 +26,15 @@ import { SelectField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { api } from "@/lib/api/endpoints";
-import type { Appointment, Professional } from "@/lib/api/types";
+import type { Appointment, Professional, ScheduleBlock, WaitlistEntry } from "@/lib/api/types";
 import { formatTime, toDateInput, toTimeInput } from "@/lib/format";
 import { APPOINTMENT_STATUS } from "@/lib/labels";
 import { useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
 import { AppointmentDetail } from "./AppointmentDetail";
 import { AppointmentForm, draftFrom, type AppointmentDraft } from "./AppointmentForm";
+import { BlockForm, RemoveBlock, useScheduleBlocks } from "./ScheduleBlocks";
+import { useWaitlistCount, WaitlistPanel } from "./Waitlist";
 
 type View = "day" | "week" | "month" | "list";
 
@@ -55,9 +57,16 @@ export function AgendaPage() {
   const [date, setDate] = useState(() => (params.get("dia") === "amanha" ? addDays(new Date(), 1) : new Date()));
   const [professionalId, setProfessionalId] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [form, setForm] = useState<{ draft: AppointmentDraft; editing: Appointment | null } | null>(() =>
-    params.get("novo") ? { draft: emptyDraft(new Date(), "", 30), editing: null } : null,
-  );
+  const [blocking, setBlocking] = useState(false);
+  const [removingBlock, setRemovingBlock] = useState<ScheduleBlock | null>(null);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const waitingCount = useWaitlistCount();
+  const [form, setForm] = useState<{
+    draft: AppointmentDraft;
+    editing: Appointment | null;
+    /** Agendamento feito a partir da lista de espera: a entrada sai da lista ao salvar. */
+    fromWaitlist?: WaitlistEntry;
+  } | null>(() => (params.get("novo") ? { draft: emptyDraft(new Date(), "", 30), editing: null } : null));
 
   const range = useMemo(() => rangeFor(view, date), [view, date]);
   const professionals = useQuery({ queryKey: ["professionals", true], queryFn: () => api.clinic.professionals(true) });
@@ -71,6 +80,10 @@ export function AgendaPage() {
       }),
   });
 
+  const blocks = useScheduleBlocks(range.from, range.to);
+  const visibleBlocks = (blocks.data ?? []).filter(
+    (b) => !professionalId || !b.professionalId || b.professionalId === professionalId,
+  );
   const visible = (appointments.data ?? []).filter((a) => a.status !== "CANCELLED");
   const columnsForDay: Professional[] = (professionals.data ?? []).filter(
     (p) => !professionalId || p.id === professionalId,
@@ -79,6 +92,20 @@ export function AgendaPage() {
   const openNew = (start: Date, profId?: string) => {
     if (!can(P.SCHEDULE_WRITE)) return;
     setForm({ draft: emptyDraft(start, profId ?? professionalId, 30), editing: null });
+  };
+
+  const scheduleFromWaitlist = (entry: WaitlistEntry) => {
+    setWaitlistOpen(false);
+    setForm({
+      draft: {
+        ...emptyDraft(roundUp(new Date()), entry.professionalId ?? professionalId, 30),
+        patient: { id: entry.patientId, name: entry.patientName },
+        procedureId: entry.procedureId ?? "",
+        notes: entry.preference ? `Lista de espera — preferência: ${entry.preference}` : "",
+      },
+      editing: null,
+      fromWaitlist: entry,
+    });
   };
 
   const move = (dir: 1 | -1) =>
@@ -90,9 +117,18 @@ export function AgendaPage() {
         title="Agenda"
         actions={
           can(P.SCHEDULE_WRITE) && (
-            <Button onClick={() => openNew(roundUp(new Date()))}>
-              <CalendarPlus size={18} aria-hidden /> Novo agendamento
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setWaitlistOpen(true)}>
+                <Hourglass size={18} aria-hidden /> Lista de espera
+                {waitingCount > 0 && <Badge $tone="primary">{waitingCount}</Badge>}
+              </Button>
+              <Button variant="outline" onClick={() => setBlocking(true)}>
+                <CalendarOff size={18} aria-hidden /> Bloquear horário
+              </Button>
+              <Button onClick={() => openNew(roundUp(new Date()))}>
+                <CalendarPlus size={18} aria-hidden /> Novo agendamento
+              </Button>
+            </>
           )
         }
       />
@@ -141,7 +177,13 @@ export function AgendaPage() {
           onOpen={setDetailId}
         />
       ) : view === "list" ? (
-        <ListView appointments={visible} days={range.days} onOpen={setDetailId} />
+        <ListView
+          appointments={visible}
+          blocks={visibleBlocks}
+          days={range.days}
+          onOpen={setDetailId}
+          onBlock={can(P.SCHEDULE_WRITE) ? setRemovingBlock : undefined}
+        />
       ) : (
         <TimeGrid
           columns={
@@ -162,8 +204,10 @@ export function AgendaPage() {
                 }))
           }
           appointments={visible}
+          blocks={visibleBlocks}
           onOpen={setDetailId}
           onCreate={openNew}
+          onBlock={can(P.SCHEDULE_WRITE) ? setRemovingBlock : undefined}
         />
       )}
 
@@ -173,13 +217,17 @@ export function AgendaPage() {
         </Hint>
       )}
 
+      {blocking && <BlockForm initialDate={date} onClose={() => setBlocking(false)} />}
+      {removingBlock && <RemoveBlock block={removingBlock} onClose={() => setRemovingBlock(null)} />}
+      {waitlistOpen && <WaitlistPanel onClose={() => setWaitlistOpen(false)} onSchedule={scheduleFromWaitlist} />}
       {form && (
         <AppointmentForm
-          key={form.editing?.id ?? "new"}
+          key={form.editing?.id ?? form.fromWaitlist?.id ?? "new"}
           open
           initial={form.draft}
           editing={form.editing}
           onClose={() => setForm(null)}
+          afterSave={waitlistResolver(form.fromWaitlist)}
         />
       )}
       <AppointmentDetail
@@ -192,6 +240,10 @@ export function AgendaPage() {
       />
     </Stack>
   );
+}
+
+function waitlistResolver(entry: WaitlistEntry | undefined) {
+  return entry ? (a: Appointment) => api.waitlist.resolve(entry.id, "SCHEDULED", a.id) : undefined;
 }
 
 function emptyDraft(start: Date, professionalId: string, duration: number): AppointmentDraft {
@@ -253,16 +305,31 @@ interface Column {
   color?: string;
 }
 
+/** Parte de um bloqueio que cai num dia, recortada ao horário visível da grade. */
+function blockSegment(block: ScheduleBlock, day: Date) {
+  const gridStart = new Date(day);
+  gridStart.setHours(START_HOUR, 0, 0, 0);
+  const gridEnd = new Date(day);
+  gridEnd.setHours(END_HOUR, 0, 0, 0);
+  const start = new Date(Math.max(new Date(block.startsAt).getTime(), gridStart.getTime()));
+  const end = new Date(Math.min(new Date(block.endsAt).getTime(), gridEnd.getTime()));
+  return end > start ? { start, end } : null;
+}
+
 function TimeGrid({
   columns,
   appointments,
+  blocks,
   onOpen,
   onCreate,
+  onBlock,
 }: {
   columns: Column[];
   appointments: Appointment[];
+  blocks: ScheduleBlock[];
   onOpen: (id: string) => void;
   onCreate: (start: Date, professionalId?: string) => void;
+  onBlock?: (block: ScheduleBlock) => void;
 }) {
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
   const height = (END_HOUR - START_HOUR) * 60 * PX_PER_MIN;
@@ -322,6 +389,29 @@ function TimeGrid({
                 {hours.map((h) => (
                   <HourLine key={h} style={{ top: (h - START_HOUR) * 60 * PX_PER_MIN }} aria-hidden />
                 ))}
+                {blocks
+                  .filter((b) => !col.professionalId || !b.professionalId || b.professionalId === col.professionalId)
+                  .map((b) => {
+                    const seg = blockSegment(b, col.day);
+                    if (!seg) return null;
+                    const label = `${b.reason}${!col.professionalId && b.professionalName ? ` · ${b.professionalName}` : ""}`;
+                    return (
+                      <BlockArea
+                        key={b.id}
+                        type="button"
+                        disabled={!onBlock}
+                        style={{
+                          top: minutesFromStart(seg.start) * PX_PER_MIN,
+                          height: ((seg.end.getTime() - seg.start.getTime()) / 60000) * PX_PER_MIN,
+                        }}
+                        onClick={() => onBlock?.(b)}
+                        aria-label={`Bloqueado: ${label}${onBlock ? ". Clique para remover." : ""}`}
+                        title={onBlock ? "Clique para remover o bloqueio" : undefined}
+                      >
+                        <CalendarOff size={13} aria-hidden /> {label}
+                      </BlockArea>
+                    );
+                  })}
                 {isSameDay(col.day, new Date()) && (
                   <NowLine style={{ top: minutesFromStart(new Date()) * PX_PER_MIN }} />
                 )}
@@ -460,12 +550,16 @@ function MonthView({
 
 function ListView({
   appointments,
+  blocks,
   days,
   onOpen,
+  onBlock,
 }: {
   appointments: Appointment[];
+  blocks: ScheduleBlock[];
   days: Date[];
   onOpen: (id: string) => void;
+  onBlock?: (block: ScheduleBlock) => void;
 }) {
   return (
     <Stack $gap={4}>
@@ -474,6 +568,14 @@ function ListView({
         return (
           <Card key={d.toISOString()}>
             <ListDay>{format(d, "EEEE, dd/MM", { locale: ptBR })}</ListDay>
+            {blocks
+              .filter((b) => new Date(b.startsAt) < addDays(startOfDay(d), 1) && new Date(b.endsAt) > startOfDay(d))
+              .map((b) => (
+                <BlockLine key={b.id} type="button" disabled={!onBlock} onClick={() => onBlock?.(b)}>
+                  <CalendarOff size={14} aria-hidden /> Bloqueado: {b.reason} ·{" "}
+                  {b.professionalName ?? "clínica inteira"}
+                </BlockLine>
+              ))}
             {events.length === 0 ? (
               <Hint>Nenhum atendimento.</Hint>
             ) : (
@@ -644,6 +746,53 @@ const HourLine = styled.div`
   right: 0;
   border-top: 1px solid ${({ theme }) => theme.colors.border};
   pointer-events: none;
+`;
+
+/** Período bloqueado na grade: faixa cinza com o motivo; atendimentos aparecem por cima. */
+const BlockArea = styled.button`
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 0;
+  border-top: 1px dashed ${({ theme }) => theme.colors.borderStrong};
+  background: ${({ theme }) => theme.colors.border};
+  color: ${({ theme }) => theme.colors.textMuted};
+  font-size: ${({ theme }) => theme.fontSizes.xs};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.colors.borderStrong};
+  }
+`;
+
+const BlockLine = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin: ${({ theme }) => theme.space[2]} 0;
+  padding: ${({ theme }) => `${theme.space[2]} ${theme.space[3]}`};
+  border: 0;
+  border-radius: ${({ theme }) => theme.radii.md};
+  background: ${({ theme }) => theme.colors.border};
+  color: ${({ theme }) => theme.colors.textMuted};
+  font-size: ${({ theme }) => theme.fontSizes.sm};
+  text-align: left;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
 `;
 
 const NowLine = styled.div`

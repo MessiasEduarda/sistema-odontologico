@@ -43,6 +43,9 @@ const NETWORK_ERROR: ProblemDetails = {
   detail: "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
 };
 
+/** Disparado quando o servidor recusa por falta de pagamento da assinatura (402), para a tela de bloqueio aparecer. */
+export const BILLING_BLOCKED_EVENT = "odonto:billing-blocked";
+
 const CSRF_COOKIE = "XSRF-TOKEN";
 const CSRF_HEADER = "X-XSRF-TOKEN";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -62,6 +65,9 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   if (!response.ok) {
+    if (response.status === 402 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(BILLING_BLOCKED_EVENT));
+    }
     throw new ApiError(response.status, await readProblem(response));
   }
 

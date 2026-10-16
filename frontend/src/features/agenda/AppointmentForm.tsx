@@ -44,10 +44,12 @@ interface Props {
   initial: AppointmentDraft;
   editing?: Appointment | null;
   onClose: () => void;
+  /** Executado depois de salvar, na mesma ação (ex.: tirar o paciente da lista de espera). */
+  afterSave?: (appointment: Appointment) => Promise<unknown>;
 }
 
 /** Agendar ou remarcar. Mostra horários livres do profissional no dia escolhido. */
-export function AppointmentForm({ open, initial, editing, onClose }: Props) {
+export function AppointmentForm({ open, initial, editing, onClose, afterSave }: Props) {
   const [draft, setDraft] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = <K extends keyof AppointmentDraft>(key: K, value: AppointmentDraft[K]) =>
@@ -66,7 +68,7 @@ export function AppointmentForm({ open, initial, editing, onClose }: Props) {
   });
 
   const save = useAction(
-    () => {
+    async () => {
       const startsAt = localDateTimeToIso(draft.date, draft.time);
       const endsAt = new Date(new Date(startsAt).getTime() + draft.duration * 60000).toISOString();
       const body = {
@@ -79,11 +81,13 @@ export function AppointmentForm({ open, initial, editing, onClose }: Props) {
         notes: draft.notes || null,
         version: editing?.version,
       };
-      return editing ? api.appointments.update(editing.id, body) : api.appointments.create(body);
+      const saved = await (editing ? api.appointments.update(editing.id, body) : api.appointments.create(body));
+      await afterSave?.(saved);
+      return saved;
     },
     {
       success: editing ? "Agendamento atualizado com sucesso!" : "Atendimento agendado com sucesso!",
-      invalidate: [["appointments"], ["dashboard"], ["availability"]],
+      invalidate: [["appointments"], ["dashboard"], ["availability"], ["waitlist"]],
       onSuccess: onClose,
     },
   );

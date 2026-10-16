@@ -1,10 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import styled from "styled-components";
 import { EmptyState, ErrorState } from "./display";
-import { IconButton } from "./IconButton";
+import { Pagination } from "./Pagination";
 
 export interface Column<T> {
   key: string;
@@ -29,7 +28,14 @@ interface DataTableProps<T> {
   emptyDescription?: ReactNode;
   emptyAction?: ReactNode;
   onRowClick?: (row: T) => void;
+  /** Itens por página na paginação automática (padrão 10). */
+  pageSize?: number;
+  /** Lista já paginada pelo servidor: a tabela só mostra o paginador com estes dados. */
+  serverPagination?: { page: number; totalPages: number; totalItems: number; onChange: (page: number) => void };
 }
+
+/** Componentes que já usavam o paginador antigo continuam importando daqui. */
+export { Pagination };
 
 /**
  * Tabela padrão: cabeçalho caramelo em gradiente (referências), linhas espaçadas; no celular vira lista de cartões.
@@ -47,83 +53,98 @@ export function DataTable<T>({
   emptyDescription,
   emptyAction,
   onRowClick,
+  pageSize = 10,
+  serverPagination,
 }: DataTableProps<T>) {
+  const [page, setPage] = useState(0);
+  // Altura real de uma linha de dados desta tabela (varia com etiquetas e botões), medida no navegador.
+  const [rowHeight, setRowHeight] = useState(0);
+  const observer = useRef<ResizeObserver | null>(null);
+  const measureRow = useCallback((row: HTMLTableRowElement | null) => {
+    observer.current?.disconnect();
+    if (!row || typeof ResizeObserver === "undefined") return;
+    observer.current = new ResizeObserver(() => setRowHeight(Math.round(row.getBoundingClientRect().height)));
+    observer.current.observe(row);
+  }, []);
+  const total = rows?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
   if (error) return <ErrorState error={error} onRetry={onRetry} />;
 
-  return (
-    <Wrapper aria-busy={loading || undefined}>
-      <Table>
-        <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr>
-            {columns.map((c) => (
-              <Th key={c.key} scope="col" style={{ minWidth: c.minWidth, textAlign: c.align ?? "left" }}>
-                {c.header}
-              </Th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {loading &&
-            Array.from({ length: 4 }, (_, i) => (
-              <tr key={`skeleton-${i}`}>
-                {columns.map((c) => (
-                  <Td key={c.key} data-label={c.header}>
-                    <Skeleton />
-                  </Td>
-                ))}
-              </tr>
-            ))}
-          {!loading &&
-            rows?.map((row) => (
-              <Tr
-                key={rowKey(row)}
-                $clickable={Boolean(onRowClick)}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-              >
-                {columns.map((c) => (
-                  <Td
-                    key={c.key}
-                    data-label={c.header}
-                    $hideOnMobile={c.hideOnMobile}
-                    style={{ textAlign: c.align ?? "left" }}
-                  >
-                    {c.render(row)}
-                  </Td>
-                ))}
-              </Tr>
-            ))}
-        </tbody>
-      </Table>
-      {!loading && rows?.length === 0 && (
-        <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
-      )}
-    </Wrapper>
-  );
-}
+  // Se a lista diminuir (busca, filtro, exclusão), fica na última página que ainda existe.
+  const current = Math.min(page, totalPages - 1);
+  const visible = serverPagination ? rows : rows?.slice(current * pageSize, current * pageSize + pageSize);
 
-interface PaginationProps {
-  page: number;
-  totalPages: number;
-  totalItems: number;
-  onChange: (page: number) => void;
-}
-
-export function Pagination({ page, totalPages, totalItems, onChange }: PaginationProps) {
-  if (totalPages <= 1) return null;
   return (
-    <Pager aria-label="Paginação">
-      <span>
-        Página {page + 1} de {totalPages} · {totalItems} registro(s)
-      </span>
-      <IconButton icon={ChevronLeft} label="Página anterior" disabled={page === 0} onClick={() => onChange(page - 1)} />
-      <IconButton
-        icon={ChevronRight}
-        label="Próxima página"
-        disabled={page + 1 >= totalPages}
-        onClick={() => onChange(page + 1)}
-      />
-    </Pager>
+    <div>
+      <Wrapper aria-busy={loading || undefined}>
+        <Table>
+          <caption className="sr-only">{caption}</caption>
+          <thead>
+            <tr>
+              {columns.map((c) => (
+                <Th key={c.key} scope="col" style={{ minWidth: c.minWidth, textAlign: c.align ?? "left" }}>
+                  {c.header}
+                </Th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading &&
+              Array.from({ length: 4 }, (_, i) => (
+                <tr key={`skeleton-${i}`}>
+                  {columns.map((c) => (
+                    <Td key={c.key} data-label={c.header}>
+                      <Skeleton />
+                    </Td>
+                  ))}
+                </tr>
+              ))}
+            {!loading &&
+              visible?.map((row, index) => (
+                <Tr
+                  key={rowKey(row)}
+                  ref={index === 0 ? measureRow : undefined}
+                  $clickable={Boolean(onRowClick)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                >
+                  {columns.map((c) => (
+                    <Td
+                      key={c.key}
+                      data-label={c.header}
+                      $hideOnMobile={c.hideOnMobile}
+                      style={{ textAlign: c.align ?? "left" }}
+                    >
+                      {c.render(row)}
+                    </Td>
+                  ))}
+                </Tr>
+              ))}
+            {/* Espaço em branco (sem linhas) para a tabela ter sempre a altura de uma página cheia de dados. */}
+            {!loading && rowHeight > 0 && (visible?.length ?? 0) > 0 && (visible?.length ?? 0) < pageSize && (
+              <FillerRow aria-hidden="true">
+                <td colSpan={columns.length} style={{ height: (pageSize - (visible?.length ?? 0)) * rowHeight }} />
+              </FillerRow>
+            )}
+          </tbody>
+        </Table>
+        {!loading && rows?.length === 0 && (
+          <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
+        )}
+      </Wrapper>
+      {!loading &&
+        (serverPagination ? (
+          <Pagination {...serverPagination} shownItems={rows?.length ?? 0} />
+        ) : (
+          <Pagination
+            page={current}
+            totalPages={totalPages}
+            totalItems={total}
+            shownItems={visible?.length ?? 0}
+            onChange={setPage}
+          />
+        ))}
+    </div>
   );
 }
 
@@ -196,6 +217,13 @@ const Tr = styled.tr<{ $clickable: boolean }>`
   }
 `;
 
+/** Espaço de preenchimento (só na visão de tabela; no celular, em cartões, não aparece). */
+const FillerRow = styled.tr`
+  @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
+    display: none !important;
+  }
+`;
+
 const Td = styled.td<{ $hideOnMobile?: boolean }>`
   padding: ${({ theme }) => `${theme.space[4]} ${theme.space[5]}`};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
@@ -222,19 +250,6 @@ const Skeleton = styled.span`
     to {
       background-position: -200% 0;
     }
-  }
-`;
-
-const Pager = styled.nav`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${({ theme }) => theme.space[2]};
-  color: ${({ theme }) => theme.colors.textMuted};
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-
-  span {
-    margin-right: ${({ theme }) => theme.space[2]};
   }
 `;
 

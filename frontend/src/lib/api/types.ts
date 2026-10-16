@@ -791,6 +791,16 @@ export interface Subscription {
   patients: number;
   notes: string | null;
   updatedAt: IsoInstant;
+  /** Link de pagamento (PIX, boleto ou cobrança) aberto pelo botão "Pagar agora". */
+  paymentUrl: string | null;
+  billing: SubscriptionBilling;
+}
+
+/** OK; DUE = vencida, ainda dentro da tolerância (aviso); BLOCKED = acesso suspenso até o pagamento. */
+export interface SubscriptionBilling {
+  state: "OK" | "DUE" | "BLOCKED";
+  dueDate: IsoDate | null;
+  blockedFrom: IsoDate | null;
 }
 
 export interface PlatformClinic {
@@ -838,4 +848,100 @@ export interface PlatformEvent {
   resourceId: string | null;
   ip: string | null;
   occurredAt: IsoInstant;
+}
+
+/** Linha da planilha de importação de pacientes (valores em texto, como vieram do arquivo). */
+export interface PatientImportRow {
+  line: number;
+  fullName?: string;
+  socialName?: string;
+  birthDate?: string;
+  cpf?: string;
+  rg?: string;
+  sex?: string;
+  phone?: string;
+  mobile?: string;
+  email?: string;
+  zipCode?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  district?: string;
+  city?: string;
+  state?: string;
+  occupation?: string;
+  referralSource?: string;
+  healthInsurance?: string;
+  insuranceNumber?: string;
+  guardianName?: string;
+  guardianCpf?: string;
+  guardianPhone?: string;
+  notes?: string;
+  allowEmail?: string;
+  allowWhatsapp?: string;
+}
+
+export interface PatientImportResult {
+  total: number;
+  ready: number;
+  created: number;
+  issues: { line: number; name: string; kind: "ERROR" | "DUPLICATE"; message: string }[];
+}
+
+/** Bloqueio de agenda. professionalId nulo = clínica inteira. */
+export interface ScheduleBlock {
+  id: Uuid;
+  professionalId: Uuid | null;
+  professionalName: string | null;
+  startsAt: IsoInstant;
+  endsAt: IsoInstant;
+  reason: string;
+  /** Atendimentos já marcados dentro do bloqueio (para remarcar). */
+  appointmentsInside: number;
+}
+
+/** Dados para o recibo de um pagamento (montados a partir da conta a receber). */
+export interface ReceiptData {
+  id: Uuid;
+  amount: number;
+  refundedAmount: number;
+  method: PaymentMethod;
+  paidAt: IsoInstant;
+  notes: string | null;
+  createdByName: string | null;
+  /** Descrição da conta (ex.: orçamento aprovado). */
+  description: string;
+  /** "2/3" quando parcelado. */
+  installment: string | null;
+}
+
+export type WaitlistStatus = "WAITING" | "SCHEDULED" | "REMOVED";
+
+/** Paciente na lista de espera (encaixe). */
+export interface WaitlistEntry {
+  id: Uuid;
+  patientId: Uuid;
+  patientName: string;
+  patientMobile: string | null;
+  patientAllowWhatsapp: boolean;
+  professionalId: Uuid | null;
+  professionalName: string | null;
+  procedureId: Uuid | null;
+  procedureName: string | null;
+  preference: string | null;
+  notes: string | null;
+  urgent: boolean;
+  status: WaitlistStatus;
+  appointmentId: Uuid | null;
+  createdAt: IsoInstant;
+  resolvedAt: IsoInstant | null;
+}
+
+export interface WaitlistInput {
+  patientId: Uuid;
+  professionalId: Uuid | null;
+  procedureId: Uuid | null;
+  preference: string | null;
+  notes: string | null;
+  urgent: boolean;
 }

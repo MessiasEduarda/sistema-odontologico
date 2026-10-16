@@ -15,9 +15,9 @@ import type {
   CareTemplateInput,
   CashFlow,
   ChartEntry,
+  ClinicSettings,
   ClinicalDocument,
   ClinicalNote,
-  ClinicSettings,
   Consent,
   ConsentCategory,
   ConsentListItem,
@@ -27,16 +27,18 @@ import type {
   FinancialReport,
   InstallmentRow,
   InventoryAlerts,
-  IssuedDocument,
   Invitation,
+  IssuedDocument,
   Member,
   MessageTemplate,
   OutboundMessage,
   Page,
   Patient,
+  PatientImportResult,
+  PatientImportRow,
   PatientInput,
-  PatientsReport,
   PatientSummary,
+  PatientsReport,
   Payable,
   PaymentMethod,
   PerformedProcedure,
@@ -48,8 +50,8 @@ import type {
   PlatformMetrics,
   PlatformPlan,
   Procedure,
-  ProductionReport,
   Product,
+  ProductionReport,
   Professional,
   Question,
   Receivable,
@@ -58,12 +60,16 @@ import type {
   RecordSummary,
   RoleInfo,
   Room,
+  ScheduleBlock,
   ScheduleSlot,
   SessionInfo,
   StockMovement,
   Subscription,
   Supplier,
   Uuid,
+  WaitlistEntry,
+  WaitlistInput,
+  WaitlistStatus,
 } from "./types";
 
 /** Monta query string ignorando valores vazios. */
@@ -80,14 +86,6 @@ export const api = {
     settings: () => apiFetch<ClinicSettings>("/api/v1/clinic/settings"),
     saveSettings: (body: Omit<ClinicSettings, "timeZone" | "logoUpdatedAt">) =>
       apiPut<ClinicSettings>("/api/v1/clinic/settings", body),
-    /** URL da logo; `version` (logoUpdatedAt) renova o cache quando a logo muda. */
-    logoUrl: (version: string) => `/api/v1/clinic/logo?v=${encodeURIComponent(version)}`,
-    uploadLogo: (file: File) => {
-      const form = new FormData();
-      form.append("file", file);
-      return apiFetch<{ logoUpdatedAt: string }>("/api/v1/clinic/logo", { method: "PUT", body: form });
-    },
-    deleteLogo: () => apiDelete<void>("/api/v1/clinic/logo"),
     subscription: () => apiFetch<Subscription>("/api/v1/clinic/subscription"),
     professionals: (active?: boolean) => apiFetch<Professional[]>(`/api/v1/clinic/professionals${qs({ active })}`),
     createProfessional: (body: Partial<Professional>) => apiPost<Professional>("/api/v1/clinic/professionals", body),
@@ -142,7 +140,11 @@ export const api = {
     search: (params: { q?: string; active?: boolean; page?: number; size?: number }) =>
       apiFetch<Page<PatientSummary>>(`/api/v1/patients${qs(params)}`),
     get: (id: Uuid) => apiFetch<Patient>(`/api/v1/patients/${id}`),
+    /** Todos os dados do paciente (portabilidade LGPD), em JSON. */
+    exportData: (id: Uuid) => apiFetch<Record<string, unknown>>(`/api/v1/patients/${id}/export`),
     create: (body: PatientInput) => apiPost<Patient>("/api/v1/patients", body),
+    importRows: (rows: PatientImportRow[], dryRun: boolean) =>
+      apiPost<PatientImportResult>("/api/v1/patients/import", { rows, dryRun }),
     update: (id: Uuid, body: PatientInput) => apiPut<Patient>(`/api/v1/patients/${id}`, body),
     setActive: (id: Uuid, active: boolean) =>
       apiPost<Patient>(`/api/v1/patients/${id}/${active ? "activate" : "deactivate"}`),
@@ -153,10 +155,27 @@ export const api = {
     revokePortal: (id: Uuid) => apiPost<void>(`/api/v1/patients/${id}/portal-access/revoke`),
   },
 
+  scheduleBlocks: {
+    list: (from: string, to: string) => apiFetch<ScheduleBlock[]>(`/api/v1/schedule-blocks${qs({ from, to })}`),
+    create: (body: { professionalId: Uuid | null; startsAt: string; endsAt: string; reason: string }) =>
+      apiPost<ScheduleBlock>("/api/v1/schedule-blocks", body),
+    remove: (id: Uuid) => apiDelete<void>(`/api/v1/schedule-blocks/${id}`),
+  },
+
+  waitlist: {
+    list: (status: WaitlistStatus = "WAITING") => apiFetch<WaitlistEntry[]>(`/api/v1/waitlist${qs({ status })}`),
+    create: (body: WaitlistInput) => apiPost<WaitlistEntry>("/api/v1/waitlist", body),
+    update: (id: Uuid, body: WaitlistInput) => apiPut<WaitlistEntry>(`/api/v1/waitlist/${id}`, body),
+    resolve: (id: Uuid, status: "SCHEDULED" | "REMOVED", appointmentId?: Uuid) =>
+      apiPost<WaitlistEntry>(`/api/v1/waitlist/${id}/resolve`, { status, appointmentId }),
+  },
+
   appointments: {
     list: (params: { from?: string; to?: string; professionalId?: string; patientId?: string; status?: string }) =>
       apiFetch<Appointment[]>(`/api/v1/appointments${qs(params)}`),
     detail: (id: Uuid) => apiFetch<AppointmentDetail>(`/api/v1/appointments/${id}`),
+    /** Link do paciente (confirmar/cancelar), para enviar por WhatsApp. Renova o anterior. */
+    patientLink: (id: Uuid) => apiPost<{ path: string }>(`/api/v1/appointments/${id}/patient-link`),
     create: (body: AppointmentInput) => apiPost<Appointment>("/api/v1/appointments", body),
     update: (id: Uuid, body: AppointmentInput) => apiPut<Appointment>(`/api/v1/appointments/${id}`, body),
     status: (id: Uuid, status: string, reason?: string) =>
@@ -346,6 +365,7 @@ export const api = {
         trialEndsAt?: string | null;
         currentPeriodEnd?: string | null;
         notes?: string;
+        paymentUrl?: string | null;
       },
     ) => apiPut<Subscription>(`/api/v1/platform/clinics/${id}/subscription`, body),
     plans: () => apiFetch<PlatformPlan[]>("/api/v1/platform/plans"),

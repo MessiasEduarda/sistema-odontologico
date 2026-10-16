@@ -36,6 +36,7 @@ class PlatformSeeds implements ApplicationRunner {
     private final TransactionTemplate tx;
     private final SubscriptionService subscriptions;
     private final DevDemoData demo;
+    private final DevFinanceDemo finance;
 
     PlatformSeeds(
             AppProperties app,
@@ -44,7 +45,8 @@ class PlatformSeeds implements ApplicationRunner {
             AuditService audit,
             TransactionTemplate tx,
             SubscriptionService subscriptions,
-            DevDemoData demo) {
+            DevDemoData demo,
+            DevFinanceDemo finance) {
         this.app = app;
         this.provisioning = provisioning;
         this.tenants = tenants;
@@ -52,6 +54,7 @@ class PlatformSeeds implements ApplicationRunner {
         this.tx = tx;
         this.subscriptions = subscriptions;
         this.demo = demo;
+        this.finance = finance;
     }
 
     @Override
@@ -90,6 +93,14 @@ class PlatformSeeds implements ApplicationRunner {
                             t.getId(),
                             provisioning.userId("dentista@sorriso.example").orElse(null),
                             provisioning.userId("dona@sorriso.example").orElse(null)));
+            tenants.findBySlugIgnoreCase("sorriso-demo")
+                    .ifPresent(t -> finance.fill(
+                            t.getId(),
+                            provisioning.userId("dona@sorriso.example").orElse(null)));
+            tenants.findBySlugIgnoreCase("exemplo-dois")
+                    .ifPresent(t -> finance.fill(
+                            t.getId(),
+                            provisioning.userId("dono@exemplo2.example").orElse(null)));
         });
     }
 

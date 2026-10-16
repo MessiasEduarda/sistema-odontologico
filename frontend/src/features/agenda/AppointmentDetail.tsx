@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import styled from "styled-components";
 import { ReasonDialog } from "@/components/domain/ReasonDialog";
+import { WhatsAppButton } from "@/components/domain/WhatsAppButton";
 import { Button } from "@/components/ui/Button";
 import { Badge, DetailList, Muted, Stack } from "@/components/ui/display";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -14,6 +15,8 @@ import type { Appointment } from "@/lib/api/types";
 import { formatDate, formatDateTime, formatPhone, formatTime } from "@/lib/format";
 import { APPOINTMENT_ACTIONS, APPOINTMENT_STATUS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
+import { firstName } from "@/lib/whatsapp";
+import { useWaitlistCount } from "./Waitlist";
 import { P } from "@/lib/permissions";
 
 const HISTORY_LABELS: Record<string, string> = {
@@ -32,6 +35,7 @@ interface Props {
 export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
   const can = useCan();
   const [cancelling, setCancelling] = useState(false);
+  const waitingCount = useWaitlistCount();
   const { data, isPending } = useQuery({
     queryKey: ["appointments", "detail", appointmentId],
     queryFn: () => api.appointments.detail(appointmentId ?? ""),
@@ -42,7 +46,10 @@ export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
     ({ status, reason }: { status: string; reason?: string }) =>
       api.appointments.status(appointmentId ?? "", status, reason),
     {
-      success: "Status atualizado com sucesso!",
+      success: (r) =>
+        r.status === "CANCELLED" && waitingCount > 0
+          ? `Atendimento cancelado. Há ${waitingCount} paciente(s) na lista de espera — veja quem pode ocupar o horário.`
+          : "Status atualizado com sucesso!",
       invalidate: [["appointments"], ["dashboard"]],
       onSuccess: () => setCancelling(false),
     },
@@ -50,6 +57,25 @@ export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
 
   const a = data?.appointment;
   const writable = can(P.SCHEDULE_WRITE);
+  const patient = useQuery({
+    queryKey: ["patient", a?.patientId],
+    queryFn: () => api.patients.get(a?.patientId ?? ""),
+    enabled: Boolean(a?.patientId) && can(P.PATIENTS_READ),
+    staleTime: 60_000,
+  });
+  const clinic = useQuery({ queryKey: ["clinic-settings"], queryFn: api.clinic.settings, staleTime: 60_000 });
+
+  /** Lembrete com data, hora, profissional e o link para o paciente confirmar ou cancelar. */
+  const reminder = async () => {
+    if (!a) return "";
+    const { path } = await api.appointments.patientLink(a.id);
+    return [
+      `Olá, ${firstName(a.patientName)}! Aqui é da ${clinic.data?.name ?? "clínica"}.`,
+      `Lembrete da sua consulta em ${formatDate(a.startsAt)} às ${formatTime(a.startsAt)} com ${a.professionalName}.`,
+      `Para confirmar ou cancelar: ${window.location.origin}${path}`,
+      "Se precisar remarcar, é só responder esta mensagem.",
+    ].join("\n\n");
+  };
 
   return (
     <>
@@ -123,6 +149,14 @@ export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
                   <Button variant="ghost" onClick={() => onEdit(a)}>
                     Editar / remarcar
                   </Button>
+                )}
+                {["SCHEDULED", "CONFIRMED"].includes(a.status) && (
+                  <WhatsAppButton
+                    phone={a.patientMobile}
+                    allowed={patient.data?.allowWhatsapp ?? false}
+                    label="Lembrar pelo WhatsApp"
+                    message={reminder}
+                  />
                 )}
               </Actions>
             )}

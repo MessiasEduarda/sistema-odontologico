@@ -95,4 +95,46 @@ public final class PatientDtos {
             boolean allowSms,
             boolean allowWhatsapp,
             Long version) {}
+
+    /**
+     * Linha da planilha de importação, com os valores como vieram (texto). {@code line} é o número da linha no
+     * arquivo, para o relatório apontar onde corrigir.
+     */
+    public record ImportRow(
+            int line,
+            String fullName,
+            String socialName,
+            String birthDate,
+            String cpf,
+            String rg,
+            String sex,
+            String phone,
+            String mobile,
+            String email,
+            String zipCode,
+            String street,
+            String number,
+            String complement,
+            String district,
+            String city,
+            String state,
+            String occupation,
+            String referralSource,
+            String healthInsurance,
+            String insuranceNumber,
+            String guardianName,
+            String guardianCpf,
+            String guardianPhone,
+            String notes,
+            String allowEmail,
+            String allowWhatsapp) {}
+
+    public record ImportRequest(
+            @jakarta.validation.constraints.NotNull java.util.List<ImportRow> rows, boolean dryRun) {}
+
+    /** {@code kind}: ERROR (linha inválida) ou DUPLICATE (CPF já cadastrado ou repetido na planilha). */
+    public record ImportIssue(int line, String name, String kind, String message) {}
+
+    /** Resultado: {@code ready} linhas válidas; {@code created} só é maior que zero quando não é simulação. */
+    public record ImportResult(int total, int ready, int created, java.util.List<ImportIssue> issues) {}
 }

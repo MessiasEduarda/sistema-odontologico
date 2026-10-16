@@ -4,14 +4,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useFeedback } from "@/components/ui/Feedback";
 import { api } from "@/lib/api/endpoints";
-import type { AestheticRecord, Anamnesis, ClinicalDocument, Consent, Plan } from "@/lib/api/types";
+import type { AestheticRecord, Anamnesis, ClinicalDocument, Consent, Plan, ReceiptData } from "@/lib/api/types";
 
 export type PdfRequest =
   | { kind: "anamnesis"; patientId: string; data: Anamnesis }
   | { kind: "consent"; patientId: string; data: Consent }
   | { kind: "document"; patientId: string; data: ClinicalDocument }
   | { kind: "aesthetic"; patientId: string; data: AestheticRecord }
-  | { kind: "plan"; patientId: string; data: Plan };
+  | { kind: "plan"; patientId: string; data: Plan }
+  | { kind: "receipt"; patientId: string; data: ReceiptData };
 
 const PREFIX: Record<PdfRequest["kind"], string> = {
   anamnesis: "anamnese",
@@ -19,6 +20,7 @@ const PREFIX: Record<PdfRequest["kind"], string> = {
   document: "documento",
   aesthetic: "harmonizacao",
   plan: "orcamento",
+  receipt: "recibo",
 };
 
 const DOCUMENT_PREFIX: Record<string, string> = {
@@ -36,22 +38,6 @@ function slug(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 60);
-}
-
-/** Baixa a logo e converte para PNG (o gerador de PDF não lê WEBP). Falha na logo não impede o PDF. */
-async function logoAsPng(url: string): Promise<string | null> {
-  try {
-    const blob = await (await fetch(url, { credentials: "same-origin" })).blob();
-    const bitmap = await createImageBitmap(blob);
-    const scale = Math.min(1, 400 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/png");
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -76,7 +62,7 @@ export function usePdf() {
           staleTime: 60_000,
         }),
       ]);
-      const logo = clinic.logoUpdatedAt ? await logoAsPng(api.clinic.logoUrl(clinic.logoUpdatedAt)) : null;
+      const logo = null;
       const ctx = { clinic, patient, logo };
       const element =
         req.kind === "anamnesis"
@@ -87,7 +73,9 @@ export function usePdf() {
               ? docs.ClinicalDocumentPdf({ ctx, doc: req.data })
               : req.kind === "aesthetic"
                 ? docs.AestheticPdf({ ctx, record: req.data })
-                : docs.PlanPdf({ ctx, plan: req.data });
+                : req.kind === "plan"
+                  ? docs.PlanPdf({ ctx, plan: req.data })
+                  : docs.ReceiptPdf({ ctx, receipt: req.data });
       const blob = await pdf(element).toBlob();
       const date = new Date().toISOString().slice(0, 10);
       const url = URL.createObjectURL(blob);

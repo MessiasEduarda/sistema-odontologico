@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { ageFrom, formatCpf, formatDate, formatMoney, formatPhone, isValidCpf, parseDateOnly } from "./format";
+import {
+  ageFrom,
+  formatCpf,
+  formatDate,
+  formatMoney,
+  formatPercent,
+  formatPhone,
+  isValidCpf,
+  moneyInWords,
+  parseDateOnly,
+} from "./format";
 
 describe("formatação brasileira", () => {
   it("formata dinheiro e trata vazio", () => {
@@ -30,5 +40,28 @@ describe("formatação brasileira", () => {
     expect(ageFrom("2000-10-15", today)).toBe(26);
     expect(ageFrom("2000-10-16", today)).toBe(25);
     expect(ageFrom(null, today)).toBeNull();
+  });
+});
+
+describe("formatPercent", () => {
+  it("usa vírgula e no máximo uma casa decimal", () => {
+    expect(formatPercent(2.1)).toBe("2,1%");
+    expect(formatPercent(45)).toBe("45%");
+    expect(formatPercent(33.333)).toBe("33,3%");
+    expect(formatPercent(null)).toBe("—");
+  });
+});
+
+describe("moneyInWords", () => {
+  it("escreve valores em reais por extenso", () => {
+    expect(moneyInWords(150.3)).toBe("cento e cinquenta reais e trinta centavos");
+    expect(moneyInWords(1)).toBe("um real");
+    expect(moneyInWords(100)).toBe("cem reais");
+    expect(moneyInWords(1250)).toBe("mil duzentos e cinquenta reais");
+    expect(moneyInWords(2000)).toBe("dois mil reais");
+    expect(moneyInWords(1100)).toBe("mil e cem reais");
+    expect(moneyInWords(1050.01)).toBe("mil e cinquenta reais e um centavo");
+    expect(moneyInWords(1000000)).toBe("um milhão de reais");
+    expect(moneyInWords(0.5)).toBe("cinquenta centavos");
   });
 });

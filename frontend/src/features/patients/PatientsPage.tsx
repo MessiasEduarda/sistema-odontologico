@@ -1,12 +1,12 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { UserPlus } from "lucide-react";
+import { FileSpreadsheet, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import styled from "styled-components";
 import { Button } from "@/components/ui/Button";
-import { DataTable, Pagination } from "@/components/ui/DataTable";
+import { DataTable } from "@/components/ui/DataTable";
 import { Badge, Muted, PageHeader, Stack } from "@/components/ui/display";
 import { SelectField } from "@/components/ui/fields";
 import { Modal } from "@/components/ui/Modal";
@@ -16,6 +16,7 @@ import type { PatientSummary } from "@/lib/api/types";
 import { ageFrom, formatCpf, formatDate, formatPhone } from "@/lib/format";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { ImportPatients } from "./ImportPatients";
 import { PatientForm } from "./PatientForm";
 
 export function PatientsPage() {
@@ -25,10 +26,11 @@ export function PatientsPage() {
   const [status, setStatus] = useState("true");
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const { data, isPending, error, refetch } = useQuery({
     queryKey: ["patients", "list", q, status, page],
-    queryFn: () => api.patients.search({ q, active: status === "" ? undefined : status === "true", page, size: 20 }),
+    queryFn: () => api.patients.search({ q, active: status === "" ? undefined : status === "true", page, size: 10 }),
     placeholderData: keepPreviousData,
   });
 
@@ -45,9 +47,14 @@ export function PatientsPage() {
         description={data ? `${data.totalItems} paciente(s)` : undefined}
         actions={
           can(P.PATIENTS_WRITE) && (
-            <Button onClick={() => setCreating(true)}>
-              <UserPlus size={18} aria-hidden /> Novo paciente
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setImporting(true)}>
+                <FileSpreadsheet size={18} aria-hidden /> Importar planilha
+              </Button>
+              <Button onClick={() => setCreating(true)}>
+                <UserPlus size={18} aria-hidden /> Novo paciente
+              </Button>
+            </>
           )
         }
       />
@@ -80,6 +87,14 @@ export function PatientsPage() {
       <DataTable<PatientSummary>
         caption="Pacientes"
         rows={data?.items}
+        serverPagination={
+          data && {
+            page: data.page,
+            totalPages: data.totalPages,
+            totalItems: data.totalItems,
+            onChange: setPage,
+          }
+        }
         loading={isPending}
         error={error}
         onRetry={refetch}
@@ -132,9 +147,6 @@ export function PatientsPage() {
           },
         ]}
       />
-      {data && (
-        <Pagination page={data.page} totalPages={data.totalPages} totalItems={data.totalItems} onChange={setPage} />
-      )}
 
       <Modal open={creating} onClose={() => setCreating(false)} title="Novo paciente" size="lg">
         {creating && (
@@ -147,6 +159,7 @@ export function PatientsPage() {
           />
         )}
       </Modal>
+      {importing && <ImportPatients onClose={() => setImporting(false)} />}
     </Stack>
   );
 }

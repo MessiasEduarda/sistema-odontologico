@@ -2,6 +2,9 @@ package br.com.odontosaas.patients;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
+import br.com.odontosaas.patients.PatientDtos.ImportIssue;
+import br.com.odontosaas.patients.PatientDtos.ImportResult;
+import br.com.odontosaas.patients.PatientDtos.ImportRow;
 import br.com.odontosaas.patients.PatientDtos.PatientRequest;
 import br.com.odontosaas.patients.PatientDtos.PatientSummary;
 import br.com.odontosaas.patients.PatientDtos.PatientView;
@@ -11,10 +14,18 @@ import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.PageResponse;
 import br.com.odontosaas.shared.Versioned;
 import br.com.odontosaas.tenancy.TenantContext;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -30,12 +41,17 @@ public class PatientService {
             created_at, updated_at, version
             """;
 
+    /** Máximo de linhas por importação (planilhas maiores: dividir em partes). */
+    public static final int IMPORT_MAX_ROWS = 2000;
+
     private final JdbcClient jdbc;
     private final AuditService audit;
+    private final Validator validator;
 
-    public PatientService(JdbcClient jdbc, AuditService audit) {
+    public PatientService(JdbcClient jdbc, AuditService audit, Validator validator) {
         this.jdbc = jdbc;
         this.audit = audit;
+        this.validator = validator;
     }
 
     /** Busca por nome (parcial), CPF, telefone ou e-mail, com paginação. */
@@ -108,6 +124,68 @@ public class PatientService {
         UUID tenantId = TenantContext.requireTenantId();
         Normalized n = normalize(r);
         rejectDuplicateCpf(tenantId, n.cpf(), null);
+        UUID id = insert(tenantId, r, n);
+        audit.record(AuditAction.RECORD_CREATED, "patient", id, Map.of());
+        return get(id);
+    }
+
+    /**
+     * Importação de planilha. Cada linha passa pelas mesmas regras do cadastro manual; linhas inválidas e CPFs já
+     * cadastrados (ou repetidos na planilha) são listados e não entram. Com {@code dryRun}, só valida.
+     */
+    @Transactional
+    public ImportResult importRows(List<ImportRow> rows, boolean dryRun) {
+        if (rows.size() > IMPORT_MAX_ROWS) {
+            throw ApiException.badRequest(
+                    "IMPORT_TOO_LARGE",
+                    "Envie no máximo " + IMPORT_MAX_ROWS + " pacientes por vez (divida a planilha).");
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        List<ImportIssue> issues = new ArrayList<>();
+        Set<String> cpfsInFile = new HashSet<>();
+        int ready = 0;
+        int created = 0;
+        for (ImportRow row : rows) {
+            String name = row.fullName() == null ? "" : row.fullName().strip();
+            try {
+                PatientRequest request = toRequest(row);
+                Set<ConstraintViolation<PatientRequest>> violations = validator.validate(request);
+                if (!violations.isEmpty()) {
+                    ConstraintViolation<PatientRequest> first =
+                            violations.iterator().next();
+                    issues.add(new ImportIssue(
+                            row.line(),
+                            name,
+                            "ERROR",
+                            fieldLabel(first.getPropertyPath().toString()) + ": " + first.getMessage()));
+                    continue;
+                }
+                Normalized n = normalize(request);
+                if (n.cpf() != null && (!cpfsInFile.add(n.cpf()) || cpfExists(tenantId, n.cpf()))) {
+                    issues.add(new ImportIssue(
+                            row.line(), name, "DUPLICATE", "CPF já cadastrado ou repetido na planilha."));
+                    continue;
+                }
+                ready++;
+                if (!dryRun) {
+                    insert(tenantId, request, n);
+                    created++;
+                }
+            } catch (ApiException e) {
+                String message = e.fieldErrors() == null || e.fieldErrors().isEmpty()
+                        ? e.getMessage()
+                        : fieldLabel(e.fieldErrors().getFirst().get("field")) + ": "
+                                + e.fieldErrors().getFirst().get("message");
+                issues.add(new ImportIssue(row.line(), name, "ERROR", message));
+            }
+        }
+        if (created > 0) {
+            audit.record(AuditAction.RECORD_CREATED, "patient-import", null, Map.of("count", created));
+        }
+        return new ImportResult(rows.size(), ready, created, issues);
+    }
+
+    private UUID insert(UUID tenantId, PatientRequest r, Normalized n) {
         UUID id = Ids.newId();
         jdbc.sql("""
                         insert into patients (id, tenant_id, full_name, social_name, birth_date, cpf, rg, sex, phone,
@@ -116,8 +194,7 @@ public class PatientService {
                             guardian_phone, notes, allow_email, allow_sms, allow_whatsapp)
                         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """).params(values(id, tenantId, r, n)).update();
-        audit.record(AuditAction.RECORD_CREATED, "patient", id, Map.of());
-        return get(id);
+        return id;
     }
 
     @Transactional
@@ -161,6 +238,99 @@ public class PatientService {
                 .params(tenantId, id)
                 .query(Boolean.class)
                 .single();
+    }
+
+    private boolean cpfExists(UUID tenantId, String cpf) {
+        return jdbc.sql("select exists(select 1 from patients where tenant_id = ? and cpf = ?)")
+                .params(tenantId, cpf)
+                .query(Boolean.class)
+                .single();
+    }
+
+    private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
+            DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ofPattern("d/M/uuuu").withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("dd-MM-uuuu").withResolverStyle(ResolverStyle.STRICT));
+
+    private static PatientRequest toRequest(ImportRow r) {
+        if (r.fullName() == null || r.fullName().isBlank()) {
+            throw ApiException.invalidField("fullName", "informe o nome do paciente.");
+        }
+        return new PatientRequest(
+                r.fullName().strip(),
+                blank(r.socialName()),
+                parseDate(r.birthDate()),
+                blank(r.cpf()),
+                blank(r.rg()),
+                parseSex(r.sex()),
+                blank(r.phone()),
+                blank(r.mobile()),
+                blank(r.email()),
+                blank(r.zipCode()),
+                blank(r.street()),
+                blank(r.number()),
+                blank(r.complement()),
+                blank(r.district()),
+                blank(r.city()),
+                r.state() == null || r.state().isBlank()
+                        ? null
+                        : r.state().strip().toUpperCase(Locale.ROOT),
+                blank(r.occupation()),
+                blank(r.referralSource()),
+                blank(r.healthInsurance()),
+                blank(r.insuranceNumber()),
+                blank(r.guardianName()),
+                blank(r.guardianCpf()),
+                blank(r.guardianPhone()),
+                blank(r.notes()),
+                parseYes(r.allowEmail()),
+                false,
+                parseYes(r.allowWhatsapp()),
+                null);
+    }
+
+    private static LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        for (DateTimeFormatter format : DATE_FORMATS) {
+            try {
+                return LocalDate.parse(value.strip(), format);
+            } catch (DateTimeParseException ignored) {
+                // tenta o próximo formato
+            }
+        }
+        throw ApiException.invalidField("birthDate", "data inválida (use DD/MM/AAAA).");
+    }
+
+    private static String parseSex(String value) {
+        if (value == null || value.isBlank()) return null;
+        return switch (value.strip().toLowerCase(Locale.ROOT)) {
+            case "f", "fem", "feminino", "mulher", "female" -> "FEMALE";
+            case "m", "masc", "masculino", "homem", "male" -> "MALE";
+            case "o", "outro", "other" -> "OTHER";
+            default -> "NOT_INFORMED";
+        };
+    }
+
+    private static boolean parseYes(String value) {
+        if (value == null) return false;
+        return switch (value.strip().toLowerCase(Locale.ROOT)) {
+            case "sim", "s", "yes", "y", "true", "1", "x" -> true;
+            default -> false;
+        };
+    }
+
+    private static String fieldLabel(String field) {
+        return switch (field == null ? "" : field) {
+            case "fullName" -> "Nome";
+            case "birthDate" -> "Data de nascimento";
+            case "cpf" -> "CPF";
+            case "email" -> "E-mail";
+            case "state" -> "UF";
+            case "guardianName" -> "Responsável";
+            case "guardianCpf" -> "CPF do responsável";
+            default -> "Campo " + field;
+        };
     }
 
     private void rejectDuplicateCpf(UUID tenantId, String cpf, UUID exceptId) {

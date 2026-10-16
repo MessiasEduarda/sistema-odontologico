@@ -64,14 +64,21 @@ public class AppointmentService {
     private final AuditService audit;
     private final ApplicationEventPublisher events;
     private final JsonMapper json;
+    private final ScheduleBlockService blocks;
 
     public AppointmentService(
-            JdbcClient jdbc, TenantRefs refs, AuditService audit, ApplicationEventPublisher events, JsonMapper json) {
+            JdbcClient jdbc,
+            TenantRefs refs,
+            AuditService audit,
+            ApplicationEventPublisher events,
+            JsonMapper json,
+            ScheduleBlockService blocks) {
         this.jdbc = jdbc;
         this.refs = refs;
         this.audit = audit;
         this.events = events;
         this.json = json;
+        this.blocks = blocks;
     }
 
     @Transactional(readOnly = true)
@@ -314,7 +321,7 @@ public class AppointmentService {
         Instant dayStart = date.atStartOfDay(zone).toInstant();
         Instant dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant();
         record Busy(Instant startsAt, Instant endsAt) {}
-        List<Busy> busy = jdbc.sql("""
+        List<Busy> busy = new ArrayList<>(jdbc.sql("""
                         select starts_at, ends_at from appointments
                         where tenant_id = ? and professional_id = ? and status not in ('CANCELLED', 'NO_SHOW')
                           and starts_at < ? and ends_at > ?
@@ -323,7 +330,10 @@ public class AppointmentService {
                 .query((rs, n) -> new Busy(
                         rs.getTimestamp("starts_at").toInstant(),
                         rs.getTimestamp("ends_at").toInstant()))
-                .list();
+                .list());
+        for (Instant[] period : blocks.blockedPeriods(tenantId, professionalId, dayStart, dayEnd)) {
+            busy.add(new Busy(period[0], period[1]));
+        }
 
         Duration step = Duration.ofMinutes(durationMinutes);
         Instant now = Instant.now();
@@ -353,6 +363,11 @@ public class AppointmentService {
         refs.require("professionals", tenantId, r.professionalId(), "Profissional");
         refs.require("rooms", tenantId, r.roomId(), "Sala");
         refs.require("procedures", tenantId, r.procedureId(), "Procedimento");
+        blocks.blockingReason(tenantId, r.professionalId(), r.startsAt(), r.endsAt())
+                .ifPresent(reason -> {
+                    throw ApiException.businessRule(
+                            "SCHEDULE_BLOCKED", "Horário bloqueado na agenda (" + reason + "). Escolha outro horário.");
+                });
     }
 
     private void event(UUID tenantId, UUID appointmentId, String action, Map<String, ?> details) {

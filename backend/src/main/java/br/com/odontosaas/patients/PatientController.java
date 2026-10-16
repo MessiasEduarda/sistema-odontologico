@@ -1,5 +1,7 @@
 package br.com.odontosaas.patients;
 
+import br.com.odontosaas.patients.PatientDtos.ImportRequest;
+import br.com.odontosaas.patients.PatientDtos.ImportResult;
 import br.com.odontosaas.patients.PatientDtos.PatientRequest;
 import br.com.odontosaas.patients.PatientDtos.PatientSummary;
 import br.com.odontosaas.patients.PatientDtos.PatientView;
@@ -26,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class PatientController {
 
     private final PatientService service;
+    private final PatientExportService exports;
 
-    public PatientController(PatientService service) {
+    public PatientController(PatientService service, PatientExportService exports) {
         this.service = service;
+        this.exports = exports;
     }
 
     @GetMapping
@@ -58,11 +62,31 @@ public class PatientController {
         return service.create(request);
     }
 
+    @PostMapping("/import")
+    @PreAuthorize("hasAuthority('patients:write')")
+    @Operation(
+            summary = "Importa pacientes de planilha",
+            description = "Linhas já convertidas da planilha (CSV). dryRun=true só valida. Até 2000 por vez; "
+                    + "inválidas e CPFs repetidos voltam em issues e não entram.")
+    public ImportResult importPatients(@Valid @RequestBody ImportRequest request) {
+        return service.importRows(request.rows(), request.dryRun());
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('patients:write')")
     @Operation(summary = "Atualiza paciente", description = "Envie version (409 STALE_VERSION se desatualizado).")
     public PatientView update(@PathVariable UUID id, @Valid @RequestBody PatientRequest request) {
         return service.update(id, request);
+    }
+
+    @GetMapping("/{id}/export")
+    @PreAuthorize("hasAuthority('patients:read') and hasAuthority('clinical_records:read')")
+    @Operation(
+            summary = "Exporta todos os dados do paciente (LGPD)",
+            description = "JSON com cadastro, consultas, prontuário, termos, orçamentos e financeiro. Registrado na "
+                    + "auditoria. Permissões: patients:read e clinical_records:read")
+    public java.util.Map<String, Object> export(@PathVariable UUID id) {
+        return exports.export(id);
     }
 
     @PostMapping("/{id}/deactivate")

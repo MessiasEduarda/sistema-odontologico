@@ -1,10 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ImageUp } from "lucide-react";
-import { useRef, useState } from "react";
-import styled from "styled-components";
-import { ClinicLogo } from "@/components/domain/ClinicLogo";
+import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Badge, Card, CardTitle, DetailList, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
@@ -22,7 +19,6 @@ export function SettingsPage() {
   return (
     <Stack>
       <PageHeader title="Configurações" />
-      {settings.data && <LogoCard name={settings.data.name} logoVersion={settings.data.logoUpdatedAt} />}
       {settings.isPending ? <LoadingState /> : settings.data && <SettingsForm initial={settings.data} />}
       <SubscriptionCard />
     </Stack>
@@ -124,77 +120,6 @@ function SettingsForm({ initial }: { initial: ClinicSettings }) {
   );
 }
 
-const MAX_LOGO_BYTES = 1024 * 1024;
-
-/** Logo exibida no menu lateral e nos PDFs. Sempre no mesmo quadro, sem cortar nem distorcer a imagem. */
-function LogoCard({ name, logoVersion }: { name: string; logoVersion: string | null }) {
-  const input = useRef<HTMLInputElement>(null);
-  const [localError, setLocalError] = useState<string>();
-  const upload = useAction((file: File) => api.clinic.uploadLogo(file), {
-    success: "Logo atualizada com sucesso!",
-    invalidate: [["clinic-settings"]],
-    onSuccess: () => {
-      if (input.current) input.current.value = "";
-    },
-  });
-  const remove = useAction(() => api.clinic.deleteLogo(), {
-    success: "Logo removida com sucesso!",
-    invalidate: [["clinic-settings"]],
-  });
-  const pick = (file: File | undefined) => {
-    setLocalError(undefined);
-    if (!file) return;
-    if (file.type !== "image/png") {
-      setLocalError("Envie a logo em PNG.");
-      return;
-    }
-    if (file.size > MAX_LOGO_BYTES) {
-      setLocalError("A imagem deve ter no máximo 1 MB.");
-      return;
-    }
-    upload.mutate(file);
-  };
-  return (
-    <Card>
-      <CardTitle>Logo da clínica</CardTitle>
-      <LogoRow>
-        <ClinicLogo name={name} logoVersion={logoVersion} size={96} tone="light" />
-        <Stack $gap={3}>
-          <Muted>
-            Aparece no topo do menu e no cabeçalho dos PDFs, sempre no mesmo tamanho e ocupando o quadro inteiro, sobre
-            a cor do menu. Envie em PNG, de até 1 MB, de preferência quadrada (imagens retangulares têm as bordas
-            ajustadas ao quadro). Sem logo, o sistema mostra as iniciais da clínica.
-          </Muted>
-          <Row $gap={2}>
-            <input ref={input} type="file" accept="image/png" hidden onChange={(e) => pick(e.target.files?.[0])} />
-            <Button onClick={() => input.current?.click()} loading={upload.isPending}>
-              <ImageUp size={16} aria-hidden /> {logoVersion ? "Trocar logo" : "Enviar logo"}
-            </Button>
-            {logoVersion && (
-              <Button variant="outline" onClick={() => remove.mutate(undefined)} loading={remove.isPending}>
-                Remover
-              </Button>
-            )}
-          </Row>
-          {localError && <Alert tone="danger">{localError}</Alert>}
-        </Stack>
-      </LogoRow>
-    </Card>
-  );
-}
-
-const LogoRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: ${({ theme }) => theme.space[6]};
-
-  > div:last-child {
-    flex: 1;
-    min-width: 260px;
-  }
-`;
-
 function SubscriptionCard() {
   const sub = useQuery({ queryKey: ["clinic-subscription"], queryFn: api.clinic.subscription, retry: false });
   if (!sub.data) return null;
@@ -205,8 +130,17 @@ function SubscriptionCard() {
         Plano contratado{" "}
         <Badge $tone={SUBSCRIPTION_STATUS[s.status]?.tone}>{SUBSCRIPTION_STATUS[s.status]?.label}</Badge>
       </CardTitle>
-      {s.status === "PAST_DUE" && (
-        <Alert tone="danger">Há pendência na assinatura. Entre em contato com o suporte da plataforma.</Alert>
+      {s.billing.state !== "OK" && (
+        <Alert tone="danger">
+          Pagamento da assinatura vencido em {formatDate(s.billing.dueDate)}.{" "}
+          {s.paymentUrl ? (
+            <a href={s.paymentUrl} target="_blank" rel="noopener noreferrer">
+              Pagar agora
+            </a>
+          ) : (
+            "Entre em contato com o suporte da plataforma."
+          )}
+        </Alert>
       )}
       <DetailList>
         <div>
