@@ -36,7 +36,7 @@ async function fillAndSubmit(email = "p@teste.example", password = "Senha-Forte-
   const user = userEvent.setup();
   if (email) await user.type(screen.getByLabelText("E-mail"), email);
   if (password) await user.type(screen.getByLabelText("Senha"), password);
-  await user.click(screen.getByRole("button", { name: "Entrar" }));
+  await user.click(screen.getByRole("button", { name: "Acessar" }));
 }
 
 describe("LoginForm", () => {
@@ -52,8 +52,9 @@ describe("LoginForm", () => {
 
     await fillAndSubmit("nao-e-email", "");
 
-    expect(await screen.findByText("Informe um e-mail válido.")).toBeInTheDocument();
-    expect(screen.getByText("Informe sua senha.")).toBeInTheDocument();
+    // Uma única mensagem, embaixo da senha (sem mensagens soltas em cada campo).
+    expect(await screen.findByRole("alert")).toHaveTextContent("Informe o e-mail e a senha.");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

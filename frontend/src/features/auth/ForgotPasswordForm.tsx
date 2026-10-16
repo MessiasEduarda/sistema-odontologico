@@ -48,6 +48,7 @@ export function ForgotPasswordForm() {
             label="E-mail"
             type="email"
             autoComplete="email"
+            placeholder="E-mail"
             error={errors.email?.message}
             {...register("email")}
           />

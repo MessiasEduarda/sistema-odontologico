@@ -230,7 +230,7 @@ const FormSide = styled.div`
 
 const Content = styled.div`
   width: 100%;
-  max-width: 340px;
+  max-width: 400px;
   display: grid;
   gap: ${({ theme }) => theme.space[4]};
   text-align: left;
@@ -238,29 +238,44 @@ const Content = styled.div`
   label {
     color: ${P.white};
   }
+  /* Altura fixa com texto centralizado; borda fina (1px), sem anel grosso no foco. */
   input {
+    height: 48px;
+    min-height: 48px;
+    padding: 0 ${({ theme }) => theme.space[5]};
+    line-height: normal;
     color: ${({ theme }) => theme.colors.text};
-    border-color: transparent;
-    min-height: 46px;
+    border: 1px solid transparent;
   }
-  input:-webkit-autofill {
+  input::placeholder {
+    color: #bdb6af;
+    opacity: 1;
+  }
+  input:hover:not(:disabled, :focus, [aria-invalid="true"]) {
+    border-color: transparent;
+  }
+  input:focus,
+  input[aria-invalid="true"] {
+    border: 1px solid ${P.dark};
+    box-shadow: none;
+  }
+  /* Preenchimento automático do navegador: mantém o campo branco (vem depois para vencer o foco/erro). */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
     -webkit-text-fill-color: ${({ theme }) => theme.colors.text};
     box-shadow: 0 0 0 40px ${P.white} inset;
   }
-  input:focus {
-    border-color: ${P.white};
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45);
-  }
-  /* dicas e erros dos campos sobre o caramelo */
+  /* dicas dos campos sobre o caramelo */
   input + p {
     color: ${P.soft};
   }
   p[role="alert"] {
-    color: ${P.white};
+    color: #ffd9d2;
     font-weight: ${({ theme }) => theme.fontWeights.semibold};
   }
   button[type="submit"] {
-    min-height: 46px;
+    height: 48px;
     background: ${P.dark};
     border-color: ${P.dark};
     color: ${P.white};
