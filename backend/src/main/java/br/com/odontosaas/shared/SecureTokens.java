@@ -1,0 +1,40 @@
+package br.com.odontosaas.shared;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.HexFormat;
+
+/**
+ * Tokens opacos (sessão, convite, redefinição de senha). O valor bruto só existe no cliente; o banco guarda apenas o
+ * SHA-256 em hexadecimal, de modo que um vazamento do banco não permite usar os tokens.
+ */
+public final class SecureTokens {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private SecureTokens() {}
+
+    /** 256 bits aleatórios em Base64 URL-safe (43 caracteres). */
+    public static String generate() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    public static String sha256Hex(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 indisponível", e);
+        }
+    }
+
+    /** Formato aceitável de token recebido do cliente (evita consultas com entradas arbitrárias). */
+    public static boolean looksValid(String token) {
+        return token != null && token.matches("^[A-Za-z0-9_-]{43}$");
+    }
+}

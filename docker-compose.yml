@@ -1,0 +1,70 @@
+# Ambiente local de desenvolvimento.
+#   docker compose up -d                 -> só infraestrutura (PostgreSQL + Mailpit); API e front rodam na máquina
+#   docker compose --profile app up -d   -> também sobe API e front-end em containers
+# Variáveis vêm do arquivo .env (copie de .env.example).
+name: odonto
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-odonto}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-odonto_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?defina POSTGRES_ADMIN_PASSWORD no .env}
+      APP_DB_USER: ${APP_DB_USER:-odonto_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
+      MIGRATOR_DB_USER: ${MIGRATOR_DB_USER:-odonto_migrator}
+      MIGRATOR_DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?defina MIGRATOR_DB_PASSWORD no .env}
+      APP_DB_SCHEMA: ${APP_DB_SCHEMA:-odonto}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Captura todos os e-mails enviados em desenvolvimento (nenhum e-mail sai para a internet).
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+
+  api:
+    profiles: ["app"]
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-odonto}
+      APP_DB_USER: ${APP_DB_USER:-odonto_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      MIGRATOR_DB_USER: ${MIGRATOR_DB_USER:-odonto_migrator}
+      MIGRATOR_DB_PASSWORD: ${MIGRATOR_DB_PASSWORD}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      APP_PUBLIC_URL: http://localhost:3000
+      COOKIE_SECURE: "false"
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  web:
+    profiles: ["app"]
+    build: ./frontend
+    depends_on:
+      - api
+    environment:
+      API_INTERNAL_URL: http://api:8080
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  postgres-data:

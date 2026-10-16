@@ -1,0 +1,39 @@
+# Segredos e ambiente
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Back-end (detalhes em backend/.gitignore)
+backend/target/
+
+# Front-end (detalhes em frontend/.gitignore)
+frontend/node_modules/
+frontend/.next/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+
+# Backups locais
+backups/
+*.dump
+
+# Prints de referência de outro sistema (podem conter nomes/dados de terceiros) — mantidos só localmente
+docs/design/referencias/*.png
+data/
+
+# Fora do repositorio: configuracao do Claude e documentacao do projeto
+.claude/
+docs/
+Documentação/
+/README.md
+frontend/AGENTS.md
+frontend/scripts/gerar-documentacao.mjs

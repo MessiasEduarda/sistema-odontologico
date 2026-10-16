@@ -1,0 +1,127 @@
+# Configuração base. Valores sensíveis vêm SEMPRE de variáveis de ambiente.
+# Perfis: dev (local), test (testes automatizados), prod (produção).
+spring:
+  application:
+    name: odonto-api
+  profiles:
+    default: dev
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/odonto}
+    username: ${APP_DB_USER:odonto_app}
+    password: ${APP_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      pool-name: odonto-app
+
+  flyway:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/odonto}
+    user: ${MIGRATOR_DB_USER:odonto_migrator}
+    password: ${MIGRATOR_DB_PASSWORD:}
+    schemas: ${APP_DB_SCHEMA:odonto}
+    default-schema: ${APP_DB_SCHEMA:odonto}
+    create-schemas: false
+    locations: classpath:db/migration
+    placeholders:
+      app_db_user: ${APP_DB_USER:odonto_app}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: ${APP_DB_SCHEMA:odonto}
+        jdbc:
+          time_zone: UTC
+
+  mvc:
+    problemdetails:
+      enabled: true
+
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 16MB
+
+  jackson:
+    deserialization:
+      # Jackson 3 rejeita por padrão campos primitivos ausentes; aqui um booleano omitido vale false.
+      fail-on-null-for-primitives: false
+
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  # Confia em X-Forwarded-For apenas de proxies internos (ex.: o servidor do Next.js).
+  forward-headers-strategy: native
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    build:
+      enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  packages-to-scan: br.com.odontosaas
+
+logging:
+  level:
+    root: INFO
+
+# --- Configurações da aplicação ---
+app:
+  public-url: ${APP_PUBLIC_URL:http://localhost:3000}
+  mail:
+    from: ${MAIL_FROM:nao-responda@odontosaas.example}
+  security:
+    session-cookie-name: odonto_session
+    cookie-secure: ${COOKIE_SECURE:true}
+    session-idle-timeout: ${SESSION_IDLE_TIMEOUT:30m}
+    session-absolute-timeout: ${SESSION_ABSOLUTE_TIMEOUT:12h}
+    login-window: 15m
+    login-max-failures-per-email: 5
+    login-max-failures-per-ip: 30
+    password-reset-ttl: 30m
+    password-reset-max-per-hour: 3
+    invitation-ttl: 7d
+  # Cria o primeiro administrador da plataforma se ainda não existir nenhum (produção).
+  bootstrap:
+    platform-admin-email: ${PLATFORM_ADMIN_EMAIL:}
+    platform-admin-password: ${PLATFORM_ADMIN_PASSWORD:}
+  seed:
+    enabled: false
+  # Anexos do prontuário (fora de qualquer pasta pública). Em produção, use um volume persistente com backup.
+  storage:
+    path: ${STORAGE_PATH:./data/uploads}
+  # Rotinas agendadas (lembretes e envio de e-mails).
+  jobs:
+    enabled: ${JOBS_ENABLED:true}
+    reminders-delay: PT5M
+    dispatch-delay: PT1M

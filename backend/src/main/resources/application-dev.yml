@@ -1,0 +1,20 @@
+# Desenvolvimento local. As senhas padrão abaixo são APENAS para o PostgreSQL do docker-compose
+# e coincidem com o .env.example — nunca use em outro ambiente.
+spring:
+  datasource:
+    password: ${APP_DB_PASSWORD:odonto_app_dev}
+  flyway:
+    password: ${MIGRATOR_DB_PASSWORD:odonto_migrator_dev}
+
+logging:
+  level:
+    br.com.odontosaas: DEBUG
+
+app:
+  # Massa de dados FICTÍCIA para desenvolvimento (usuários e senha documentados em docs/guias/ambiente-local.md).
+  seed:
+    enabled: ${DEV_SEED_ENABLED:true}
+    password: ${DEV_SEED_PASSWORD:Odonto@Dev2026}
+  security:
+    # Em desenvolvimento o front roda em http://localhost; em produção (HTTPS) o padrão é true.
+    cookie-secure: ${COOKIE_SECURE:false}

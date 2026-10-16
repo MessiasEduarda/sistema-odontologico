@@ -1,0 +1,15 @@
+# Perfil de testes: datasource e Flyway são definidos dinamicamente por PostgresIntegrationTest (Testcontainers).
+logging:
+  level:
+    root: WARN
+    br.com.odontosaas: INFO
+
+app:
+  jobs:
+    enabled: false
+  storage:
+    path: ${java.io.tmpdir}/odonto-test-uploads
+  public-url: http://localhost:3000
+  security:
+    # Todos os testes usam o mesmo IP (MockMvc); o limite por IP é testado com valor próprio.
+    login-max-failures-per-ip: 1000

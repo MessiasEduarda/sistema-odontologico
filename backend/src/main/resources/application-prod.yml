@@ -1,0 +1,21 @@
+# Produção: nenhuma credencial padrão. A aplicação não sobe sem as variáveis obrigatórias.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${APP_DB_USER}
+    password: ${APP_DB_PASSWORD}
+  flyway:
+    url: ${DB_URL}
+    user: ${MIGRATOR_DB_USER}
+    password: ${MIGRATOR_DB_PASSWORD}
+
+springdoc:
+  api-docs:
+    enabled: ${OPENAPI_ENABLED:false}
+  swagger-ui:
+    enabled: ${OPENAPI_ENABLED:false}
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}
