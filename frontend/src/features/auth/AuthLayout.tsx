@@ -9,6 +9,8 @@ import { DialogButton, LegalDialog, type LegalTab } from "./LegalDialog";
 
 interface AuthLayoutProps {
   title: string;
+  /** Esconde o título (continua para leitores de tela) e usa a logo grande no lugar dele. */
+  hideTitle?: boolean;
   subtitle?: ReactNode;
   children: ReactNode;
 }
@@ -38,7 +40,7 @@ const P = {
  * Telas de acesso: cartão em primeiro plano (formulário à esquerda, ilustração à direita) sobre um fundo de cor
  * única; a profundidade vem da sombra nas bordas do cartão. No celular, só o formulário.
  */
-export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
+export function AuthLayout({ title, hideTitle = false, subtitle, children }: AuthLayoutProps) {
   const [legal, setLegal] = useState<LegalTab | null>(null);
   const closeLegal = useCallback(() => setLegal(null), []);
   return (
@@ -47,8 +49,13 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
         <Stage>
           <Card>
             <FormSide>
-              <Image src={brandLogo} alt="Odonto SaaS" priority style={{ width: 110, height: "auto" }} />
-              <Title>{title}</Title>
+              <Image
+                src={brandLogo}
+                alt="Odonto SaaS"
+                priority
+                style={{ width: hideTitle ? 210 : 110, height: "auto", marginBottom: hideTitle ? 28 : 0 }}
+              />
+              <Title className={hideTitle ? "sr-only" : undefined}>{title}</Title>
               {subtitle && <Subtitle>{subtitle}</Subtitle>}
               <Content>{children}</Content>
               <Legal>
@@ -298,14 +305,18 @@ const Content = styled.div`
   }
 `;
 
+/** Mesmo estilo dos títulos de página do sistema (PageTitle), em branco sobre o caramelo. */
 const Title = styled.h1`
   font-family: ${({ theme }) => theme.fonts.display};
-  font-weight: ${({ theme }) => theme.fontWeights.bold};
-  font-size: ${({ theme }) => theme.fontSizes.xl};
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  font-size: ${({ theme }) => theme.fontSizes["2xl"]};
+  line-height: 1.2;
   color: ${P.white};
   margin-top: ${({ theme }) => theme.space[2]};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.md}px) {
+    font-size: ${({ theme }) => theme.fontSizes["3xl"]};
+  }
 `;
 
 const Subtitle = styled.div`
@@ -340,12 +351,13 @@ const Legal = styled.p`
     background: none;
     color: inherit;
     font-size: inherit;
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    text-decoration: none;
     cursor: pointer;
   }
   button:hover {
     color: ${P.white};
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
   button:focus-visible {
     outline: 2px solid ${P.white};

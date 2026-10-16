@@ -58,7 +58,7 @@ export function LoginForm() {
   const invalid = message ? { "aria-invalid": true, "aria-describedby": messageId } : {};
 
   return (
-    <AuthLayout title="Entrar" subtitle="Acesse com o e-mail e a senha cadastrados.">
+    <AuthLayout title="Entrar" hideTitle>
       <Form onSubmit={onSubmit} noValidate>
         <TextField
           label="E-mail"
