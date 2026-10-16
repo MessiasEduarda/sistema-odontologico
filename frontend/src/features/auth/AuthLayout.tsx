@@ -254,8 +254,11 @@ const Content = styled.div`
     color: ${({ theme }) => theme.colors.text};
     border: 1px solid transparent;
   }
-  input::placeholder {
+  /* Mesmo cinza claro em todos os campos (inclusive quando o navegador marca o campo como preenchimento automático). */
+  input::placeholder,
+  input:-webkit-autofill::placeholder {
     color: #bdb6af;
+    -webkit-text-fill-color: #bdb6af;
     opacity: 1;
   }
   input:hover:not(:disabled, :focus, [aria-invalid="true"]) {
@@ -356,8 +359,6 @@ const Legal = styled.p`
   }
   button:hover {
     color: ${P.white};
-    text-decoration: underline;
-    text-underline-offset: 3px;
   }
   button:focus-visible {
     outline: 2px solid ${P.white};
