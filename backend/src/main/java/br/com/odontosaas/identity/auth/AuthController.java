@@ -4,6 +4,7 @@ import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.identity.AuthenticatedUser;
 import br.com.odontosaas.identity.CurrentUser;
+import br.com.odontosaas.identity.auth.AuthDtos.AcceptTermsRequest;
 import br.com.odontosaas.identity.auth.AuthDtos.ChangePasswordRequest;
 import br.com.odontosaas.identity.auth.AuthDtos.ForgotPasswordRequest;
 import br.com.odontosaas.identity.auth.AuthDtos.LoginRequest;
@@ -41,12 +42,19 @@ public class AuthController {
     private final PasswordService passwords;
     private final SessionStore sessions;
     private final AuditService audit;
+    private final TermsService terms;
 
-    public AuthController(AuthService auth, PasswordService passwords, SessionStore sessions, AuditService audit) {
+    public AuthController(
+            AuthService auth,
+            PasswordService passwords,
+            SessionStore sessions,
+            AuditService audit,
+            TermsService terms) {
         this.auth = auth;
         this.passwords = passwords;
         this.sessions = sessions;
         this.audit = audit;
+        this.terms = terms;
     }
 
     @GetMapping("/csrf")
@@ -75,6 +83,17 @@ public class AuthController {
     @Operation(summary = "Usuário autenticado, clínica ativa, permissões e clínicas disponíveis")
     public MeResponse me() {
         return auth.me(CurrentUser.require());
+    }
+
+    @PostMapping("/terms/accept")
+    @Operation(
+            summary = "Aceita os Termos de uso e a Política de privacidade",
+            description =
+                    "Uma vez por usuário e versão (idempotente). 409 TERMS_OUTDATED se a versão não for a vigente.")
+    public MeResponse acceptTerms(@Valid @RequestBody AcceptTermsRequest request) {
+        AuthenticatedUser user = CurrentUser.require();
+        terms.accept(user.userId(), request.version());
+        return auth.me(user);
     }
 
     @PostMapping("/switch-clinic")

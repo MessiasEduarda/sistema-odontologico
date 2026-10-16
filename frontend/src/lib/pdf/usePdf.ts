@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useToast } from "@/components/ui/Toast";
+import { useFeedback } from "@/components/ui/Feedback";
 import { api } from "@/lib/api/endpoints";
 import type { AestheticRecord, Anamnesis, ClinicalDocument, Consent, Plan } from "@/lib/api/types";
 
@@ -60,7 +60,7 @@ async function logoAsPng(url: string): Promise<string | null> {
  */
 export function usePdf() {
   const queryClient = useQueryClient();
-  const toast = useToast();
+  const feedback = useFeedback();
   const [busy, setBusy] = useState<string | null>(null);
 
   async function download(req: PdfRequest, key: string = req.data.id) {
@@ -100,7 +100,7 @@ export function usePdf() {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch (error) {
-      toast.error(error instanceof Error ? `Não foi possível gerar o PDF: ${error.message}` : "Falha ao gerar o PDF.");
+      feedback.error("Não foi possível gerar o PDF", error instanceof Error ? error.message : undefined);
     } finally {
       setBusy(null);
     }

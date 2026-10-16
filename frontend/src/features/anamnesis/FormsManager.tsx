@@ -28,7 +28,7 @@ export function FormsManager() {
   const forms = useQuery({ queryKey: ["anamnesis-forms", true], queryFn: () => api.clinic.anamnesisForms(true) });
   const [editing, setEditing] = useState<AnamnesisForm | "new" | null>(null);
   const toggle = useAction((f: AnamnesisForm) => api.clinic.setAnamnesisFormActive(f.id, !f.active), {
-    success: "Ficha atualizada.",
+    success: "Ficha atualizada com sucesso!",
     invalidate: [["anamnesis-forms"]],
   });
 
@@ -109,7 +109,7 @@ function FormEditor({
       form
         ? api.clinic.updateAnamnesisForm(form.id, { name, kind, questions })
         : api.clinic.createAnamnesisForm({ name, kind, questions }),
-    { success: "Ficha salva.", invalidate: [["anamnesis-forms"]], onSuccess: onClose },
+    { success: "Ficha salva com sucesso!", invalidate: [["anamnesis-forms"]], onSuccess: onClose },
   );
 
   const update = (i: number, patch: Partial<Question>) =>
@@ -130,7 +130,7 @@ function FormEditor({
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={invalid}>

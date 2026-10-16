@@ -34,7 +34,7 @@ export function ReceivableDetail({ receivableId, onClose }: { receivableId: stri
     enabled: Boolean(receivableId),
   });
   const cancel = useAction((reason: string) => api.finance.cancelReceivable(receivableId ?? "", reason), {
-    success: "Conta cancelada.",
+    success: "Conta cancelada com sucesso!",
     invalidate: INV,
     onSuccess: () => setCancelling(false),
   });
@@ -156,7 +156,7 @@ export function PayDialog({
   const [method, setMethod] = useState<PaymentMethod>("PIX");
   const [notes, setNotes] = useState("");
   const pay = useAction(() => api.finance.pay(installment.id, { amount, method, notes: notes || undefined }), {
-    success: "Recebimento registrado.",
+    success: "Recebimento registrado com sucesso!",
     invalidate: INV,
     onSuccess: onClose,
   });
@@ -168,7 +168,7 @@ export function PayDialog({
       size="sm"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
@@ -210,7 +210,7 @@ function RefundDialog({ payment, onClose }: { payment: Payment; onClose: () => v
   const [amount, setAmount] = useState(max);
   const [reason, setReason] = useState("");
   const refund = useAction(() => api.finance.refund(payment.id, amount, reason), {
-    success: "Estorno registrado.",
+    success: "Estorno registrado com sucesso!",
     invalidate: INV,
     onSuccess: onClose,
   });

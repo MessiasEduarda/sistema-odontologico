@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { ThemeProvider } from "styled-components";
+import { FeedbackProvider } from "@/components/ui/Feedback";
 import { ToastProvider } from "@/components/ui/Toast";
 import { theme } from "@/styles/theme";
 
@@ -11,7 +12,9 @@ export function renderWithProviders(ui: ReactElement, options?: RenderOptions) {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <ThemeProvider theme={theme}>
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <FeedbackProvider>{children}</FeedbackProvider>
+        </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

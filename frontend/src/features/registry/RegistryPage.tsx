@@ -134,7 +134,11 @@ function ProfessionalForm({ professional, onClose }: { professional: Professiona
       };
       return professional ? api.clinic.updateProfessional(professional.id, body) : api.clinic.createProfessional(body);
     },
-    { success: "Profissional salvo.", invalidate: [["professionals"]], onSuccess: onClose },
+    {
+      success: "Profissional salvo com sucesso!",
+      invalidate: [["professionals"]],
+      onSuccess: onClose,
+    },
   );
   return (
     <Modal
@@ -144,7 +148,7 @@ function ProfessionalForm({ professional, onClose }: { professional: Professiona
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!v.name.trim()}>
@@ -239,7 +243,7 @@ function ScheduleEditor({ professional, onClose }: { professional: Professional;
     (current.data ?? []).map((s) => ({ ...s, startTime: s.startTime.slice(0, 5), endTime: s.endTime.slice(0, 5) }));
   const set = (next: ScheduleSlot[]) => setSlots(next);
   const save = useAction(() => api.clinic.saveSchedule(professional.id, list), {
-    success: "Horários salvos.",
+    success: "Horários salvos com sucesso!",
     invalidate: [["schedule", professional.id], ["availability"]],
     onSuccess: onClose,
   });
@@ -261,7 +265,7 @@ function ScheduleEditor({ professional, onClose }: { professional: Professional;
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending}>
@@ -374,7 +378,11 @@ function ProcedureForm({ procedure, onClose }: { procedure: Procedure | null; on
       const body = { ...v, code: v.code || null, category: v.category || null };
       return procedure ? api.clinic.updateProcedure(procedure.id, body) : api.clinic.createProcedure(body);
     },
-    { success: "Procedimento salvo.", invalidate: [["procedures"]], onSuccess: onClose },
+    {
+      success: "Procedimento salvo com sucesso!",
+      invalidate: [["procedures"]],
+      onSuccess: onClose,
+    },
   );
   return (
     <Modal
@@ -383,7 +391,7 @@ function ProcedureForm({ procedure, onClose }: { procedure: Procedure | null; on
       title={procedure ? "Editar procedimento" : "Novo procedimento"}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!v.name.trim()}>
@@ -448,12 +456,12 @@ function RoomsTab() {
   const rooms = useQuery({ queryKey: ["rooms"], queryFn: api.clinic.rooms });
   const [name, setName] = useState("");
   const create = useAction(() => api.clinic.createRoom({ name, active: true }), {
-    success: "Sala criada.",
+    success: "Sala criada com sucesso!",
     invalidate: [["rooms"]],
     onSuccess: () => setName(""),
   });
   const toggle = useAction((r: Room) => api.clinic.updateRoom(r.id, { name: r.name, active: !r.active }), {
-    success: "Sala atualizada.",
+    success: "Sala atualizada com sucesso!",
     invalidate: [["rooms"]],
   });
   return (

@@ -321,7 +321,7 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
         firstDueDate: firstDue,
       }),
     {
-      success: "Conta criada.",
+      success: "Conta criada com sucesso!",
       invalidate: INV,
       onSuccess: (r) => {
         onClose();
@@ -336,7 +336,7 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
       title="Nova conta a receber"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
@@ -413,7 +413,7 @@ function PayablesTab() {
     queryFn: () => api.finance.payables({ status: status || undefined }),
   });
   const cancel = useAction((reason: string) => api.finance.cancelPayable(cancelling?.id ?? "", reason), {
-    success: "Conta cancelada.",
+    success: "Conta cancelada com sucesso!",
     invalidate: INV,
     onSuccess: () => setCancelling(null),
   });
@@ -513,7 +513,7 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
       const body = { ...v, supplierId: v.supplierId || null, notes: v.notes || null };
       return payable ? api.finance.updatePayable(payable.id, body) : api.finance.createPayable(body);
     },
-    { success: "Conta salva.", invalidate: INV, onSuccess: onClose },
+    { success: "Conta salva com sucesso!", invalidate: INV, onSuccess: onClose },
   );
   return (
     <Modal
@@ -522,7 +522,7 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
       title={payable ? "Editar conta a pagar" : "Nova conta a pagar"}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
@@ -594,7 +594,7 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
 function PayPayable({ payable, onClose }: { payable: Payable; onClose: () => void }) {
   const [method, setMethod] = useState<PaymentMethod>("PIX");
   const pay = useAction(() => api.finance.payPayable(payable.id, method), {
-    success: "Pagamento registrado.",
+    success: "Pagamento registrado com sucesso!",
     invalidate: INV,
     onSuccess: onClose,
   });
@@ -606,7 +606,7 @@ function PayPayable({ payable, onClose }: { payable: Payable; onClose: () => voi
       size="sm"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => pay.mutate(undefined)} loading={pay.isPending}>
@@ -692,7 +692,7 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
       };
       return supplier ? api.finance.updateSupplier(supplier.id, body) : api.finance.createSupplier(body);
     },
-    { success: "Fornecedor salvo.", invalidate: [["suppliers"]], onSuccess: onClose },
+    { success: "Fornecedor salvo com sucesso!", invalidate: [["suppliers"]], onSuccess: onClose },
   );
   return (
     <Modal
@@ -701,7 +701,7 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
       title={supplier ? "Editar fornecedor" : "Novo fornecedor"}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!v.name.trim()}>

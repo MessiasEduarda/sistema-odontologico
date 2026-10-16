@@ -4,18 +4,18 @@ import Link from "next/link";
 import styled from "styled-components";
 import { media } from "@/styles/theme";
 
-interface Section {
+export interface LegalSection {
   title: string;
   paragraphs: string[];
 }
 
-const UPDATED_AT = "15/10/2026";
+export const LEGAL_UPDATED_AT = "15/10/2026";
 
-const NOTICE =
+export const LEGAL_NOTICE =
   "Modelo de documento elaborado para este sistema. Antes de usar com clientes reais, revise com assessoria jurídica" +
   " e complete os dados da empresa responsável pela plataforma (razão social, CNPJ, endereço e canal de contato).";
 
-const TERMS: Section[] = [
+export const TERMS: LegalSection[] = [
   {
     title: "1. Sobre a plataforma",
     paragraphs: [
@@ -77,7 +77,7 @@ const TERMS: Section[] = [
   },
 ];
 
-const PRIVACY: Section[] = [
+export const PRIVACY: LegalSection[] = [
   {
     title: "1. Quem trata os dados",
     paragraphs: [
@@ -156,8 +156,8 @@ export function LegalPage({ kind }: { kind: "terms" | "privacy" }) {
       </Header>
       <Main>
         <h1>{kind === "terms" ? "Termos de uso" : "Política de privacidade"}</h1>
-        <Updated>Última atualização: {UPDATED_AT}</Updated>
-        <Notice role="note">{NOTICE}</Notice>
+        <Updated>Última atualização: {LEGAL_UPDATED_AT}</Updated>
+        <Notice role="note">{LEGAL_NOTICE}</Notice>
         {sections.map((s) => (
           <section key={s.title}>
             <h2>{s.title}</h2>

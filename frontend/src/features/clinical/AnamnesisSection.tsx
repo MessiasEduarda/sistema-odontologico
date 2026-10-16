@@ -193,7 +193,7 @@ export function AnamnesisForm({
   const [notes, setNotes] = useState(previous?.notes ?? "");
   const [filledBy, setFilledBy] = useState("PROFESSIONAL");
   const save = useAction(() => api.clinical.fillAnamnesis(patientId, { formId: form.id, answers, notes, filledBy }), {
-    success: "Anamnese registrada.",
+    success: "Anamnese registrada com sucesso!",
     invalidate: [["anamneses", patientId], ["record", patientId], ["recent-anamneses"]],
     onSuccess: onClose,
   });
@@ -209,7 +209,7 @@ export function AnamnesisForm({
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={save.isPending}>
+          <Button data-modal-cancel variant="outline" onClick={onClose} disabled={save.isPending}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending}>

@@ -12,6 +12,9 @@ export interface Me {
   activeClinic: ClinicSummary | null;
   permissions: string[];
   clinics: ClinicSummary[];
+  /** Já aceitou a versão vigente dos Termos de uso e da Política de privacidade. */
+  termsAccepted: boolean;
+  termsVersion: string;
 }
 
 export interface InvitationPreview {
@@ -24,6 +27,7 @@ export interface InvitationPreview {
 export const authApi = {
   me: () => apiFetch<Me>("/api/v1/auth/me"),
   login: (email: string, password: string) => apiPost<Me>("/api/v1/auth/login", { email, password }),
+  acceptTerms: (version: string) => apiPost<Me>("/api/v1/auth/terms/accept", { version }),
   logout: () => apiPost<void>("/api/v1/auth/logout"),
   switchClinic: (clinicId: string) => apiPost<Me>("/api/v1/auth/switch-clinic", { clinicId }),
   forgotPassword: (email: string) => apiPost<void>("/api/v1/auth/password/forgot", { email }),

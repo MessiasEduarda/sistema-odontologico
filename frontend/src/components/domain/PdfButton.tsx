@@ -4,7 +4,7 @@ import { FileDown } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
-import { useToast } from "@/components/ui/Toast";
+import { useFeedback } from "@/components/ui/Feedback";
 import { type PdfRequest, usePdf } from "@/lib/pdf/usePdf";
 
 /**
@@ -23,7 +23,7 @@ export function PdfButton({
   variant?: "outline" | "ghost" | "primary";
 }) {
   const { download } = usePdf();
-  const toast = useToast();
+  const feedback = useFeedback();
   const [pending, setPending] = useState(false);
 
   const onClick = async (e: MouseEvent) => {
@@ -33,7 +33,7 @@ export function PdfButton({
     try {
       await download(await load());
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível gerar o PDF.");
+      feedback.error("Não foi possível gerar o PDF", error instanceof Error ? error.message : undefined);
     } finally {
       setPending(false);
     }

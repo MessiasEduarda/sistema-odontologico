@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import type { ReactNode } from "react";
+import Image from "next/image";
+import { type ReactNode, useCallback, useState } from "react";
 import styled from "styled-components";
+import brandLogo from "@/assets/odonto-saas-logo.png";
 import { media } from "@/styles/theme";
+import { DialogButton, LegalDialog, type LegalTab } from "./LegalDialog";
 
 interface AuthLayoutProps {
   title: string;
@@ -11,138 +13,155 @@ interface AuthLayoutProps {
   children: ReactNode;
 }
 
-/** Contorno de dente (molar) usado na ilustração e no fundo. */
+/** Contorno de dente (molar) usado na marca e na ilustração. */
 const TOOTH =
   "M80 30C64 18 40 20 32 40C24 60 30 80 38 98C44 112 44 140 52 158C58 170 70 166 72 150C74 136 76 124 80 124" +
   "C84 124 86 136 88 150C90 166 102 170 108 158C116 140 116 112 122 98C130 80 136 60 128 40C120 20 96 18 80 30Z";
 
+/** Paleta da tela de acesso: só cores chapadas (sem degradê). */
+const P = {
+  page: "#F4EDE6",
+  blob: "#9C7A5B",
+  panel: "#7A5C41",
+  dark: "#141414",
+  darkHover: "#2B2622",
+  white: "#FFFFFF",
+  soft: "#F4EDE6",
+  line: "#D6CEC5",
+  skin: "#E8C4A8",
+  shirt: "#C9A98A",
+  leaf: "#C9B29B",
+  gray: "#8D867F",
+};
+
 /**
- * Telas de acesso: um cartão em destaque (formulário + ilustração odontológica) sobre um fundo com profundidade —
- * camadas escuras, brilhos caramelo desfocados e silhuetas de dentes em escalas diferentes. No celular, só o cartão.
+ * Telas de acesso: cartão em primeiro plano (formulário à esquerda, ilustração à direita) sobre um fundo de cor
+ * única; a profundidade vem da sombra nas bordas do cartão. No celular, só o formulário.
  */
 export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
+  const [legal, setLegal] = useState<LegalTab | null>(null);
+  const closeLegal = useCallback(() => setLegal(null), []);
   return (
     <Page>
-      <Depth aria-hidden="true">
-        <Glow $x="12%" $y="18%" $size={520} $opacity={0.35} />
-        <Glow $x="88%" $y="82%" $size={620} $opacity={0.28} />
-        <Glow $x="70%" $y="10%" $size={300} $opacity={0.18} />
-        <ToothShape $x="6%" $y="62%" $size={260} $rotate={-18} $opacity={0.07} $blur={2} />
-        <ToothShape $x="84%" $y="8%" $size={180} $rotate={14} $opacity={0.09} $blur={1} />
-        <ToothShape $x="76%" $y="68%" $size={120} $rotate={-8} $opacity={0.12} $blur={0} />
-        <ToothShape $x="22%" $y="4%" $size={90} $rotate={22} $opacity={0.1} $blur={0} />
-        <ToothShape $x="46%" $y="86%" $size={70} $rotate={-30} $opacity={0.08} $blur={0} />
-      </Depth>
-
       <Main>
-        <Card>
-          <FormSide>
-            <Brand>
-              <BrandMark aria-hidden="true">
-                <svg viewBox="0 0 160 180" width="22" height="22">
-                  <path d={TOOTH} fill="currentColor" />
-                </svg>
-              </BrandMark>
-              <span>Odonto SaaS</span>
-            </Brand>
-            <Title>{title}</Title>
-            {subtitle && <Subtitle>{subtitle}</Subtitle>}
-            {children}
-          </FormSide>
-          <ArtSide aria-hidden="true">
-            <DentalIllustration />
-            <ArtText>
-              <strong>Sua clínica em um só lugar</strong>
-              <span>Agenda, prontuário, termos e financeiro com segurança e cuidado em cada atendimento.</span>
-            </ArtText>
-          </ArtSide>
-        </Card>
-        <Legal>
-          <Link href="/termos-de-uso">Termos de uso</Link>
-          <span aria-hidden="true">·</span>
-          <Link href="/privacidade">Privacidade</Link>
-        </Legal>
+        <Stage>
+          <Card>
+            <FormSide>
+              <Image src={brandLogo} alt="Odonto SaaS" priority style={{ width: 110, height: "auto" }} />
+              <Title>{title}</Title>
+              {subtitle && <Subtitle>{subtitle}</Subtitle>}
+              <Content>{children}</Content>
+              <Legal>
+                <button type="button" onClick={() => setLegal("terms")}>
+                  Termos de uso
+                </button>
+                <span aria-hidden="true">·</span>
+                <button type="button" onClick={() => setLegal("privacy")}>
+                  Privacidade
+                </button>
+              </Legal>
+            </FormSide>
+            <ArtSide aria-hidden="true">
+              <DentalIllustration />
+            </ArtSide>
+            {legal && (
+              <LegalDialog
+                contained
+                initialTab={legal}
+                subtitle="Conheça as regras de uso e como tratamos os dados"
+                onClose={closeLegal}
+                footer={
+                  <DialogButton type="button" onClick={closeLegal}>
+                    Fechar
+                  </DialogButton>
+                }
+              />
+            )}
+          </Card>
+        </Stage>
       </Main>
     </Page>
   );
 }
 
-/** Ilustração própria (SVG): dente com brilho, agenda e prancheta, na paleta do sistema. */
+/** Ilustração própria (SVG, cores chapadas): dentista apontando para um celular com dente na tela e paciente sentado. */
 function DentalIllustration() {
+  const dots = (y: number, n: number) =>
+    Array.from({ length: n }, (_, i) => <circle key={`${y}-${i}`} cx={192 + i * 9} cy={y} r="2.4" fill={P.panel} />);
   return (
-    <svg viewBox="0 0 360 300" width="100%" style={{ maxWidth: 340 }}>
-      <defs>
-        <linearGradient id="auth-tooth" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FFFFFF" />
-          <stop offset="1" stopColor="#F4EDE6" />
-        </linearGradient>
-        <filter id="auth-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="10" stdDeviation="12" floodColor="#735740" floodOpacity="0.22" />
-        </filter>
-      </defs>
-      <circle cx="180" cy="150" r="118" fill="#FFFFFF" opacity="0.55" />
-      <circle cx="180" cy="150" r="86" fill="#FFFFFF" opacity="0.6" />
-      <path
-        d="M52 236 C 90 270, 150 280, 214 262"
-        fill="none"
-        stroke="#9C7A5B"
-        strokeWidth="2"
-        strokeDasharray="4 7"
-        opacity="0.55"
-      />
+    <svg viewBox="72 8 368 318" width="100%" style={{ maxWidth: 460 }}>
+      {/* chão */}
+      <ellipse cx="230" cy="318" rx="180" ry="8" fill={P.soft} />
 
-      {/* Agenda */}
-      <g transform="translate(34 64)" filter="url(#auth-shadow)">
-        <rect width="92" height="84" rx="14" fill="#FFFFFF" />
-        <rect width="92" height="22" rx="14" fill="#9C7A5B" />
-        <rect y="12" width="92" height="10" fill="#9C7A5B" />
-        <circle cx="24" cy="6" r="3" fill="#F4EDE6" />
-        <circle cx="68" cy="6" r="3" fill="#F4EDE6" />
-        {[0, 1, 2].map((r) =>
-          [0, 1, 2, 3].map((c) => (
-            <rect
-              key={`${r}-${c}`}
-              x={12 + c * 18}
-              y={32 + r * 16}
-              width="12"
-              height="9"
-              rx="3"
-              fill={r === 1 && c === 2 ? "#9C7A5B" : "#EADFD3"}
-            />
-          )),
-        )}
+      {/* caminho pontilhado com dente */}
+      <path d="M150 40 C 240 0, 340 14, 352 74" fill="none" stroke={P.blob} strokeWidth="2" strokeDasharray="4 6" />
+      <g transform="translate(128 24) scale(0.16)">
+        <path d={TOOTH} fill={P.blob} />
       </g>
 
-      {/* Prancheta */}
-      <g transform="translate(246 150)" filter="url(#auth-shadow)">
-        <rect width="80" height="100" rx="12" fill="#FFFFFF" />
-        <rect x="26" y="-8" width="28" height="16" rx="6" fill="#141414" />
-        <rect x="14" y="26" width="52" height="7" rx="3.5" fill="#EADFD3" />
-        <rect x="14" y="42" width="40" height="7" rx="3.5" fill="#EADFD3" />
-        <rect x="14" y="58" width="46" height="7" rx="3.5" fill="#EADFD3" />
-        <circle cx="58" cy="82" r="11" fill="#2E7D4F" />
-        <path d="M52.5 82 l4 4 l7-8" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
-      </g>
-
-      {/* Dente */}
-      <g transform="translate(108 52) scale(0.9)" filter="url(#auth-shadow)">
-        <path d={TOOTH} fill="url(#auth-tooth)" stroke="#9C7A5B" strokeWidth="5" strokeLinejoin="round" />
-        <path d="M54 46 C 46 56, 46 70, 50 82" fill="none" stroke="#FFFFFF" strokeWidth="9" strokeLinecap="round" />
-      </g>
-
-      {/* Brilhos */}
+      {/* brilhos */}
       {[
-        [252, 66, 1],
-        [276, 104, 0.6],
-        [96, 196, 0.7],
+        [362, 104, 1],
+        [384, 132, 0.6],
       ].map(([x, y, s]) => (
         <path
           key={`${x}-${y}`}
           transform={`translate(${x} ${y}) scale(${s})`}
-          d="M0 -14 C 2 -4, 4 -2, 14 0 C 4 2, 2 4, 0 14 C -2 4, -4 2, -14 0 C -4 -2, -2 -4, 0 -14 Z"
-          fill="#9C7A5B"
+          d="M0 -12 C 2 -3, 3 -2, 12 0 C 3 2, 2 3, 0 12 C -2 3, -3 2, -12 0 C -3 -2, -2 -3, 0 -12 Z"
+          fill={P.leaf}
         />
       ))}
+
+      {/* celular: moldura atrás e tela na frente */}
+      <rect x="190" y="70" width="150" height="248" rx="18" fill={P.dark} />
+      <rect x="160" y="52" width="142" height="230" rx="16" fill={P.blob} />
+      <circle cx="231" cy="108" r="31" fill={P.soft} stroke={P.white} strokeWidth="5" />
+      <g transform="translate(208.6 83) scale(0.28)">
+        <path d={TOOTH} fill={P.panel} />
+      </g>
+      <rect x="182" y="156" width="98" height="13" rx="6.5" fill={P.white} />
+      {dots(162.5, 6)}
+      <rect x="182" y="178" width="98" height="13" rx="6.5" fill={P.white} />
+      {dots(184.5, 9)}
+      <rect x="182" y="204" width="98" height="14" rx="7" fill={P.dark} />
+
+      {/* dentista em pé */}
+      <rect x="97" y="88" width="30" height="46" rx="12" fill={P.dark} />
+      <circle cx="115" cy="97" r="11" fill={P.skin} />
+      <path d="M103 94 a12 12 0 0 1 24 -2 l-6 -2 l-16 4 Z" fill={P.dark} />
+      <rect x="111" y="106" width="8" height="8" fill={P.skin} />
+      <path d="M97 114 h36 l6 72 h-48 Z" fill={P.white} stroke={P.line} strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M109 114 l6 15 l6 -15 Z" fill={P.blob} />
+      <line x1="131" y1="121" x2="161" y2="105" stroke={P.line} strokeWidth="11" strokeLinecap="round" />
+      <line x1="131" y1="121" x2="161" y2="105" stroke={P.white} strokeWidth="8" strokeLinecap="round" />
+      <circle cx="164" cy="104" r="5" fill={P.skin} />
+      <line x1="100" y1="122" x2="96" y2="170" stroke={P.line} strokeWidth="11" strokeLinecap="round" />
+      <line x1="100" y1="122" x2="96" y2="170" stroke={P.white} strokeWidth="8" strokeLinecap="round" />
+      <circle cx="96" cy="174" r="5" fill={P.skin} />
+      <rect x="104" y="185" width="11" height="110" rx="3" fill={P.dark} />
+      <rect x="119" y="185" width="11" height="110" rx="3" fill={P.dark} />
+      <ellipse cx="109" cy="297" rx="10" ry="4.5" fill={P.darkHover} />
+      <ellipse cx="126" cy="297" rx="10" ry="4.5" fill={P.darkHover} />
+
+      {/* paciente sentado com notebook */}
+      <g transform="translate(332 304) scale(1.4) translate(-332 -304)">
+        <ellipse cx="332" cy="300" rx="38" ry="11" fill={P.dark} />
+        <path d="M314 244 h36 l5 52 h-46 Z" fill={P.shirt} />
+        <circle cx="332" cy="230" r="11" fill={P.skin} />
+        <path d="M321 229 A11 11 0 0 1 343 229 Z" fill={P.dark} />
+        <path d="M314 286 l5 -18 h32 l-5 18 Z" fill={P.line} />
+        <rect x="308" y="285" width="46" height="4" rx="2" fill={P.gray} />
+        <line x1="316" y1="254" x2="320" y2="282" stroke={P.shirt} strokeWidth="7" strokeLinecap="round" />
+        <line x1="348" y1="254" x2="344" y2="282" stroke={P.shirt} strokeWidth="7" strokeLinecap="round" />
+      </g>
+
+      {/* planta */}
+      <g transform="translate(26 0)">
+        <ellipse cx="376" cy="252" rx="6" ry="20" transform="rotate(-24 376 252)" fill={P.leaf} />
+        <ellipse cx="398" cy="250" rx="6" ry="20" transform="rotate(24 398 250)" fill={P.leaf} />
+        <ellipse cx="387" cy="242" rx="6" ry="22" fill={P.leaf} />
+        <rect x="374" y="270" width="26" height="30" rx="4" fill={P.line} />
+      </g>
     </svg>
   );
 }
@@ -151,49 +170,7 @@ const Page = styled.div`
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: radial-gradient(120% 90% at 50% 0%, #2b2622 0%, #1c1916 55%, #121110 100%);
-`;
-
-const Depth = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-`;
-
-const Glow = styled.div<{ $x: string; $y: string; $size: number; $opacity: number }>`
-  position: absolute;
-  left: ${({ $x }) => $x};
-  top: ${({ $y }) => $y};
-  width: ${({ $size }) => $size}px;
-  height: ${({ $size }) => $size}px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, #9c7a5b 0%, rgba(156, 122, 91, 0) 70%);
-  opacity: ${({ $opacity }) => $opacity};
-  filter: blur(20px);
-`;
-
-const ToothShape = styled.div<{
-  $x: string;
-  $y: string;
-  $size: number;
-  $rotate: number;
-  $opacity: number;
-  $blur: number;
-}>`
-  position: absolute;
-  left: ${({ $x }) => $x};
-  top: ${({ $y }) => $y};
-  width: ${({ $size }) => $size}px;
-  height: ${({ $size }) => $size * 1.125}px;
-  opacity: ${({ $opacity }) => $opacity};
-  filter: blur(${({ $blur }) => $blur}px);
-  transform: rotate(${({ $rotate }) => $rotate}deg);
-  background: #e9e4df;
-  mask: url("data:image/svg+xml,${encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 180'><path d='${TOOTH}'/></svg>`,
-    )}")
-    center / contain no-repeat;
+  background: ${P.page};
 `;
 
 const Main = styled.main`
@@ -202,117 +179,163 @@ const Main = styled.main`
   display: grid;
   place-items: center;
   align-content: center;
-  gap: ${({ theme }) => theme.space[4]};
-  padding: ${({ theme }) => `${theme.space[8]} ${theme.space[4]}`};
+  gap: ${({ theme }) => theme.space[5]};
+  padding: ${({ theme }) => `${theme.space[10]} ${theme.space[4]}`};
 `;
 
-const Card = styled.section`
+const Stage = styled.div`
+  position: relative;
   width: 100%;
   max-width: 440px;
-  display: grid;
-  background: ${({ theme }) => theme.colors.surface};
-  border-radius: 28px;
-  overflow: hidden;
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.25),
-    0 30px 80px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
 
   ${media.lg} {
-    max-width: 960px;
-    grid-template-columns: 1fr 1fr;
+    max-width: 1080px;
   }
 `;
 
+const Card = styled.section`
+  position: relative;
+  display: grid;
+  border-radius: 8px;
+  overflow: hidden;
+  background: ${P.white};
+  /* sombra em todas as bordas: o cartão parece flutuar à frente do fundo */
+  box-shadow:
+    0 0 0 1px rgba(20, 20, 20, 0.04),
+    0 4px 10px rgba(20, 20, 20, 0.12),
+    0 24px 48px rgba(20, 20, 20, 0.2),
+    0 48px 110px rgba(20, 20, 20, 0.28);
+
+  ${media.lg} {
+    grid-template-columns: 1fr 1fr;
+    min-height: 640px;
+  }
+`;
+
+/** Lado do formulário: caramelo chapado; campos brancos em pílula e botão escuro, como no modelo de referência. */
 const FormSide = styled.div`
   display: grid;
   align-content: center;
-  gap: ${({ theme }) => theme.space[5]};
-  padding: ${({ theme }) => `${theme.space[8]} ${theme.space[6]}`};
+  justify-items: center;
+  gap: ${({ theme }) => theme.space[4]};
+  padding: ${({ theme }) => `${theme.space[10]} ${theme.space[6]}`};
+  background: ${P.panel};
+  color: ${P.white};
+  text-align: center;
 
   ${media.sm} {
     padding: ${({ theme }) => `${theme.space[12]} ${theme.space[10]}`};
   }
 `;
 
-const Brand = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space[2]};
-  font-family: ${({ theme }) => theme.fonts.display};
-  font-weight: ${({ theme }) => theme.fontWeights.bold};
-  color: ${({ theme }) => theme.colors.primaryText};
-`;
-
-const BrandMark = styled.span`
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
+const Content = styled.div`
+  width: 100%;
+  max-width: 340px;
   display: grid;
-  place-items: center;
-  background: ${({ theme }) => theme.colors.sidebar};
-  color: ${({ theme }) => theme.colors.primarySoft};
-`;
+  gap: ${({ theme }) => theme.space[4]};
+  text-align: left;
 
-const ArtSide = styled.div`
-  display: none;
-  position: relative;
-  align-content: center;
-  justify-items: center;
-  gap: ${({ theme }) => theme.space[6]};
-  padding: ${({ theme }) => theme.space[10]};
-  background: radial-gradient(
-    90% 70% at 50% 35%,
-    #fbf7f3 0%,
-    ${({ theme }) => theme.colors.primarySoft} 60%,
-    #eadfd3 100%
-  );
-
-  ${media.lg} {
-    display: grid;
+  label {
+    color: ${P.white};
   }
-`;
-
-const ArtText = styled.div`
-  display: grid;
-  gap: ${({ theme }) => theme.space[2]};
-  text-align: center;
-  max-width: 34ch;
-
-  strong {
-    font-family: ${({ theme }) => theme.fonts.display};
-    font-size: ${({ theme }) => theme.fontSizes.lg};
-    color: ${({ theme }) => theme.colors.primaryText};
+  input {
+    color: ${({ theme }) => theme.colors.text};
+    border-color: transparent;
+    min-height: 46px;
   }
-  span {
-    color: ${({ theme }) => theme.colors.textMuted};
-    font-size: ${({ theme }) => theme.fontSizes.md};
+  input:-webkit-autofill {
+    -webkit-text-fill-color: ${({ theme }) => theme.colors.text};
+    box-shadow: 0 0 0 40px ${P.white} inset;
+  }
+  input:focus {
+    border-color: ${P.white};
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45);
+  }
+  /* dicas e erros dos campos sobre o caramelo */
+  input + p {
+    color: ${P.soft};
+  }
+  p[role="alert"] {
+    color: ${P.white};
+    font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  }
+  button[type="submit"] {
+    min-height: 46px;
+    background: ${P.dark};
+    border-color: ${P.dark};
+    color: ${P.white};
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  button[type="submit"]:hover:not(:disabled) {
+    background: ${P.darkHover};
+    border-color: ${P.darkHover};
+  }
+  > button[type="button"] {
+    color: ${P.white};
+  }
+  > button[type="button"]:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+    color: ${P.white};
+  }
+  a {
+    color: ${P.white};
   }
 `;
 
 const Title = styled.h1`
   font-family: ${({ theme }) => theme.fonts.display};
   font-weight: ${({ theme }) => theme.fontWeights.bold};
-  font-size: ${({ theme }) => theme.fontSizes["2xl"]};
-  color: ${({ theme }) => theme.colors.text};
+  font-size: ${({ theme }) => theme.fontSizes.xl};
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: ${P.white};
+  margin-top: ${({ theme }) => theme.space[2]};
 `;
 
 const Subtitle = styled.div`
-  color: ${({ theme }) => theme.colors.textMuted};
-  margin-top: -${({ theme }) => theme.space[3]};
+  max-width: 340px;
+  color: ${P.soft};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  margin-top: -${({ theme }) => theme.space[2]};
+`;
+
+const ArtSide = styled.div`
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: ${({ theme }) => theme.space[8]};
+  background: ${P.white};
+
+  ${media.lg} {
+    display: flex;
+  }
 `;
 
 const Legal = styled.p`
   display: flex;
   gap: ${({ theme }) => theme.space[2]};
+  margin-top: ${({ theme }) => theme.space[4]};
   font-size: ${({ theme }) => theme.fontSizes.sm};
-  color: ${({ theme }) => theme.colors.sidebarTextMuted};
+  color: ${P.soft};
 
-  a {
+  button {
+    padding: 0;
+    border: 0;
+    background: none;
     color: inherit;
+    font-size: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
-  a:hover {
-    color: ${({ theme }) => theme.colors.sidebarText};
+  button:hover {
+    color: ${P.white};
+  }
+  button:focus-visible {
+    outline: 2px solid ${P.white};
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 `;
 

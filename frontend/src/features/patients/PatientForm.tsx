@@ -189,7 +189,7 @@ export function PatientForm({ initial = EMPTY, saving, serverError, submitLabel,
 
       <Footer>
         {onCancel && (
-          <Button variant="outline" onClick={onCancel} disabled={saving}>
+          <Button data-modal-cancel variant="outline" onClick={onCancel} disabled={saving}>
             Cancelar
           </Button>
         )}

@@ -25,7 +25,7 @@ import {
 import { CheckboxField } from "@/components/ui/fields";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Tabs } from "@/components/ui/Tabs";
-import { useToast } from "@/components/ui/Toast";
+import { useFeedback } from "@/components/ui/Feedback";
 import { AestheticsSection, useAestheticsEnabled } from "@/features/aesthetics/AestheticsPage";
 import { AnamnesisSection } from "@/features/clinical/AnamnesisSection";
 import { AttachmentsSection } from "@/features/clinical/AttachmentsSection";
@@ -122,13 +122,13 @@ function DataTab({ patientId }: { patientId: string }) {
   const update = useAction(
     (input: Parameters<typeof api.patients.update>[1]) => api.patients.update(patientId, input),
     {
-      success: "Cadastro atualizado.",
+      success: "Cadastro atualizado com sucesso!",
       invalidate: [["patient", patientId], ["patients"]],
       onSuccess: () => setEditing(false),
     },
   );
   const toggle = useAction(() => api.patients.setActive(patientId, !p?.active), {
-    success: p?.active ? "Paciente inativado." : "Paciente reativado.",
+    success: p?.active ? "Paciente inativado com sucesso!" : "Paciente reativado com sucesso!",
     invalidate: [["patient", patientId], ["patients"]],
     onSuccess: () => setToggling(false),
   });
@@ -219,7 +219,9 @@ function DataTab({ patientId }: { patientId: string }) {
       </Muted>
       <ConfirmDialog
         open={toggling}
-        title={p.active ? "Inativar paciente" : "Reativar paciente"}
+        question={
+          p.active ? "Tem certeza que deseja inativar este paciente?" : "Tem certeza que deseja reativar este paciente?"
+        }
         message={
           p.active
             ? "O paciente deixa de aparecer nas buscas padrão. O prontuário e o histórico são mantidos."
@@ -397,15 +399,15 @@ function FinanceTab({ patientId }: { patientId: string }) {
 }
 
 function PortalTab({ patientId, email, allowEmail }: { patientId: string; email: string | null; allowEmail: boolean }) {
-  const toast = useToast();
+  const feedback = useFeedback();
   const [sendEmail, setSendEmail] = useState(Boolean(email && allowEmail));
   const [url, setUrl] = useState<string | null>(null);
   const grant = useAction(() => api.patients.portalAccess(patientId, sendEmail), {
-    success: "Link do portal gerado.",
+    success: "Link do portal gerado com sucesso!",
     onSuccess: (r) => setUrl(r.url),
   });
   const revoke = useAction(() => api.patients.revokePortal(patientId), {
-    success: "Acesso ao portal revogado.",
+    success: "Acesso ao portal revogado com sucesso!",
     onSuccess: () => setUrl(null),
   });
   return (
@@ -435,7 +437,9 @@ function PortalTab({ patientId, email, allowEmail }: { patientId: string; email:
             <code style={{ wordBreak: "break-all" }}>{url}</code>{" "}
             <Button
               variant="ghost"
-              onClick={() => navigator.clipboard.writeText(url).then(() => toast.success("Link copiado."))}
+              onClick={() =>
+                navigator.clipboard.writeText(url).then(() => feedback.success("Link copiado com sucesso!"))
+              }
             >
               Copiar
             </Button>

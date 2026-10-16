@@ -3,12 +3,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import styled from "styled-components";
 import { PatientSelect } from "@/components/domain/PatientSelect";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardTitle, Muted, Row, Stack } from "@/components/ui/display";
+import { DISCARD_CHANGES, useFeedback } from "@/components/ui/Feedback";
 import { FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { TextField } from "@/components/ui/TextField";
@@ -32,6 +33,16 @@ interface Props {
 /** Criação/edição de orçamento. A prévia dos totais é só visual: o servidor recalcula e é a referência. */
 export function PlanEditor({ plan, initialPatient = null }: Props) {
   const router = useRouter();
+  const feedback = useFeedback();
+  // Algo foi preenchido/alterado? Usado para confirmar antes de descartar ao cancelar.
+  const dirty = useRef(false);
+  const markDirty = () => {
+    dirty.current = true;
+  };
+  const cancel = async () => {
+    if (dirty.current && !(await feedback.confirm(DISCARD_CHANGES))) return;
+    router.back();
+  };
   const professionals = useQuery({ queryKey: ["professionals", true], queryFn: () => api.clinic.professionals(true) });
   const procedures = useQuery({
     queryKey: ["procedures", "active"],
@@ -92,7 +103,7 @@ export function PlanEditor({ plan, initialPatient = null }: Props) {
       return plan ? api.plans.update(plan.id, body) : api.plans.create(body);
     },
     {
-      success: plan ? "Orçamento atualizado." : "Orçamento criado.",
+      success: plan ? "Orçamento atualizado com sucesso!" : "Orçamento criado com sucesso!",
       invalidate: [["plans"]],
       onSuccess: (p) => router.push(`/tratamentos/${p.id}`),
     },
@@ -114,7 +125,13 @@ export function PlanEditor({ plan, initialPatient = null }: Props) {
   };
 
   return (
-    <Stack>
+    <Stack
+      onInputCapture={markDirty}
+      onChangeCapture={markDirty}
+      onClickCapture={(e) => {
+        if ((e.target as HTMLElement).closest('[role="option"]')) markDirty();
+      }}
+    >
       <Card>
         <FormGrid $columns={2}>
           <FullRow>
@@ -266,7 +283,7 @@ export function PlanEditor({ plan, initialPatient = null }: Props) {
       {save.error && <Alert tone="danger">{save.error.message}</Alert>}
 
       <Row $justify="flex-end">
-        <Button variant="outline" onClick={() => router.back()}>
+        <Button variant="outline" onClick={() => void cancel()}>
           Cancelar
         </Button>
         <Button onClick={submit} loading={save.isPending}>

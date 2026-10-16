@@ -35,13 +35,15 @@ export function ConsentTemplatesManager() {
     queryFn: () => api.clinic.consentTemplates(showOld),
   });
   const archive = useAction(() => api.clinic.archiveConsentTemplate(archiving?.id ?? ""), {
-    success: "Modelo arquivado.",
+    success: "Modelo arquivado com sucesso!",
     invalidate: [["consent-templates"]],
     onSuccess: () => setArchiving(null),
   });
   const examples = useAction(() => api.clinic.addConsentExamples(), {
     success: (r) =>
-      r.created > 0 ? `${r.created} modelo(s) de exemplo adicionado(s).` : "Os modelos de exemplo já estão na lista.",
+      r.created > 0
+        ? `${r.created} modelo(s) de exemplo adicionado(s) com sucesso!`
+        : "Os modelos de exemplo já estão na lista.",
     invalidate: [["consent-templates"]],
   });
   const rows = (list.data ?? []).filter((t) => !category || t.category === category);
@@ -121,7 +123,7 @@ export function ConsentTemplatesManager() {
       {editing && <TemplateForm template={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog
         open={Boolean(archiving)}
-        title="Arquivar modelo"
+        question="Tem certeza que deseja arquivar este modelo?"
         message="O modelo deixa de aparecer para emissão de novos termos. Termos já emitidos não mudam."
         confirmLabel="Arquivar"
         tone="danger"
@@ -143,7 +145,7 @@ function TemplateForm({ template, onClose }: { template: ConsentTemplate | null;
         ? api.clinic.updateConsentTemplate(template.id, { title, category, body })
         : api.clinic.createConsentTemplate({ title, category, body }),
     {
-      success: template ? "Nova versão criada." : "Modelo criado.",
+      success: template ? "Nova versão criada com sucesso!" : "Modelo criado com sucesso!",
       invalidate: [["consent-templates"]],
       onSuccess: onClose,
     },
@@ -156,7 +158,7 @@ function TemplateForm({ template, onClose }: { template: ConsentTemplate | null;
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button

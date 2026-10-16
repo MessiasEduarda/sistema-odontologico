@@ -33,13 +33,21 @@ public final class AuthDtos {
 
     public record UserView(UUID id, String name, String email) {}
 
-    /** Quem sou eu: usuário, clínica ativa, permissões nela e clínicas disponíveis para troca. */
+    /**
+     * Quem sou eu: usuário, clínica ativa, permissões nela, clínicas disponíveis para troca e se já aceitou a versão
+     * vigente dos termos ({@code termsVersion}).
+     */
     public record MeResponse(
             UserView user,
             boolean platformAdmin,
             ClinicSummary activeClinic,
             List<String> permissions,
-            List<ClinicSummary> clinics) {}
+            List<ClinicSummary> clinics,
+            boolean termsAccepted,
+            String termsVersion) {}
+
+    public record AcceptTermsRequest(
+            @NotBlank @Size(max = 20) String version) {}
 
     public record SessionView(
             UUID id, Instant createdAt, Instant lastSeenAt, String ip, String userAgent, boolean current) {}

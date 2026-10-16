@@ -36,5 +36,7 @@ public enum AuditAction {
     PAYMENT_RECEIVED,
     PAYMENT_REFUNDED,
     SUBSCRIPTION_CHANGED,
-    TENANT_STATUS_CHANGED
+    TENANT_STATUS_CHANGED,
+    /* Aceite dos Termos de uso e da Política de privacidade. */
+    TERMS_ACCEPTED
 }

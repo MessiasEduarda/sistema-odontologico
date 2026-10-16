@@ -80,7 +80,7 @@ export function AestheticForm({
         consentId: v.consentId || null,
       }),
     {
-      success: "Aplicação registrada.",
+      success: "Aplicação registrada com sucesso!",
       invalidate: [["aesthetics"], ["aesthetics-search"]],
       onSuccess: onClose,
     },
@@ -106,7 +106,7 @@ export function AestheticForm({
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={invalid || expired}>

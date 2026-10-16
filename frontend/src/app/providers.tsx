@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { ThemeProvider } from "styled-components";
+import { FeedbackProvider } from "@/components/ui/Feedback";
 import { ToastProvider } from "@/components/ui/Toast";
 import { StyledComponentsRegistry } from "@/lib/styled-registry";
 import { GlobalStyle } from "@/styles/GlobalStyle";
@@ -23,7 +24,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider theme={theme}>
         <GlobalStyle />
         <QueryClientProvider client={queryClient}>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <FeedbackProvider>{children}</FeedbackProvider>
+          </ToastProvider>
         </QueryClientProvider>
       </ThemeProvider>
     </StyledComponentsRegistry>

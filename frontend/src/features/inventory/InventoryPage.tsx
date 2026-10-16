@@ -153,7 +153,7 @@ function ProductForm({ product, onClose }: { product: Product | null; onClose: (
       const body = { ...v, category: v.category || null, supplierId: v.supplierId || null };
       return product ? api.inventory.update(product.id, body) : api.inventory.create(body);
     },
-    { success: "Produto salvo.", invalidate: INV, onSuccess: onClose },
+    { success: "Produto salvo com sucesso!", invalidate: INV, onSuccess: onClose },
   );
   return (
     <Modal
@@ -162,7 +162,7 @@ function ProductForm({ product, onClose }: { product: Product | null; onClose: (
       title={product ? "Editar produto" : "Novo produto"}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
@@ -242,7 +242,11 @@ function MovementForm({ product, onClose }: { product: Product; onClose: () => v
         expiryDate: v.expiryDate || undefined,
         reason: v.reason || undefined,
       }),
-    { success: "Movimentação registrada.", invalidate: [...INV, ["movements", product.id]], onSuccess: onClose },
+    {
+      success: "Movimentação registrada com sucesso!",
+      invalidate: [...INV, ["movements", product.id]],
+      onSuccess: onClose,
+    },
   );
   const adjust = v.type === "ADJUST";
   return (
@@ -252,7 +256,7 @@ function MovementForm({ product, onClose }: { product: Product; onClose: () => v
       title={`Movimentar: ${product.name}`}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button

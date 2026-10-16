@@ -334,6 +334,8 @@ export const api = {
     clinics: (q?: string) => apiFetch<PlatformClinic[]>(`/api/v1/platform/clinics${qs({ q })}`),
     createClinic: (body: { name: string; slug: string; ownerEmail: string; planCode?: string }) =>
       apiPost<unknown>("/api/v1/platform/tenants", body),
+    resendOwnerInvite: (id: Uuid, ownerEmail: string) =>
+      apiPost<void>(`/api/v1/platform/tenants/${id}/owner-invitation`, { ownerEmail }),
     setClinicStatus: (id: Uuid, status: string) => apiPost<void>(`/api/v1/platform/clinics/${id}/status`, { status }),
     subscription: (id: Uuid) => apiFetch<Subscription>(`/api/v1/platform/clinics/${id}/subscription`),
     updateSubscription: (

@@ -42,7 +42,7 @@ export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
     ({ status, reason }: { status: string; reason?: string }) =>
       api.appointments.status(appointmentId ?? "", status, reason),
     {
-      success: "Status atualizado.",
+      success: "Status atualizado com sucesso!",
       invalidate: [["appointments"], ["dashboard"]],
       onSuccess: () => setCancelling(false),
     },

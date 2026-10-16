@@ -43,7 +43,10 @@ function SettingsForm({ initial }: { initial: ClinicSettings }) {
       void _logo;
       return api.clinic.saveSettings(body);
     },
-    { success: "Configurações salvas.", invalidate: [["clinic-settings"], ["auth", "me"], ["anamnesis-forms"]] },
+    {
+      success: "Configurações salvas com sucesso!",
+      invalidate: [["clinic-settings"], ["auth", "me"], ["anamnesis-forms"]],
+    },
   );
   return (
     <Card>
@@ -128,14 +131,14 @@ function LogoCard({ name, logoVersion }: { name: string; logoVersion: string | n
   const input = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState<string>();
   const upload = useAction((file: File) => api.clinic.uploadLogo(file), {
-    success: "Logo atualizada.",
+    success: "Logo atualizada com sucesso!",
     invalidate: [["clinic-settings"]],
     onSuccess: () => {
       if (input.current) input.current.value = "";
     },
   });
   const remove = useAction(() => api.clinic.deleteLogo(), {
-    success: "Logo removida.",
+    success: "Logo removida com sucesso!",
     invalidate: [["clinic-settings"]],
   });
   const pick = (file: File | undefined) => {

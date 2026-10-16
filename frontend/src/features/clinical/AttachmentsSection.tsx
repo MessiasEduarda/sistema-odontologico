@@ -42,7 +42,7 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
       return apiFetch<Attachment>(`/api/v1/patients/${patientId}/attachments`, { method: "POST", body: form });
     },
     {
-      success: "Arquivo enviado.",
+      success: "Arquivo enviado com sucesso!",
       invalidate: [
         ["attachments", patientId],
         ["record", patientId],
@@ -55,7 +55,7 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
     },
   );
   const remove = useAction(() => api.clinical.deleteAttachment(patientId, removing?.id ?? ""), {
-    success: "Anexo removido da lista.",
+    success: "Anexo removido da lista com sucesso!",
     invalidate: [["attachments", patientId]],
     onSuccess: () => setRemoving(null),
   });
@@ -149,7 +149,7 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
       )}
       <ConfirmDialog
         open={Boolean(removing)}
-        title="Remover anexo"
+        question="Tem certeza que deseja remover este anexo?"
         message="O anexo sai da lista do paciente, mas o arquivo é mantido para fins de guarda legal do prontuário."
         confirmLabel="Remover"
         tone="danger"

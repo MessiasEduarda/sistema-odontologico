@@ -61,7 +61,7 @@ function PasswordCard() {
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const change = useAction(() => api.account.changePassword(current, next), {
-    success: "Senha alterada. As outras sessões foram encerradas.",
+    success: "Senha alterada com sucesso! As outras sessões foram encerradas.",
     invalidate: [["sessions"]],
     onSuccess: () => {
       setCurrent("");
@@ -120,9 +120,12 @@ function PasswordCard() {
 
 function SessionsCard() {
   const sessions = useQuery({ queryKey: ["sessions"], queryFn: api.account.sessions });
-  const revoke = useAction(api.account.revokeSession, { success: "Sessão encerrada.", invalidate: [["sessions"]] });
+  const revoke = useAction(api.account.revokeSession, {
+    success: "Sessão encerrada com sucesso!",
+    invalidate: [["sessions"]],
+  });
   const revokeOthers = useAction(api.account.revokeOthers, {
-    success: "Outras sessões encerradas.",
+    success: "Outras sessões encerradas com sucesso!",
     invalidate: [["sessions"]],
   });
   return (

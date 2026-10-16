@@ -88,12 +88,13 @@ function ClinicsTab() {
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
   const [subscription, setSubscription] = useState<PlatformClinic | null>(null);
+  const [resending, setResending] = useState<PlatformClinic | null>(null);
   const [statusChange, setStatusChange] = useState<{ clinic: PlatformClinic; status: string } | null>(null);
   const clinics = useQuery({ queryKey: ["platform-clinics", q], queryFn: () => api.platform.clinics(q) });
   const setStatus = useAction(
     () => api.platform.setClinicStatus(statusChange?.clinic.id ?? "", statusChange?.status ?? ""),
     {
-      success: "Situação da clínica atualizada.",
+      success: "Situação da clínica atualizada com sucesso!",
       invalidate: [["platform-clinics"], ["platform-metrics"]],
       onSuccess: () => setStatusChange(null),
     },
@@ -153,6 +154,9 @@ function ClinicsTab() {
                 <Button variant="ghost" onClick={() => setSubscription(c)}>
                   Assinatura
                 </Button>
+                <Button variant="ghost" onClick={() => setResending(c)}>
+                  Reenviar convite
+                </Button>
                 {c.status === "ACTIVE" ? (
                   <Button variant="ghost" onClick={() => setStatusChange({ clinic: c, status: "SUSPENDED" })}>
                     Suspender
@@ -168,10 +172,15 @@ function ClinicsTab() {
         ]}
       />
       {creating && <NewClinic onClose={() => setCreating(false)} />}
+      {resending && <ResendOwnerInvite clinic={resending} onClose={() => setResending(null)} />}
       {subscription && <SubscriptionDialog clinic={subscription} onClose={() => setSubscription(null)} />}
       <ConfirmDialog
         open={Boolean(statusChange)}
-        title={statusChange?.status === "SUSPENDED" ? "Suspender clínica" : "Reativar clínica"}
+        question={
+          statusChange?.status === "SUSPENDED"
+            ? "Tem certeza que deseja suspender esta clínica?"
+            : "Tem certeza que deseja reativar esta clínica?"
+        }
         message={
           statusChange?.status === "SUSPENDED"
             ? `A equipe da ${statusChange.clinic.name} perderá o acesso até a reativação. Nenhum dado é apagado.`
@@ -187,11 +196,50 @@ function ClinicsTab() {
   );
 }
 
+/** Reenvia o convite do responsável (e-mail não chegou, foi para o spam ou estava errado). */
+function ResendOwnerInvite({ clinic, onClose }: { clinic: PlatformClinic; onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const resend = useAction(() => api.platform.resendOwnerInvite(clinic.id, email), {
+    success: `Convite reenviado com sucesso! O link anterior deixou de valer.`,
+    onSuccess: onClose,
+  });
+  const valid = /^\S+@\S+\.\S+$/.test(email);
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Reenviar convite — ${clinic.name}`}
+      size="sm"
+      footer={
+        <>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={() => resend.mutate(undefined)} loading={resend.isPending} disabled={!valid}>
+            Reenviar
+          </Button>
+        </>
+      }
+    >
+      <FormGrid $columns={1}>
+        <TextField
+          label="E-mail do responsável"
+          type="email"
+          autoComplete="off"
+          value={email}
+          onChange={(e) => setEmail(e.target.value.trim())}
+          hint="Pode corrigir o endereço se o anterior estava errado. A pessoa recebe um link novo, válido por 7 dias."
+        />
+      </FormGrid>
+    </Modal>
+  );
+}
+
 function NewClinic({ onClose }: { onClose: () => void }) {
   const plans = useQuery({ queryKey: ["platform-plans"], queryFn: api.platform.plans });
   const [v, setV] = useState({ name: "", slug: "", ownerEmail: "", planCode: "PROFISSIONAL" });
   const create = useAction(() => api.platform.createClinic(v), {
-    success: "Clínica criada. O responsável recebeu o convite por e-mail.",
+    success: "Clínica criada com sucesso! O responsável recebeu o convite por e-mail.",
     invalidate: [["platform-clinics"], ["platform-metrics"]],
     onSuccess: onClose,
   });
@@ -209,7 +257,7 @@ function NewClinic({ onClose }: { onClose: () => void }) {
       title="Nova clínica"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
@@ -285,7 +333,11 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
         trialEndsAt: v.trialEndsAt || null,
         currentPeriodEnd: v.currentPeriodEnd || null,
       }),
-    { success: "Assinatura atualizada.", invalidate: [["platform-clinics"], ["platform-metrics"]], onSuccess: onClose },
+    {
+      success: "Assinatura atualizada com sucesso!",
+      invalidate: [["platform-clinics"], ["platform-metrics"]],
+      onSuccess: onClose,
+    },
   );
   return (
     <Modal
@@ -294,7 +346,7 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
       title={`Assinatura: ${clinic.name}`}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending}>
@@ -415,7 +467,7 @@ function PlanForm({ plan, onClose }: { plan: PlatformPlan | null; onClose: () =>
     active: plan?.active ?? true,
   });
   const save = useAction(() => (plan ? api.platform.updatePlan(plan.id, v) : api.platform.createPlan(v)), {
-    success: "Plano salvo.",
+    success: "Plano salvo com sucesso!",
     invalidate: [["platform-plans"]],
     onSuccess: onClose,
   });
@@ -430,7 +482,7 @@ function PlanForm({ plan, onClose }: { plan: PlatformPlan | null; onClose: () =>
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button

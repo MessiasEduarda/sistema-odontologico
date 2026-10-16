@@ -52,11 +52,23 @@ spring:
       # Jackson 3 rejeita por padrão campos primitivos ausentes; aqui um booleano omitido vale false.
       fail-on-null-for-primitives: false
 
+  # E-mail (SMTP). Em desenvolvimento, o Mailpit captura tudo sem senha nem criptografia; em produção
+  # (application-prod.yml) autenticação e STARTTLS ficam ligados por padrão, como exigem os provedores.
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
     username: ${SMTP_USERNAME:}
     password: ${SMTP_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      # Porta 587: STARTTLS (padrão dos provedores). Porta 465: use SMTP_SSL=true e SMTP_STARTTLS=false.
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.smtp.starttls.required: ${SMTP_STARTTLS:false}
+      mail.smtp.ssl.enable: ${SMTP_SSL:false}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 server:
   port: ${SERVER_PORT:8080}

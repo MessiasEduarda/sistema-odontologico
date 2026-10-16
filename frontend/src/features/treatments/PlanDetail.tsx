@@ -44,16 +44,16 @@ export function PlanDetail({ planId }: { planId: string }) {
 
   const inv = [["plans"], ["receivables"], ["dashboard"]];
   const propose = useAction(() => api.plans.propose(planId), {
-    success: "Orçamento marcado como apresentado.",
+    success: "Orçamento marcado como apresentado com sucesso!",
     invalidate: inv,
   });
   const reject = useAction((r: string) => api.plans.reject(planId, r), {
-    success: "Orçamento recusado.",
+    success: "Orçamento recusado com sucesso!",
     invalidate: inv,
     onSuccess: () => setRejecting(false),
   });
   const cancel = useAction((r: string) => api.plans.cancel(planId, r), {
-    success: "Orçamento cancelado.",
+    success: "Orçamento cancelado com sucesso!",
     invalidate: inv,
     onSuccess: () => setCancelling(false),
   });
@@ -287,7 +287,11 @@ function ApproveDialog({
         installments,
         firstDueDate: firstDue,
       }),
-    { success: "Aprovação registrada.", invalidate: [["plans"], ["receivables"], ["dashboard"]], onSuccess: onClose },
+    {
+      success: "Aprovação registrada com sucesso!",
+      invalidate: [["plans"], ["receivables"], ["dashboard"]],
+      onSuccess: onClose,
+    },
   );
   return (
     <Modal

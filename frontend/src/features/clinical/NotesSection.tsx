@@ -98,7 +98,7 @@ function NoteForm({
         amendsNoteId: amends?.id ?? null,
       }),
     {
-      success: "Evolução registrada.",
+      success: "Evolução registrada com sucesso!",
       invalidate: [
         ["notes", patientId],
         ["record", patientId],
@@ -114,7 +114,7 @@ function NoteForm({
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!content.trim()}>
@@ -158,7 +158,7 @@ export function PerformedSection({ patientId }: { patientId: string }) {
   const [voiding, setVoiding] = useState<PerformedProcedure | null>(null);
   const performed = useQuery({ queryKey: ["performed", patientId], queryFn: () => api.clinical.performed(patientId) });
   const voidIt = useAction((reason: string) => api.clinical.voidPerformed(patientId, voiding?.id ?? "", reason), {
-    success: "Registro anulado.",
+    success: "Registro anulado com sucesso!",
     invalidate: [["performed", patientId], ["plans"]],
     onSuccess: () => setVoiding(null),
   });
@@ -265,7 +265,7 @@ function PerformedForm({ patientId, onClose }: { patientId: string; onClose: () 
         notes: v.notes || undefined,
       }),
     {
-      success: "Procedimento registrado.",
+      success: "Procedimento registrado com sucesso!",
       invalidate: [["performed", patientId], ["plans"]],
       onSuccess: onClose,
     },
@@ -291,7 +291,7 @@ function PerformedForm({ patientId, onClose }: { patientId: string; onClose: () 
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button

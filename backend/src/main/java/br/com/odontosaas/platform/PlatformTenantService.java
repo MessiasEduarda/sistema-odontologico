@@ -52,6 +52,18 @@ public class PlatformTenantService {
         return PlatformDtos.TenantView.of(tenant);
     }
 
+    /**
+     * Reenvia o convite de responsável (o anterior, se pendente, deixa de valer). Útil quando o e-mail não chegou ou o
+     * endereço estava errado. 404 se a clínica não existir; 409 ALREADY_MEMBER se a pessoa já entrou.
+     */
+    @Transactional
+    public void resendOwnerInvite(UUID tenantId, String ownerEmail, UUID actorUserId) {
+        if (!tenants.existsById(tenantId)) {
+            throw ApiException.notFound("Clínica");
+        }
+        provisioning.inviteOwner(tenantId, ownerEmail, actorUserId);
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<PlatformDtos.TenantView> list(int page, int size) {
         PageRequest request = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, 100), Sort.by("name"));

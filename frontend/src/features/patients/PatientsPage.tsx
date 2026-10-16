@@ -33,7 +33,7 @@ export function PatientsPage() {
   });
 
   const create = useAction(api.patients.create, {
-    success: "Paciente cadastrado.",
+    success: "Paciente cadastrado com sucesso!",
     invalidate: [["patients"]],
     onSuccess: (p) => router.push(`/pacientes/${p.id}`),
   });

@@ -38,6 +38,7 @@ public class AuthService {
     private final SessionCookies cookies;
     private final AccessQueries access;
     private final AuditService audit;
+    private final TermsService terms;
     private final String dummyHash;
 
     public AuthService(
@@ -47,7 +48,8 @@ public class AuthService {
             SessionStore sessions,
             SessionCookies cookies,
             AccessQueries access,
-            AuditService audit) {
+            AuditService audit,
+            TermsService terms) {
         this.users = users;
         this.encoder = encoder;
         this.throttle = throttle;
@@ -55,6 +57,7 @@ public class AuthService {
         this.cookies = cookies;
         this.access = access;
         this.audit = audit;
+        this.terms = terms;
         // Usado quando o e-mail não existe, para o tempo de resposta não revelar quais contas existem.
         this.dummyHash = encoder.encode("senha-ficticia-para-igualar-tempo");
     }
@@ -157,7 +160,9 @@ public class AuthService {
                     platformAdmin,
                     active,
                     permissions.stream().map(Permission::code).sorted().toList(),
-                    clinics);
+                    clinics,
+                    terms.hasAcceptedCurrent(userId),
+                    TermsService.CURRENT_VERSION);
         });
     }
 }

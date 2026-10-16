@@ -37,7 +37,7 @@ export function ChartSection({ patientId }: { patientId: string }) {
   const chart = useQuery({ queryKey: ["chart", patientId], queryFn: () => api.clinical.chart(patientId) });
 
   const voidEntry = useAction((reason: string) => api.clinical.voidChart(patientId, voiding?.id ?? "", reason), {
-    success: "Marcação anulada.",
+    success: "Marcação anulada com sucesso!",
     invalidate: [["chart", patientId]],
     onSuccess: () => setVoiding(null),
   });
@@ -160,7 +160,7 @@ function AddEntry({ patientId, tooth }: { patientId: string; tooth: number }) {
         notes: notes || undefined,
       }),
     {
-      success: "Marcação registrada.",
+      success: "Marcação registrada com sucesso!",
       invalidate: [["chart", patientId]],
       onSuccess: () => {
         setOpen(false);
@@ -180,7 +180,7 @@ function AddEntry({ patientId, tooth }: { patientId: string; tooth: number }) {
         title={`Dente ${tooth}`}
         footer={
           <>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button data-modal-cancel variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={() => add.mutate(undefined)} loading={add.isPending}>

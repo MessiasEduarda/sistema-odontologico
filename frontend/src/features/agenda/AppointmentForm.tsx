@@ -82,7 +82,7 @@ export function AppointmentForm({ open, initial, editing, onClose }: Props) {
       return editing ? api.appointments.update(editing.id, body) : api.appointments.create(body);
     },
     {
-      success: editing ? "Agendamento atualizado." : "Atendimento agendado.",
+      success: editing ? "Agendamento atualizado com sucesso!" : "Atendimento agendado com sucesso!",
       invalidate: [["appointments"], ["dashboard"], ["availability"]],
       onSuccess: onClose,
     },
@@ -114,7 +114,7 @@ export function AppointmentForm({ open, initial, editing, onClose }: Props) {
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={save.isPending}>
+          <Button data-modal-cancel variant="outline" onClick={onClose} disabled={save.isPending}>
             Cancelar
           </Button>
           <Button onClick={submit} loading={save.isPending}>

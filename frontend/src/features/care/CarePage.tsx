@@ -64,8 +64,8 @@ function DeliverTab() {
     () => api.clinical.issueCare(patient?.id ?? "", { professionalId, title, content, sendEmail }),
     {
       success: sendEmail
-        ? "Orientação registrada e enviada (se o paciente permitir e-mail)."
-        : "Orientação registrada.",
+        ? "Orientação registrada e enviada com sucesso! (o e-mail só sai se o paciente permitir)"
+        : "Orientação registrada com sucesso!",
       invalidate: [["documents"], ["issued-care"]],
       onSuccess: (doc) => {
         setIssued({ doc, patient: patient?.name ?? "", patientId: patient?.id ?? "" });
@@ -300,7 +300,7 @@ function TemplateForm({ template, onClose }: { template: CareTemplate | null; on
   });
   const save = useAction(
     () => (template ? api.clinic.updateCareTemplate(template.id, v) : api.clinic.createCareTemplate(v)),
-    { success: "Modelo salvo.", invalidate: [["care-templates"]], onSuccess: onClose },
+    { success: "Modelo salvo com sucesso!", invalidate: [["care-templates"]], onSuccess: onClose },
   );
   return (
     <Modal
@@ -310,7 +310,7 @@ function TemplateForm({ template, onClose }: { template: CareTemplate | null; on
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button

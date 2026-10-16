@@ -113,7 +113,7 @@ function DocumentForm({
   const [content, setContent] = useState(STARTERS.PRESCRIPTION?.content(patientName, today) ?? "");
   const [professionalId, setProfessionalId] = useState("");
   const save = useAction(() => api.clinical.addDocument(patientId, { professionalId, type, title, content }), {
-    success: "Documento emitido.",
+    success: "Documento emitido com sucesso!",
     invalidate: [["documents", patientId]],
     onSuccess: onClose,
   });
@@ -132,7 +132,7 @@ function DocumentForm({
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button

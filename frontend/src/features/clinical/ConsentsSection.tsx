@@ -16,7 +16,7 @@ import { CheckboxField, FormGrid, FullRow, SelectField } from "@/components/ui/f
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Modal } from "@/components/ui/Modal";
 import { TextField } from "@/components/ui/TextField";
-import { useToast } from "@/components/ui/Toast";
+import { useFeedback } from "@/components/ui/Feedback";
 import { useMe } from "@/features/auth/hooks";
 import { api } from "@/lib/api/endpoints";
 import type { Consent } from "@/lib/api/types";
@@ -121,7 +121,7 @@ export function IssueConsent({
         procedureDescription: procedure || undefined,
       }),
     {
-      success: "Termo emitido.",
+      success: "Termo emitido com sucesso!",
       invalidate: [["consents", patientId], ["record", patientId], ["all-consents"]],
       onSuccess: (c) => {
         onClose();
@@ -138,7 +138,7 @@ export function IssueConsent({
       title="Emitir termo de consentimento"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => issue.mutate(undefined)} loading={issue.isPending} disabled={!templateId}>
@@ -196,7 +196,7 @@ export function ConsentDetail({
   writable: boolean;
   onClose: () => void;
 }) {
-  const toast = useToast();
+  const feedback = useFeedback();
   const { data: me } = useMe();
   const consent = useQuery({
     queryKey: ["consent", consentId],
@@ -222,14 +222,16 @@ export function ConsentDetail({
         signatureImage: signer.image ?? "",
         accepted: signer.accepted,
       }),
-    { success: "Termo assinado.", invalidate, onSuccess: () => setSigning(false) },
+    { success: "Termo assinado com sucesso!", invalidate, onSuccess: () => setSigning(false) },
   );
   const makeLink = useAction(() => api.clinical.consentLink(patientId, consentId, sendEmail), {
-    success: sendEmail ? "Link gerado e enviado por e-mail (se o paciente permitir)." : "Link gerado.",
+    success: sendEmail
+      ? "Link gerado e enviado com sucesso! (o e-mail só sai se o paciente permitir)"
+      : "Link gerado com sucesso!",
     onSuccess: (r) => setLink(r.url),
   });
   const revoke = useAction((reason: string) => api.clinical.revokeConsent(patientId, consentId, reason), {
-    success: "Termo revogado.",
+    success: "Termo revogado com sucesso!",
     invalidate,
     onSuccess: () => setRevoking(false),
   });
@@ -287,7 +289,9 @@ export function ConsentDetail({
                       <code>{link}</code>
                       <Button
                         variant="ghost"
-                        onClick={() => navigator.clipboard.writeText(link).then(() => toast.success("Link copiado."))}
+                        onClick={() =>
+                          navigator.clipboard.writeText(link).then(() => feedback.success("Link copiado com sucesso!"))
+                        }
                       >
                         <Copy size={16} aria-hidden /> Copiar
                       </Button>
@@ -337,7 +341,7 @@ export function ConsentDetail({
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setSigning(false)}>
+            <Button data-modal-cancel variant="outline" onClick={() => setSigning(false)}>
               Cancelar
             </Button>
             <Button

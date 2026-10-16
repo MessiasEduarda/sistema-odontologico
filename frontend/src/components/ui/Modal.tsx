@@ -1,9 +1,9 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, type ReactNode, type SyntheticEvent } from "react";
 import styled from "styled-components";
-import { Button } from "./Button";
+import { AlertDialog, DISCARD_CHANGES, useFeedback } from "./Feedback";
 import { IconButton } from "./IconButton";
 
 interface ModalProps {
@@ -13,22 +13,55 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
+  /**
+   * Se a pessoa começou a preencher algo e tenta fechar (X, Esc, clique fora ou botão com `data-modal-cancel`),
+   * pede confirmação antes de descartar. Padrão: ligado (só pergunta quando algo foi de fato alterado).
+   */
+  confirmDiscard?: boolean;
 }
 
 /**
  * Janela modal sobre o elemento nativo <dialog>: o navegador cuida do foco preso, da tecla Esc e da camada acima da
  * página (sem sobreposição incorreta de elementos). Fecha também ao clicar fora.
  */
-export function Modal({ open, title, onClose, children, footer, size = "md" }: ModalProps) {
+export function Modal({ open, title, onClose, children, footer, size = "md", confirmDiscard = true }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const feedback = useFeedback();
+  const dirty = useRef(false);
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dirty.current = false;
+      dialog.showModal();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  const requestClose = useCallback(async () => {
+    if (confirmDiscard && dirty.current) {
+      const discard = await feedback.confirm(DISCARD_CHANGES);
+      if (!discard) return;
+    }
+    onClose();
+  }, [confirmDiscard, feedback, onClose]);
+
+  const markDirty = () => {
+    dirty.current = true;
+  };
+
+  // Escolha em listas personalizadas (SelectField) e cliques em "Cancelar" com alterações pendentes.
+  const onClickCapture = (event: SyntheticEvent) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('[role="option"]')) markDirty();
+    if (confirmDiscard && dirty.current && target.closest("[data-modal-cancel]")) {
+      event.preventDefault();
+      event.stopPropagation();
+      void requestClose();
+    }
+  };
 
   return (
     <Dialog
@@ -37,17 +70,20 @@ export function Modal({ open, title, onClose, children, footer, size = "md" }: M
       $size={size}
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        void requestClose();
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) void requestClose();
       }}
+      onInputCapture={markDirty}
+      onChangeCapture={markDirty}
+      onClickCapture={onClickCapture}
     >
       {open && (
         <Inner>
           <Head>
             <Title id={titleId}>{title}</Title>
-            <IconButton icon={X} label="Fechar" onClick={onClose} />
+            <IconButton icon={X} label="Fechar" onClick={() => void requestClose()} />
           </Head>
           <Body>{children}</Body>
           {footer && <Foot>{footer}</Foot>}
@@ -59,8 +95,10 @@ export function Modal({ open, title, onClose, children, footer, size = "md" }: M
 
 interface ConfirmDialogProps {
   open: boolean;
-  title: string;
-  message: ReactNode;
+  /** Pergunta principal, ex.: "Tem certeza que deseja inativar este paciente?". */
+  question: ReactNode;
+  /** Explicação do que acontece ao confirmar. */
+  message?: ReactNode;
   confirmLabel?: string;
   tone?: "primary" | "danger";
   loading?: boolean;
@@ -68,35 +106,29 @@ interface ConfirmDialogProps {
   onClose: () => void;
 }
 
+/** Confirmação "Atenção!" no modelo de avisos do sistema (Voltar | Continuar). */
 export function ConfirmDialog({
   open,
-  title,
+  question,
   message,
-  confirmLabel = "Confirmar",
+  confirmLabel = "Continuar",
   tone = "primary",
   loading,
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
+  if (!open) return null;
   return (
-    <Modal
-      open={open}
-      title={title}
+    <AlertDialog
+      kind="attention"
+      message={question}
+      detail={message}
+      confirmLabel={confirmLabel}
+      danger={tone === "danger"}
+      loading={loading}
+      onConfirm={onConfirm}
       onClose={onClose}
-      size="sm"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button variant={tone === "danger" ? "danger" : "primary"} onClick={onConfirm} loading={loading}>
-            {confirmLabel}
-          </Button>
-        </>
-      }
-    >
-      {message}
-    </Modal>
+    />
   );
 }
 

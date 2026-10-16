@@ -65,7 +65,7 @@ function MembersTab() {
   const [deactivating, setDeactivating] = useState<Member | null>(null);
   const members = useQuery({ queryKey: ["members"], queryFn: api.clinic.members });
   const deactivate = useAction(() => api.clinic.deactivateMember(deactivating?.membershipId ?? ""), {
-    success: "Acesso desativado.",
+    success: "Acesso desativado com sucesso!",
     invalidate: [["members"]],
     onSuccess: () => setDeactivating(null),
   });
@@ -140,7 +140,7 @@ function MembersTab() {
       {editing && <RolesDialog member={editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog
         open={Boolean(deactivating)}
-        title="Desativar acesso"
+        question={`Tem certeza que deseja desativar o acesso de ${deactivating?.name}?`}
         message={`${deactivating?.name} perderá o acesso a esta clínica imediatamente (as sessões abertas são encerradas). O histórico de ações é mantido.`}
         confirmLabel="Desativar"
         tone="danger"
@@ -157,7 +157,7 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("DENTIST");
   const invite = useAction(() => api.clinic.invite(email, role), {
-    success: "Convite enviado por e-mail.",
+    success: "Convite enviado por e-mail com sucesso!",
     invalidate: [["invitations"]],
     onSuccess: onClose,
   });
@@ -168,7 +168,7 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
       title="Convidar para a equipe"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button
@@ -202,7 +202,7 @@ function RolesDialog({ member, onClose }: { member: Member; onClose: () => void 
   const roles = useQuery({ queryKey: ["roles"], queryFn: api.clinic.roles });
   const [selected, setSelected] = useState<string[]>(member.roles);
   const save = useAction(() => api.clinic.updateMemberRoles(member.membershipId, selected), {
-    success: "Papéis atualizados.",
+    success: "Papéis atualizados com sucesso!",
     invalidate: [["members"]],
     onSuccess: onClose,
   });
@@ -214,7 +214,7 @@ function RolesDialog({ member, onClose }: { member: Member; onClose: () => void 
       title={`Papéis de ${member.name}`}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={selected.length === 0}>
@@ -243,8 +243,13 @@ function RolesDialog({ member, onClose }: { member: Member; onClose: () => void 
 
 function InvitationsTab() {
   const invitations = useQuery({ queryKey: ["invitations"], queryFn: api.clinic.invitations });
+  // Reenviar = convidar de novo o mesmo e-mail: o link anterior deixa de valer e um novo é enviado.
+  const resend = useAction((i: Invitation) => api.clinic.invite(i.email, i.roleCode), {
+    success: "Convite reenviado com sucesso! O link anterior deixou de valer.",
+    invalidate: [["invitations"]],
+  });
   const revoke = useAction(api.clinic.revokeInvitation, {
-    success: "Convite revogado.",
+    success: "Convite revogado com sucesso!",
     invalidate: [["invitations"]],
   });
   return (
@@ -263,9 +268,14 @@ function InvitationsTab() {
           key: "actions",
           header: "",
           render: (i) => (
-            <Button variant="ghost" onClick={() => revoke.mutate(i.id)}>
-              Revogar
-            </Button>
+            <Row $gap={2} $wrap={false}>
+              <Button variant="ghost" onClick={() => resend.mutate(i)} loading={resend.isPending}>
+                Reenviar
+              </Button>
+              <Button variant="ghost" onClick={() => revoke.mutate(i.id)}>
+                Revogar
+              </Button>
+            </Row>
           ),
         },
       ]}

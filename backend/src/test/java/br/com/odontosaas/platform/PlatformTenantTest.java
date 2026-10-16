@@ -68,6 +68,35 @@ class PlatformTenantTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void adminResendsOwnerInvitationAndOnlyTheNewLinkWorks() {
+        Person admin = data.platformAdmin();
+        Browser browser = browser().login(admin.email(), TestData.PASSWORD);
+        String ownerEmail = "reenvio" + TestData.unique() + "@teste.example";
+        MvcTestResult created =
+                browser.post("/api/v1/platform/tenants", tenantJson("reenvio-" + TestData.unique(), ownerEmail));
+        String tenantId = json(created, "$.id");
+        String firstToken = tokenFromLastMail();
+        String resend = "{\"ownerEmail\":\"%s\"}".formatted(ownerEmail);
+
+        assertThat(browser.post("/api/v1/platform/tenants/" + tenantId + "/owner-invitation", resend))
+                .hasStatus(HttpStatus.NO_CONTENT);
+        String secondToken = tokenFromLastMail();
+        assertThat(secondToken).isNotEqualTo(firstToken);
+
+        String accept = "{\"token\":\"%s\",\"name\":\"Responsável\",\"password\":\"Senha-Nova-Forte-1\"}";
+        assertThat(browser().post("/api/v1/public/invitations/accept", accept.formatted(firstToken)))
+                .hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(browser().post("/api/v1/public/invitations/accept", accept.formatted(secondToken)))
+                .hasStatus(HttpStatus.NO_CONTENT);
+
+        // Depois de aceito, reenviar não faz sentido.
+        assertThat(browser.post("/api/v1/platform/tenants/" + tenantId + "/owner-invitation", resend))
+                .hasStatus(HttpStatus.CONFLICT);
+        assertThat(browser.post("/api/v1/platform/tenants/" + UUID.randomUUID() + "/owner-invitation", resend))
+                .hasStatus(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void duplicatedSlugIsRejected() {
         Person admin = data.platformAdmin();
         Browser browser = browser().login(admin.email(), TestData.PASSWORD);

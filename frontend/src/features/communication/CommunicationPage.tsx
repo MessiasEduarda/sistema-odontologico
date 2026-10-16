@@ -47,7 +47,10 @@ function MessagesTab() {
     queryFn: () => api.communication.messages(status || undefined),
     refetchInterval: 30_000,
   });
-  const retry = useAction(api.communication.retry, { success: "Mensagem reenfileirada.", invalidate: [["messages"]] });
+  const retry = useAction(api.communication.retry, {
+    success: "Mensagem reenfileirada com sucesso!",
+    invalidate: [["messages"]],
+  });
   return (
     <Stack $gap={4}>
       <Filter>
@@ -124,7 +127,7 @@ function TemplateEditor({ template }: { template: MessageTemplate }) {
   const [body, setBody] = useState(template.body);
   const [active, setActive] = useState(template.active);
   const save = useAction(() => api.communication.saveTemplate(template.type, { subject, body, active }), {
-    success: "Modelo salvo.",
+    success: "Modelo salvo com sucesso!",
     invalidate: [["message-templates"]],
   });
   const dirty = subject !== template.subject || body !== template.body || active !== template.active;

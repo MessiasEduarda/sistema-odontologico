@@ -227,7 +227,7 @@ function AestheticDetail({ record: r, onClose }: { record: AestheticRecord; onCl
   const can = useCan();
   const [voiding, setVoiding] = useState(false);
   const voidIt = useAction((reason: string) => api.clinical.voidAesthetic(r.patientId, r.id, reason), {
-    success: "Registro anulado.",
+    success: "Registro anulado com sucesso!",
     invalidate: [["aesthetics"], ["aesthetics-search"]],
     onSuccess: onClose,
   });

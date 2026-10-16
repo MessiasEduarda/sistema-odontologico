@@ -191,7 +191,7 @@ function ChoosePatient({
       title="Emitir termo: escolha o paciente"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button disabled={!patient} onClick={() => patient && onChosen(patient)}>

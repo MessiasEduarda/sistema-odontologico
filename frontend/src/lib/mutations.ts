@@ -1,12 +1,16 @@
 "use client";
 
 import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import { useFeedback } from "@/components/ui/Feedback";
 import { useToast } from "@/components/ui/Toast";
 import { useMe } from "@/features/auth/hooks";
+import { ApiError } from "@/lib/api/client";
 
 /**
- * Mutação padrão: mostra notificação de sucesso/erro e invalida as consultas afetadas.
- * O erro também fica em `mutation.error` para formulários exibirem nos campos.
+ * Mutação padrão: avisa sucesso/erro e invalida as consultas afetadas.
+ * - Sucesso: sempre a janela "Sucesso!" (padrão único do sistema).
+ * - Erro: janela "Erro!" quando o sistema recusa a ação (regra de negócio, conflito, permissão, conexão);
+ *   erros de preenchimento continuam como notificação e aparecem nos campos (`mutation.error`).
  */
 export function useAction<TVars, TResult>(
   fn: (vars: TVars) => Promise<TResult>,
@@ -17,18 +21,27 @@ export function useAction<TVars, TResult>(
   } = {},
 ) {
   const toast = useToast();
+  const feedback = useFeedback();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
     onSuccess: async (result, vars) => {
       await Promise.all((options.invalidate ?? []).map((key) => queryClient.invalidateQueries({ queryKey: key })));
       if (options.success) {
-        toast.success(typeof options.success === "function" ? options.success(result) : options.success);
+        feedback.success(typeof options.success === "function" ? options.success(result) : options.success);
       }
       options.onSuccess?.(result, vars);
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      if (isRefusal(error)) feedback.error("Não foi possível concluir a ação", error.message);
+      else toast.error(error.message);
+    },
   });
+}
+
+/** Recusa do sistema (não é erro de preenchimento nem sessão expirada): merece a janela "Erro!". */
+function isRefusal(error: Error): boolean {
+  return error instanceof ApiError && error.status !== 401 && error.fieldErrors.length === 0;
 }
 
 /** Verifica permissão na clínica ativa (só para exibir/ocultar; a API autoriza de verdade). */
