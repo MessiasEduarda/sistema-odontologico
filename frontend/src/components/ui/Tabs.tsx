@@ -72,12 +72,18 @@ export function Tabs({ items, active, onChange, label }: TabsProps) {
   );
 }
 
+/** Em telas estreitas as abas deslizam para o lado, sem barra de rolagem visível. */
 const List = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.space[1]};
   overflow-x: auto;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-  scrollbar-width: thin;
+  overflow-y: hidden;
+  box-shadow: inset 0 -1px 0 ${({ theme }) => theme.colors.border};
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 const Tab = styled.button`
@@ -87,7 +93,6 @@ const Tab = styled.button`
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   color: ${({ theme }) => theme.colors.textMuted};
   border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
   white-space: nowrap;
   cursor: pointer;
 
