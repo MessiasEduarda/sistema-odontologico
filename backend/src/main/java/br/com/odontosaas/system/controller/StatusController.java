@@ -1,5 +1,6 @@
-package br.com.odontosaas.system;
+package br.com.odontosaas.system.controller;
 
+import br.com.odontosaas.system.dto.response.StatusResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Clock;
@@ -29,6 +30,4 @@ public class StatusController {
     public StatusResponse status() {
         return new StatusResponse("UP", version, Instant.now(clock));
     }
-
-    public record StatusResponse(String status, String version, Instant serverTime) {}
 }

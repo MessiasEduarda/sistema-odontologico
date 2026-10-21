@@ -1,13 +1,13 @@
-package br.com.odontosaas.inventory;
+package br.com.odontosaas.inventory.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
-import br.com.odontosaas.inventory.InventoryDtos.Alerts;
-import br.com.odontosaas.inventory.InventoryDtos.ExpiringLot;
-import br.com.odontosaas.inventory.InventoryDtos.MovementRequest;
-import br.com.odontosaas.inventory.InventoryDtos.MovementView;
-import br.com.odontosaas.inventory.InventoryDtos.ProductRequest;
-import br.com.odontosaas.inventory.InventoryDtos.ProductView;
+import br.com.odontosaas.inventory.dto.request.MovementRequest;
+import br.com.odontosaas.inventory.dto.request.ProductRequest;
+import br.com.odontosaas.inventory.dto.response.Alerts;
+import br.com.odontosaas.inventory.dto.response.ExpiringLot;
+import br.com.odontosaas.inventory.dto.response.MovementView;
+import br.com.odontosaas.inventory.dto.response.ProductView;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;

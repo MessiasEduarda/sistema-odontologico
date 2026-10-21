@@ -1,7 +1,19 @@
-package br.com.odontosaas.reporting;
+package br.com.odontosaas.reporting.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
+import br.com.odontosaas.reporting.dto.response.AgendaReport;
+import br.com.odontosaas.reporting.dto.response.AgingRow;
+import br.com.odontosaas.reporting.dto.response.BirthdayRow;
+import br.com.odontosaas.reporting.dto.response.FinancialReport;
+import br.com.odontosaas.reporting.dto.response.MonthCount;
+import br.com.odontosaas.reporting.dto.response.MonthRow;
+import br.com.odontosaas.reporting.dto.response.PatientsReport;
+import br.com.odontosaas.reporting.dto.response.ProcedureRow;
+import br.com.odontosaas.reporting.dto.response.ProductionReport;
+import br.com.odontosaas.reporting.dto.response.ProductionRow;
+import br.com.odontosaas.reporting.dto.response.ProfessionalAgenda;
+import br.com.odontosaas.reporting.dto.response.StatusCount;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.math.BigDecimal;
@@ -17,52 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 /** Relatórios gerenciais (somente leitura, sempre na clínica ativa, datas no fuso da clínica). */
 @Service
 public class ReportService {
-
-    public record StatusCount(String status, long total) {}
-
-    public record ProfessionalAgenda(
-            UUID professionalId,
-            String professionalName,
-            long appointments,
-            long completed,
-            long noShows,
-            long cancelled,
-            long bookedMinutes,
-            long availableMinutes,
-            BigDecimal occupancyPercent) {}
-
-    public record AgendaReport(
-            LocalDate from,
-            LocalDate to,
-            long total,
-            List<StatusCount> byStatus,
-            BigDecimal noShowRate,
-            BigDecimal cancellationRate,
-            List<ProfessionalAgenda> byProfessional) {}
-
-    public record ProductionRow(UUID professionalId, String professionalName, long procedures, BigDecimal value) {}
-
-    public record ProcedureRow(String description, long total, BigDecimal value) {}
-
-    public record ProductionReport(
-            LocalDate from,
-            LocalDate to,
-            BigDecimal totalValue,
-            List<ProductionRow> byProfessional,
-            List<ProcedureRow> topProcedures) {}
-
-    public record MonthRow(String month, BigDecimal received, BigDecimal refunded, BigDecimal paidOut) {}
-
-    public record AgingRow(String bucket, long installments, BigDecimal amount) {}
-
-    public record FinancialReport(LocalDate from, LocalDate to, List<MonthRow> months, List<AgingRow> overdueAging) {}
-
-    public record PatientsReport(
-            long active, long inactive, List<MonthCount> newByMonth, List<BirthdayRow> birthdaysThisMonth) {}
-
-    public record MonthCount(String month, long total) {}
-
-    public record BirthdayRow(UUID id, String fullName, LocalDate birthDate, String mobile) {}
 
     private final JdbcClient jdbc;
     private final AuditService audit;

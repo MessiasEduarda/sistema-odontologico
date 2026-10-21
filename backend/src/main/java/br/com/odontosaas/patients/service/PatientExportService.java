@@ -1,4 +1,4 @@
-package br.com.odontosaas.patients;
+package br.com.odontosaas.patients.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;

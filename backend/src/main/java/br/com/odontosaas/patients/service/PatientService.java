@@ -1,15 +1,15 @@
-package br.com.odontosaas.patients;
+package br.com.odontosaas.patients.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
-import br.com.odontosaas.patients.PatientDtos.ImportIssue;
-import br.com.odontosaas.patients.PatientDtos.ImportResult;
-import br.com.odontosaas.patients.PatientDtos.ImportRow;
-import br.com.odontosaas.patients.PatientDtos.PatientRequest;
-import br.com.odontosaas.patients.PatientDtos.PatientSummary;
-import br.com.odontosaas.patients.PatientDtos.PatientView;
+import br.com.odontosaas.patients.dto.request.ImportRow;
+import br.com.odontosaas.patients.dto.request.PatientRequest;
+import br.com.odontosaas.patients.dto.response.ImportIssue;
+import br.com.odontosaas.patients.dto.response.ImportResult;
+import br.com.odontosaas.patients.dto.response.PatientSummary;
+import br.com.odontosaas.patients.dto.response.PatientView;
+import br.com.odontosaas.patients.support.Cpf;
 import br.com.odontosaas.shared.ApiException;
-import br.com.odontosaas.shared.Cpf;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.PageResponse;
 import br.com.odontosaas.shared.PlanLimits;

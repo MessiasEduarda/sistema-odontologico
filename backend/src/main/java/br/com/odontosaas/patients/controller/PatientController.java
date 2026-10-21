@@ -1,10 +1,12 @@
-package br.com.odontosaas.patients;
+package br.com.odontosaas.patients.controller;
 
-import br.com.odontosaas.patients.PatientDtos.ImportRequest;
-import br.com.odontosaas.patients.PatientDtos.ImportResult;
-import br.com.odontosaas.patients.PatientDtos.PatientRequest;
-import br.com.odontosaas.patients.PatientDtos.PatientSummary;
-import br.com.odontosaas.patients.PatientDtos.PatientView;
+import br.com.odontosaas.patients.dto.request.ImportRequest;
+import br.com.odontosaas.patients.dto.request.PatientRequest;
+import br.com.odontosaas.patients.dto.response.ImportResult;
+import br.com.odontosaas.patients.dto.response.PatientSummary;
+import br.com.odontosaas.patients.dto.response.PatientView;
+import br.com.odontosaas.patients.service.PatientExportService;
+import br.com.odontosaas.patients.service.PatientService;
 import br.com.odontosaas.shared.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

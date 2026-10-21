@@ -1,11 +1,13 @@
-package br.com.odontosaas.reporting;
+package br.com.odontosaas.reporting.controller;
 
 import br.com.odontosaas.identity.CurrentUser;
-import br.com.odontosaas.reporting.DashboardService.Dashboard;
-import br.com.odontosaas.reporting.ReportService.AgendaReport;
-import br.com.odontosaas.reporting.ReportService.FinancialReport;
-import br.com.odontosaas.reporting.ReportService.PatientsReport;
-import br.com.odontosaas.reporting.ReportService.ProductionReport;
+import br.com.odontosaas.reporting.dto.response.AgendaReport;
+import br.com.odontosaas.reporting.dto.response.Dashboard;
+import br.com.odontosaas.reporting.dto.response.FinancialReport;
+import br.com.odontosaas.reporting.dto.response.PatientsReport;
+import br.com.odontosaas.reporting.dto.response.ProductionReport;
+import br.com.odontosaas.reporting.service.DashboardService;
+import br.com.odontosaas.reporting.service.ReportService;
 import br.com.odontosaas.shared.Access;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

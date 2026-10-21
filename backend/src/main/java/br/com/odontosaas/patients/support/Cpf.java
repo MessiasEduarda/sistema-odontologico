@@ -1,4 +1,6 @@
-package br.com.odontosaas.shared;
+package br.com.odontosaas.patients.support;
+
+import br.com.odontosaas.shared.ApiException;
 
 /** CPF: normalização (só dígitos) e validação dos dígitos verificadores. */
 public final class Cpf {

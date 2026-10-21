@@ -1,10 +1,12 @@
-package br.com.odontosaas.reporting;
+package br.com.odontosaas.reporting.service;
 
 import br.com.odontosaas.identity.AuthenticatedUser;
 import br.com.odontosaas.identity.Permission;
+import br.com.odontosaas.reporting.dto.response.Dashboard;
+import br.com.odontosaas.reporting.dto.response.DashboardAlert;
+import br.com.odontosaas.reporting.dto.response.TodayAppointment;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -15,31 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 /** Painel inicial: só inclui indicadores que a pessoa tem permissão de ver. */
 @Service
 public class DashboardService {
-
-    public record TodayAppointment(
-            UUID id,
-            Instant startsAt,
-            Instant endsAt,
-            String patientName,
-            UUID patientId,
-            String professionalName,
-            String professionalColor,
-            String procedureName,
-            String status) {}
-
-    public record DashboardAlert(String type, String severity, String message, long count) {}
-
-    public record Dashboard(
-            Long appointmentsToday,
-            Long confirmedToday,
-            Long completedToday,
-            Long activePatients,
-            Long newPatientsThisMonth,
-            BigDecimal receivedThisMonth,
-            BigDecimal overdueAmount,
-            Long lowStockProducts,
-            List<TodayAppointment> today,
-            List<DashboardAlert> alerts) {}
 
     private final JdbcClient jdbc;
 

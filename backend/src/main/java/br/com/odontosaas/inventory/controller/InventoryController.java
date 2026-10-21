@@ -1,10 +1,11 @@
-package br.com.odontosaas.inventory;
+package br.com.odontosaas.inventory.controller;
 
-import br.com.odontosaas.inventory.InventoryDtos.Alerts;
-import br.com.odontosaas.inventory.InventoryDtos.MovementRequest;
-import br.com.odontosaas.inventory.InventoryDtos.MovementView;
-import br.com.odontosaas.inventory.InventoryDtos.ProductRequest;
-import br.com.odontosaas.inventory.InventoryDtos.ProductView;
+import br.com.odontosaas.inventory.dto.request.MovementRequest;
+import br.com.odontosaas.inventory.dto.request.ProductRequest;
+import br.com.odontosaas.inventory.dto.response.Alerts;
+import br.com.odontosaas.inventory.dto.response.MovementView;
+import br.com.odontosaas.inventory.dto.response.ProductView;
+import br.com.odontosaas.inventory.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
