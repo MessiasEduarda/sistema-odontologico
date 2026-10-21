@@ -6,7 +6,7 @@ import styled from "styled-components";
 import { PdfButton } from "@/components/domain/PdfButton";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
-import { Badge, Card, CardTitle, EmptyState, Muted, Row, Stack } from "@/components/ui/display";
+import { Badge, Card, CardTitle, EmptyState, ErrorState, Muted, Row, Stack } from "@/components/ui/display";
 import { SelectField, TextAreaField } from "@/components/ui/fields";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Modal } from "@/components/ui/Modal";
@@ -30,6 +30,19 @@ export function AnamnesisSection({ patientId }: { patientId: string }) {
   const [viewing, setViewing] = useState<Anamnesis | null>(null);
 
   if (history.isPending || forms.isPending) return <LoadingState />;
+  // Falha de carga nunca pode parecer "ainda não preenchida": os alertas de saúde (alergia, anticoagulante) sumiriam.
+  const failed = history.isError ? history : forms.isError ? forms : null;
+  if (failed) {
+    return (
+      <ErrorState
+        error={failed.error}
+        onRetry={() => {
+          void history.refetch();
+          void forms.refetch();
+        }}
+      />
+    );
+  }
 
   // Fichas ativas + fichas antigas que já têm preenchimento (para não esconder histórico).
   const all = history.data ?? [];

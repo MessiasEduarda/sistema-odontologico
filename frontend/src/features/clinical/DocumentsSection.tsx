@@ -60,6 +60,8 @@ export function DocumentsSection({ patientId, patientName }: { patientId: string
         caption="Documentos emitidos"
         rows={docs.data}
         loading={docs.isPending}
+        error={docs.error}
+        onRetry={() => docs.refetch()}
         rowKey={(d) => d.id}
         emptyTitle="Nenhum documento emitido"
         onRowClick={setPrinting}

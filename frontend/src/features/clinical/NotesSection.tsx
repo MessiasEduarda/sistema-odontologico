@@ -8,7 +8,7 @@ import { ReasonDialog } from "@/components/domain/ReasonDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Card, EmptyState, Muted, Row, Stack } from "@/components/ui/display";
+import { Badge, Card, EmptyState, ErrorState, Muted, Row, Stack } from "@/components/ui/display";
 import { FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -28,6 +28,7 @@ export function NotesSection({ patientId }: { patientId: string }) {
   const notes = useQuery({ queryKey: ["notes", patientId], queryFn: () => api.clinical.notes(patientId) });
 
   if (notes.isPending) return <LoadingState />;
+  if (notes.isError) return <ErrorState error={notes.error} onRetry={() => notes.refetch()} />;
   const byId = new Map((notes.data ?? []).map((n) => [n.id, n]));
 
   return (
@@ -173,6 +174,8 @@ export function PerformedSection({ patientId }: { patientId: string }) {
         caption="Procedimentos realizados"
         rows={performed.data}
         loading={performed.isPending}
+        error={performed.error}
+        onRetry={() => performed.refetch()}
         rowKey={(p) => p.id}
         emptyTitle="Nenhum procedimento registrado"
         columns={[

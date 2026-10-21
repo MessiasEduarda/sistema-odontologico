@@ -7,7 +7,7 @@ import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/Modal";
-import { Badge, Card, EmptyState, Muted, Row, Stack } from "@/components/ui/display";
+import { Badge, Card, EmptyState, ErrorState, Muted, Row, Stack } from "@/components/ui/display";
 import { FormGrid, SelectField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -110,6 +110,8 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
 
       {list.isPending ? (
         <LoadingState />
+      ) : list.isError ? (
+        <ErrorState error={list.error} onRetry={() => list.refetch()} />
       ) : (list.data?.length ?? 0) === 0 ? (
         <EmptyState title="Nenhum anexo" />
       ) : (

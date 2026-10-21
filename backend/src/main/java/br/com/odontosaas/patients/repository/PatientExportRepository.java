@@ -96,8 +96,14 @@ public class PatientExportRepository {
     }
 
     private String rows(String table, String condition, Object... params) {
-        String sql = "select coalesce(jsonb_agg(to_jsonb(t)" + HIDDEN + " order by t.id), '[]'::jsonb)::text from "
-                + table + " t where t.tenant_id = ? and " + condition;
+        // O corpo das mensagens guarda links de acesso do paciente (#token=...): sai mascarado, senão a exportação
+        // entregaria links ainda válidos do portal, de termo ou de consulta.
+        String row = "outbound_messages".equals(table)
+                ? "(to_jsonb(t) || jsonb_build_object('body', regexp_replace(t.body, '#token=[A-Za-z0-9_-]+',"
+                        + " '#token=[removido]', 'g')))"
+                : "to_jsonb(t)";
+        String sql = "select coalesce(jsonb_agg(" + row + HIDDEN + " order by t.id), '[]'::jsonb)::text from " + table
+                + " t where t.tenant_id = ? and " + condition;
         return jdbc.sql(sql).params(params).query(String.class).single();
     }
 }

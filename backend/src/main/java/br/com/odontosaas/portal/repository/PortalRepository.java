@@ -85,12 +85,15 @@ public class PortalRepository {
             String email,
             String mobile,
             String phone,
-            boolean allowEmail,
-            boolean allowSms,
-            boolean allowWhatsapp) {
+            Boolean allowEmail,
+            Boolean allowSms,
+            Boolean allowWhatsapp) {
+        // null = campo omitido: preserva o valor atual. Texto vazio apaga (nullif).
         jdbc.sql("""
-                        update patients set email = ?, mobile = ?, phone = ?, allow_email = ?, allow_sms = ?,
-                            allow_whatsapp = ?, updated_at = now(), version = version + 1
+                        update patients set email = nullif(coalesce(?, email), ''),
+                            mobile = nullif(coalesce(?, mobile), ''), phone = nullif(coalesce(?, phone), ''),
+                            allow_email = coalesce(?, allow_email), allow_sms = coalesce(?, allow_sms),
+                            allow_whatsapp = coalesce(?, allow_whatsapp), updated_at = now(), version = version + 1
                         where tenant_id = ? and id = ?
                         """)
                 .params(email, mobile, phone, allowEmail, allowSms, allowWhatsapp, tenantId, patientId)

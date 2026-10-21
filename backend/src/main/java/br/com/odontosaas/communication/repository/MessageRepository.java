@@ -123,8 +123,10 @@ public class MessageRepository {
     }
 
     public void markSent(UUID tenantId, UUID messageId) {
-        jdbc.sql("update outbound_messages set status = 'SENT', sent_at = now(),"
-                        + " attempts = attempts + 1 where tenant_id = ? and id = ?")
+        // Depois do envio o link de acesso (#token=...) não precisa mais ficar guardado em texto puro.
+        jdbc.sql("update outbound_messages set status = 'SENT', sent_at = now(), attempts = attempts + 1,"
+                        + " body = regexp_replace(body, '#token=[A-Za-z0-9_-]+', '#token=[removido]', 'g')"
+                        + " where tenant_id = ? and id = ?")
                 .params(tenantId, messageId)
                 .update();
     }

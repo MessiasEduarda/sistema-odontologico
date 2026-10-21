@@ -9,7 +9,7 @@ import { ReasonDialog } from "@/components/domain/ReasonDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Card, Muted, Row, Stack } from "@/components/ui/display";
+import { Badge, Card, ErrorState, Muted, Row, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -43,6 +43,8 @@ export function ChartSection({ patientId }: { patientId: string }) {
   });
 
   if (chart.isPending) return <LoadingState />;
+  // Falha de carga nunca pode parecer "odontograma vazio": o dentista decidiria sem ver o histórico.
+  if (chart.isError) return <ErrorState error={chart.error} onRetry={() => chart.refetch()} />;
   const entries = chart.data ?? [];
   const toothEntries = tooth ? entries.filter((e) => e.tooth === tooth) : entries;
 

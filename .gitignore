@@ -37,3 +37,7 @@ Documentação/
 /README.md
 frontend/AGENTS.md
 frontend/scripts/gerar-documentacao.mjs
+
+# Saidas das ferramentas de IA (mapa do Graphify e relatorios do Strix)
+graphify-out/
+strix_runs/

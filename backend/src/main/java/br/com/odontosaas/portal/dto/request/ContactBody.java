@@ -9,6 +9,6 @@ public record ContactBody(
         @Email @Size(max = 254) String email,
         @Size(max = 20) String mobile,
         @Size(max = 20) String phone,
-        boolean allowEmail,
-        boolean allowSms,
-        boolean allowWhatsapp) {}
+        Boolean allowEmail,
+        Boolean allowSms,
+        Boolean allowWhatsapp) {}

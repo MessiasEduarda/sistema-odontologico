@@ -96,7 +96,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         } else if ("23503".equals(state)) {
             mapped = ApiException.businessRule(
                     "INVALID_REFERENCE", "Um dos registros relacionados não existe ou está em uso.");
-        } else if ("23514".equals(state)) {
+        } else if ("23514".equals(state) || (state != null && state.startsWith("22"))) {
+            // 23514: check constraint. Classe 22: texto longo demais, número fora da faixa, formato inválido.
             mapped = ApiException.businessRule("INVALID_VALUE", "Um ou mais valores estão fora do permitido.");
         } else {
             return handleUnexpected(ex);

@@ -349,7 +349,7 @@ function AppointmentsTab({ patientId }: { patientId: string }) {
 
 function PlansTab({ patientId }: { patientId: string }) {
   const router = useRouter();
-  const { data, isPending } = useQuery({
+  const { data, isPending, error, refetch } = useQuery({
     queryKey: ["plans", "patient", patientId, "all"],
     queryFn: () => api.plans.list({ patientId }),
   });
@@ -358,6 +358,8 @@ function PlansTab({ patientId }: { patientId: string }) {
       caption="Orçamentos do paciente"
       rows={data}
       loading={isPending}
+      error={error}
+      onRetry={() => refetch()}
       rowKey={(p) => p.id}
       onRowClick={(p) => router.push(`/tratamentos/${p.id}`)}
       emptyTitle="Nenhum orçamento"
@@ -378,18 +380,20 @@ function PlansTab({ patientId }: { patientId: string }) {
 
 function FinanceTab({ patientId }: { patientId: string }) {
   const router = useRouter();
-  const { data, isPending } = useQuery({
+  const { data, isPending, error, refetch } = useQuery({
     queryKey: ["receivables", "patient", patientId],
     queryFn: () => api.finance.receivables({ patientId }),
   });
   const balance = (data ?? []).reduce((sum, r) => sum + Number(r.balance), 0);
   return (
     <Stack $gap={3}>
-      <Muted>Saldo em aberto: {formatMoney(balance)}</Muted>
+      {!error && <Muted>Saldo em aberto: {formatMoney(balance)}</Muted>}
       <DataTable<ReceivableSummary>
         caption="Contas do paciente"
         rows={data}
         loading={isPending}
+        error={error}
+        onRetry={() => refetch()}
         rowKey={(r) => r.id}
         onRowClick={(r) => router.push(`/financeiro?conta=${r.id}`)}
         emptyTitle="Nenhuma conta"

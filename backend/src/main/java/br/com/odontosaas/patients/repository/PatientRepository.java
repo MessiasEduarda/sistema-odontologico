@@ -62,7 +62,7 @@ public class PatientRepository {
 
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add(pageSize);
-        pageParams.add(pageIndex * pageSize);
+        pageParams.add((long) pageIndex * pageSize);
         List<PatientSummary> items = jdbc.sql("""
                         select p.id, p.full_name, p.social_name, p.birth_date, p.cpf, p.mobile, p.phone, p.email,
                                p.active,

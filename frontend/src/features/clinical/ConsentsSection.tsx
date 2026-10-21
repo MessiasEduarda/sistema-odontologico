@@ -47,6 +47,8 @@ export function ConsentsSection({ patientId, patientName }: { patientId: string;
         caption="Termos de consentimento"
         rows={consents.data}
         loading={consents.isPending}
+        error={consents.error}
+        onRetry={() => consents.refetch()}
         rowKey={(c) => c.id}
         onRowClick={(c) => setOpenId(c.id)}
         emptyTitle="Nenhum termo emitido"

@@ -170,9 +170,9 @@ public class PortalService {
             repository.updateContact(
                     a.tenantId(),
                     a.patientId(),
-                    blank(body.email()),
-                    blank(body.mobile()),
-                    blank(body.phone()),
+                    stripped(body.email()),
+                    stripped(body.mobile()),
+                    stripped(body.phone()),
                     body.allowEmail(),
                     body.allowSms(),
                     body.allowWhatsapp());
@@ -182,7 +182,8 @@ public class PortalService {
         return overview(body.token());
     }
 
-    private static String blank(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
+    /** Campo omitido (null) preserva o valor atual; texto vazio apaga; senão grava o valor sem espaços. */
+    private static String stripped(String value) {
+        return value == null ? null : value.strip();
     }
 }

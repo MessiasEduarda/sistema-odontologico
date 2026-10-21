@@ -7,7 +7,7 @@ import styled from "styled-components";
 import { ReasonDialog } from "@/components/domain/ReasonDialog";
 import { WhatsAppButton } from "@/components/domain/WhatsAppButton";
 import { Button } from "@/components/ui/Button";
-import { Badge, DetailList, Muted, Stack } from "@/components/ui/display";
+import { Badge, DetailList, ErrorState, Muted, Stack } from "@/components/ui/display";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Modal } from "@/components/ui/Modal";
 import { api } from "@/lib/api/endpoints";
@@ -36,7 +36,7 @@ export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
   const can = useCan();
   const [cancelling, setCancelling] = useState(false);
   const waitingCount = useWaitlistCount();
-  const { data, isPending } = useQuery({
+  const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ["appointments", "detail", appointmentId],
     queryFn: () => api.appointments.detail(appointmentId ?? ""),
     enabled: Boolean(appointmentId),
@@ -80,7 +80,9 @@ export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
   return (
     <>
       <Modal open={Boolean(appointmentId)} onClose={onClose} title="Atendimento" size="md">
-        {isPending || !a ? (
+        {isError ? (
+          <ErrorState error={error} onRetry={() => refetch()} />
+        ) : isPending || !a ? (
           <LoadingState />
         ) : (
           <Stack $gap={5}>
