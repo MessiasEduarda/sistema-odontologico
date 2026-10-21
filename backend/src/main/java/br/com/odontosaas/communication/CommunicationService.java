@@ -43,7 +43,7 @@ public class CommunicationService {
     public record TemplateRequest(
             @NotBlank @Size(max = 200) String subject,
             @NotBlank @Size(max = 5000) String body,
-            boolean active) {}
+            Boolean active) {}
 
     public record MessageView(
             UUID id,
@@ -146,11 +146,12 @@ public class CommunicationService {
         UUID tenantId = TenantContext.requireTenantId();
         if (!TYPES.contains(type)) throw ApiException.notFound("Modelo de mensagem");
         jdbc.sql("""
-                        insert into message_templates (tenant_id, type, subject, body, active) values (?, ?, ?, ?, ?)
+                        insert into message_templates (tenant_id, type, subject, body, active)
+                        values (?, ?, ?, ?, coalesce(cast(? as boolean), true))
                         on conflict (tenant_id, type) do update set subject = excluded.subject, body = excluded.body,
-                            active = excluded.active, updated_at = now()
+                            active = coalesce(cast(? as boolean), message_templates.active), updated_at = now()
                         """)
-                .params(tenantId, type, r.subject().strip(), r.body().strip(), r.active())
+                .params(tenantId, type, r.subject().strip(), r.body().strip(), r.active(), r.active())
                 .update();
         audit.record(AuditAction.RECORD_UPDATED, "message_template", type, Map.of());
         Template t = template(tenantId, type);

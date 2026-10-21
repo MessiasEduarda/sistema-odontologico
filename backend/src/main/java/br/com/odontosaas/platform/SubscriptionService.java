@@ -70,7 +70,7 @@ public class SubscriptionService {
             @Min(1) Integer maxProfessionals,
             @Min(1) Integer maxPatients,
             @NotNull List<String> features,
-            boolean active) {}
+            @NotNull Boolean active) {}
 
     public record SubscriptionView(
             UUID tenantId,

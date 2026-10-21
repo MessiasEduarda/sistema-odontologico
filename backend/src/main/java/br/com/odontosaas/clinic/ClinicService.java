@@ -12,7 +12,9 @@ import br.com.odontosaas.clinic.ClinicDtos.ScheduleSlot;
 import br.com.odontosaas.clinic.ClinicDtos.SettingsRequest;
 import br.com.odontosaas.clinic.ClinicDtos.SettingsView;
 import br.com.odontosaas.shared.ApiException;
+import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;
+import br.com.odontosaas.shared.PlanLimits;
 import br.com.odontosaas.shared.Versioned;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.util.List;
@@ -31,10 +33,12 @@ public class ClinicService {
 
     private final JdbcClient jdbc;
     private final AuditService audit;
+    private final PlanLimits planLimits;
 
-    public ClinicService(JdbcClient jdbc, AuditService audit) {
+    public ClinicService(JdbcClient jdbc, AuditService audit, PlanLimits planLimits) {
         this.jdbc = jdbc;
         this.audit = audit;
+        this.planLimits = planLimits;
     }
 
     private static UUID tenant() {
@@ -127,6 +131,10 @@ public class ClinicService {
     public ProfessionalView createProfessional(ProfessionalRequest r) {
         UUID tenantId = tenant();
         requireMemberUser(tenantId, r.userId());
+        boolean active = Flags.activeIfOmitted(r.active());
+        if (active) {
+            planLimits.requireProfessionalSlot(tenantId);
+        }
         UUID id = Ids.newId();
         jdbc.sql("""
                         insert into professionals (id, tenant_id, user_id, name, cro, cro_state, specialty, color,
@@ -145,7 +153,7 @@ public class ClinicService {
                         r.phone(),
                         r.email(),
                         r.commissionPercent(),
-                        r.active())
+                        active)
                 .update();
         audit.record(AuditAction.RECORD_CREATED, "professional", id, Map.of());
         return professional(id);
@@ -155,9 +163,13 @@ public class ClinicService {
     public ProfessionalView updateProfessional(UUID id, ProfessionalRequest r) {
         UUID tenantId = tenant();
         requireMemberUser(tenantId, r.userId());
+        if (Boolean.TRUE.equals(r.active()) && isInactiveProfessional(tenantId, id)) {
+            planLimits.requireProfessionalSlot(tenantId);
+        }
         int updated = jdbc.sql("""
                         update professionals set user_id = ?, name = ?, cro = ?, cro_state = ?, specialty = ?,
-                            color = ?, phone = ?, email = ?, commission_percent = ?, active = ?,
+                            color = ?, phone = ?, email = ?, commission_percent = ?,
+                            active = coalesce(cast(? as boolean), active),
                             updated_at = now(), version = version + 1
                         where tenant_id = ? and id = ? and (cast(? as bigint) is null or version = ?)
                         """)
@@ -180,6 +192,13 @@ public class ClinicService {
         Versioned.check(updated, exists("professionals", tenantId, id), "Profissional");
         audit.record(AuditAction.RECORD_UPDATED, "professional", id, Map.of());
         return professional(id);
+    }
+
+    private boolean isInactiveProfessional(UUID tenantId, UUID id) {
+        return jdbc.sql("select exists(select 1 from professionals where tenant_id = ? and id = ? and not active)")
+                .params(tenantId, id)
+                .query(Boolean.class)
+                .single();
     }
 
     @Transactional(readOnly = true)
@@ -248,20 +267,24 @@ public class ClinicService {
     public RoomView createRoom(RoomRequest r) {
         UUID id = Ids.newId();
         jdbc.sql("insert into rooms (id, tenant_id, name, active) values (?, ?, ?, ?)")
-                .params(id, tenant(), r.name().strip(), r.active())
+                .params(id, tenant(), r.name().strip(), Flags.activeIfOmitted(r.active()))
                 .update();
         audit.record(AuditAction.RECORD_CREATED, "room", id, Map.of());
-        return new RoomView(id, r.name().strip(), r.active());
+        return new RoomView(id, r.name().strip(), Flags.activeIfOmitted(r.active()));
     }
 
     @Transactional
     public RoomView updateRoom(UUID id, RoomRequest r) {
-        int updated = jdbc.sql("update rooms set name = ?, active = ? where tenant_id = ? and id = ?")
+        int updated = jdbc.sql("update rooms set name = ?, active = coalesce(cast(? as boolean), active)"
+                        + " where tenant_id = ? and id = ?")
                 .params(r.name().strip(), r.active(), tenant(), id)
                 .update();
         Versioned.requireFound(updated, "Sala");
         audit.record(AuditAction.RECORD_UPDATED, "room", id, Map.of());
-        return new RoomView(id, r.name().strip(), r.active());
+        return jdbc.sql("select id, name, active from rooms where tenant_id = ? and id = ?")
+                .params(tenant(), id)
+                .query(RoomView.class)
+                .single();
     }
 
     // ------------------------------------------------------------------ Procedimentos
@@ -305,7 +328,7 @@ public class ClinicService {
                         blankToNull(r.category()),
                         r.defaultPrice(),
                         r.durationMinutes(),
-                        r.active())
+                        Flags.activeIfOmitted(r.active()))
                 .update();
         audit.record(AuditAction.RECORD_CREATED, "procedure", id, Map.of());
         return procedure(id);
@@ -315,7 +338,8 @@ public class ClinicService {
     public ProcedureView updateProcedure(UUID id, ProcedureRequest r) {
         int updated = jdbc.sql("""
                         update procedures set code = ?, name = ?, category = ?, default_price = ?,
-                            duration_minutes = ?, active = ?, updated_at = now()
+                            duration_minutes = ?, active = coalesce(cast(? as boolean), active),
+                            updated_at = now()
                         where tenant_id = ? and id = ?
                         """)
                 .params(

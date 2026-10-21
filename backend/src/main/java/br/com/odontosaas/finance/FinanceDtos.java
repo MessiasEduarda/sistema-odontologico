@@ -144,7 +144,7 @@ public final class FinanceDtos {
             @Size(max = 20) String phone,
             @Email @Size(max = 254) String email,
             @Size(max = 500) String notes,
-            boolean active) {}
+            Boolean active) {}
 
     public record SupplierView(
             UUID id, String name, String document, String phone, String email, String notes, boolean active) {}

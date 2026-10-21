@@ -303,7 +303,7 @@ public final class ClinicalDtos {
             String moment,
 
             @NotBlank @Size(max = 20000) String body,
-            boolean active) {}
+            Boolean active) {}
 
     /** Entrega de orientação ao paciente: vira documento do prontuário e, se pedido, é enviada por e-mail. */
     public record CareIssueRequest(

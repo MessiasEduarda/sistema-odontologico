@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
@@ -37,6 +39,7 @@ class PlatformSeeds implements ApplicationRunner {
     private final SubscriptionService subscriptions;
     private final DevDemoData demo;
     private final DevFinanceDemo finance;
+    private final Environment environment;
 
     PlatformSeeds(
             AppProperties app,
@@ -46,7 +49,9 @@ class PlatformSeeds implements ApplicationRunner {
             TransactionTemplate tx,
             SubscriptionService subscriptions,
             DevDemoData demo,
-            DevFinanceDemo finance) {
+            DevFinanceDemo finance,
+            Environment environment) {
+        this.environment = environment;
         this.app = app;
         this.provisioning = provisioning;
         this.tenants = tenants;
@@ -61,6 +66,11 @@ class PlatformSeeds implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         bootstrapPlatformAdmin();
         if (app.seed() != null && app.seed().enabled()) {
+            // O seed cria usuários (inclusive administrador da plataforma) com senha conhecida: jamais fora do dev.
+            if (!environment.acceptsProfiles(Profiles.of("dev"))) {
+                throw new IllegalStateException("app.seed.enabled só é permitido no perfil dev. Perfis ativos: "
+                        + String.join(",", environment.getActiveProfiles()));
+            }
             seedDevelopmentData(app.seed().password());
         }
     }

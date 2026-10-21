@@ -9,6 +9,7 @@ import br.com.odontosaas.inventory.InventoryDtos.MovementView;
 import br.com.odontosaas.inventory.InventoryDtos.ProductRequest;
 import br.com.odontosaas.inventory.InventoryDtos.ProductView;
 import br.com.odontosaas.shared.ApiException;
+import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.TenantRefs;
 import br.com.odontosaas.shared.Versioned;
@@ -82,7 +83,7 @@ public class InventoryService {
                         r.unit().strip(),
                         r.minStock(),
                         r.supplierId(),
-                        r.active())
+                        Flags.activeIfOmitted(r.active()))
                 .update();
         audit.record(AuditAction.RECORD_CREATED, "product", id, Map.of());
         return product(id);
@@ -93,8 +94,8 @@ public class InventoryService {
         UUID tenantId = TenantContext.requireTenantId();
         refs.require("suppliers", tenantId, r.supplierId(), "Fornecedor");
         int updated = jdbc.sql("""
-                        update products set name = ?, category = ?, unit = ?, min_stock = ?, supplier_id = ?, active = ?,
-                            updated_at = now(), version = version + 1 where tenant_id = ? and id = ?
+                        update products set name = ?, category = ?, unit = ?, min_stock = ?, supplier_id = ?,
+                            active = coalesce(cast(? as boolean), active), updated_at = now(), version = version + 1 where tenant_id = ? and id = ?
                         """)
                 .params(
                         r.name().strip(),

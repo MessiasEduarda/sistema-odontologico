@@ -180,12 +180,18 @@ public class InvitationService {
         UUID tenantId = invitation.getTenantId();
         UUID userId = user.getId();
         TenantContext.runAs(tenantId, userId, () -> {
-            Membership membership = memberships
-                    .findByTenantIdAndUserId(tenantId, userId)
-                    .orElseGet(() -> new Membership(tenantId, userId));
+            Optional<Membership> current = memberships.findByTenantIdAndUserId(tenantId, userId);
+            // Vínculo novo ou desativado recomeça só com o papel do convite: os papéis antigos (ex.: OWNER) não podem
+            // voltar junto. Quem já é membro ativo apenas ganha o papel convidado.
+            boolean restart = current.map(m -> !m.isActive()).orElse(true);
+            Membership membership = current.orElseGet(() -> new Membership(tenantId, userId));
             membership.activate();
             memberships.saveAndFlush(membership);
-            access.addMembershipRole(tenantId, membership.getId(), invitation.getRoleId());
+            if (restart) {
+                access.replaceMembershipRoles(tenantId, membership.getId(), List.of(invitation.getRoleId()));
+            } else {
+                access.addMembershipRole(tenantId, membership.getId(), invitation.getRoleId());
+            }
 
             invitation.accept(Instant.now());
             invitations.saveAndFlush(invitation);

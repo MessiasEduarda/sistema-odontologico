@@ -53,9 +53,9 @@ public final class ClinicDtos {
             String state,
 
             @Min(5) @Max(480) int defaultAppointmentMinutes,
-            boolean remindersEnabled,
+            @NotNull Boolean remindersEnabled,
             @Min(1) @Max(168) int reminderHoursBefore,
-            boolean aestheticsEnabled) {}
+            @NotNull Boolean aestheticsEnabled) {}
 
     public record ProfessionalView(
             UUID id,
@@ -87,7 +87,8 @@ public final class ClinicDtos {
             @Size(max = 20) String phone,
             @Email @Size(max = 254) String email,
             @DecimalMin("0") @DecimalMax("100") BigDecimal commissionPercent,
-            boolean active,
+            /** Omitido: cadastro novo nasce ativo; em edição mantém o valor atual. */
+            Boolean active,
             Long version) {}
 
     public record ScheduleSlot(
@@ -99,7 +100,7 @@ public final class ClinicDtos {
 
     public record RoomView(UUID id, String name, boolean active) {}
 
-    public record RoomRequest(@NotBlank @Size(max = 80) String name, boolean active) {}
+    public record RoomRequest(@NotBlank @Size(max = 80) String name, Boolean active) {}
 
     public record ProcedureView(
             UUID id,
@@ -117,5 +118,5 @@ public final class ClinicDtos {
             @Size(max = 60) String category,
             @NotNull @DecimalMin("0") @DecimalMax("9999999") BigDecimal defaultPrice,
             @Min(5) @Max(480) int durationMinutes,
-            boolean active) {}
+            Boolean active) {}
 }

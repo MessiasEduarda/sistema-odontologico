@@ -29,11 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Harmonização orofacial: registro de cada aplicação com produto, lote, validade, regiões e quantidades. Serve para
- * rastreabilidade (quais pacientes receberam determinado lote) e para controlar retornos. Registros não são editados:
- * correção = anulação com motivo + novo registro. Disponível quando a clínica ativa a opção nas configurações.
- */
 @Service
 public class AestheticService {
 
@@ -108,12 +103,15 @@ public class AestheticService {
     private final TenantRefs refs;
     private final AuditService audit;
     private final JsonMapper json;
+    private final ProfessionalAuthorship authorship;
 
-    public AestheticService(JdbcClient jdbc, TenantRefs refs, AuditService audit, JsonMapper json) {
+    public AestheticService(
+            JdbcClient jdbc, TenantRefs refs, AuditService audit, JsonMapper json, ProfessionalAuthorship authorship) {
         this.jdbc = jdbc;
         this.refs = refs;
         this.audit = audit;
         this.json = json;
+        this.authorship = authorship;
     }
 
     private AestheticView map(ResultSet rs) throws SQLException {
@@ -156,7 +154,6 @@ public class AestheticService {
                 .list();
     }
 
-    /** Lista geral: filtro por lote (rastreabilidade), produto/paciente e retornos pendentes até uma data. */
     @Transactional(readOnly = true)
     public List<AestheticView> search(String batch, String query, LocalDate returnsUntil) {
         String b = batch == null || batch.isBlank() ? null : batch.strip().toLowerCase();
@@ -196,6 +193,7 @@ public class AestheticService {
         }
         refs.require("patients", tenantId, patientId, "Paciente");
         refs.require("professionals", tenantId, r.professionalId(), "Profissional");
+        authorship.require(tenantId, r.professionalId());
         if (r.consentId() != null) {
             boolean ok = jdbc.sql("""
                             select exists(select 1 from patient_consents

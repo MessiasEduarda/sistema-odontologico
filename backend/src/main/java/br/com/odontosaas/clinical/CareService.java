@@ -8,6 +8,7 @@ import br.com.odontosaas.clinical.ClinicalDtos.CareTemplateView;
 import br.com.odontosaas.clinical.ClinicalDtos.DocumentRequest;
 import br.com.odontosaas.clinical.ClinicalDtos.DocumentView;
 import br.com.odontosaas.shared.ApiException;
+import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.util.List;
@@ -74,7 +75,7 @@ public class CareService {
                         r.category(),
                         r.moment(),
                         r.body().strip(),
-                        r.active(),
+                        Flags.activeIfOmitted(r.active()),
                         TenantContext.userId().orElse(null))
                 .update();
         audit.record(AuditAction.RECORD_CREATED, "care_instruction_template", id, Map.of());
@@ -86,8 +87,8 @@ public class CareService {
         UUID tenantId = TenantContext.requireTenantId();
         template(tenantId, id);
         jdbc.sql("""
-                        update care_instruction_templates set title = ?, category = ?, moment = ?, body = ?, active = ?,
-                            updated_at = now() where tenant_id = ? and id = ?
+                        update care_instruction_templates set title = ?, category = ?, moment = ?, body = ?,
+                            active = coalesce(cast(? as boolean), active), updated_at = now() where tenant_id = ? and id = ?
                         """)
                 .params(r.title().strip(), r.category(), r.moment(), r.body().strip(), r.active(), tenantId, id)
                 .update();

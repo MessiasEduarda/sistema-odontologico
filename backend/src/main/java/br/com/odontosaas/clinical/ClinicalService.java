@@ -75,14 +75,21 @@ public class ClinicalService {
     private final AuditService audit;
     private final JsonMapper json;
     private final ApplicationEventPublisher events;
+    private final ProfessionalAuthorship authorship;
 
     public ClinicalService(
-            JdbcClient jdbc, TenantRefs refs, AuditService audit, JsonMapper json, ApplicationEventPublisher events) {
+            JdbcClient jdbc,
+            TenantRefs refs,
+            AuditService audit,
+            JsonMapper json,
+            ApplicationEventPublisher events,
+            ProfessionalAuthorship authorship) {
         this.jdbc = jdbc;
         this.refs = refs;
         this.audit = audit;
         this.json = json;
         this.events = events;
+        this.authorship = authorship;
     }
 
     private UUID tenantFor(UUID patientId) {
@@ -367,12 +374,30 @@ public class ClinicalService {
                 .list();
     }
 
-    /** Alertas vigentes: os da anamnese mais recente de cada ficha (odontológica, harmonização...). */
+    /**
+     * Alertas vigentes de cada ficha (odontológica, harmonização...), por pergunta: vale a resposta mais recente que
+     * foi de fato dada ("SIM" ou "NÃO"). Pergunta deixada em branco numa ficha nova NÃO apaga o alerta anterior; só um
+     * "NÃO" explícito o resolve. As fichas são agrupadas pelo id (renomear a ficha não separa o histórico) e só contam
+     * as perguntas da versão mais recente dela. {@code all} vem do mais novo para o mais antigo.
+     */
     private static List<Alert> currentAlerts(List<AnamnesisView> all) {
-        Map<String, AnamnesisView> latestByForm = new LinkedHashMap<>();
-        for (AnamnesisView a : all) latestByForm.putIfAbsent(a.formName(), a);
+        Map<Object, List<AnamnesisView>> byForm = new LinkedHashMap<>();
+        for (AnamnesisView a : all) {
+            Object key = a.formId() != null ? a.formId() : a.formName();
+            byForm.computeIfAbsent(key, k -> new ArrayList<>()).add(a);
+        }
         List<Alert> alerts = new ArrayList<>();
-        latestByForm.values().forEach(a -> alerts.addAll(a.alerts()));
+        for (List<AnamnesisView> fills : byForm.values()) {
+            for (Question q : fills.getFirst().questions()) {
+                if (!q.alertOnYes()) continue;
+                for (AnamnesisView fill : fills) {
+                    Answer given = fill.answers().get(q.id());
+                    if (given == null || given.answer() == null) continue;
+                    if ("YES".equals(given.answer())) alerts.add(new Alert(q.id(), q.text(), given.detail()));
+                    break;
+                }
+            }
+        }
         return alerts;
     }
 
@@ -459,6 +484,7 @@ public class ClinicalService {
     public NoteView addNote(UUID patientId, NoteRequest r) {
         UUID tenantId = tenantFor(patientId);
         refs.require("professionals", tenantId, r.professionalId(), "Profissional");
+        authorship.require(tenantId, r.professionalId());
         refs.require("appointments", tenantId, r.appointmentId(), "Agendamento");
         if (r.amendsNoteId() != null) {
             boolean samePatient = jdbc.sql(
@@ -512,6 +538,7 @@ public class ClinicalService {
     public PerformedView addPerformed(UUID patientId, PerformedRequest r) {
         UUID tenantId = tenantFor(patientId);
         refs.require("professionals", tenantId, r.professionalId(), "Profissional");
+        authorship.require(tenantId, r.professionalId());
         refs.require("procedures", tenantId, r.procedureId(), "Procedimento");
         if (r.tooth() != null && !isValidTooth(r.tooth())) {
             throw ApiException.invalidField("tooth", "Dente inválido (notação FDI).");
@@ -604,6 +631,7 @@ public class ClinicalService {
     public DocumentView addDocument(UUID patientId, DocumentRequest r) {
         UUID tenantId = tenantFor(patientId);
         refs.require("professionals", tenantId, r.professionalId(), "Profissional");
+        authorship.require(tenantId, r.professionalId());
         UUID id = Ids.newId();
         jdbc.sql("""
                         insert into clinical_documents (id, tenant_id, patient_id, professional_id, type, title, content,

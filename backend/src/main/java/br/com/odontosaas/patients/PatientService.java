@@ -12,6 +12,7 @@ import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Cpf;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.PageResponse;
+import br.com.odontosaas.shared.PlanLimits;
 import br.com.odontosaas.shared.Versioned;
 import br.com.odontosaas.tenancy.TenantContext;
 import jakarta.validation.ConstraintViolation;
@@ -47,11 +48,13 @@ public class PatientService {
     private final JdbcClient jdbc;
     private final AuditService audit;
     private final Validator validator;
+    private final PlanLimits planLimits;
 
-    public PatientService(JdbcClient jdbc, AuditService audit, Validator validator) {
+    public PatientService(JdbcClient jdbc, AuditService audit, Validator validator, PlanLimits planLimits) {
         this.jdbc = jdbc;
         this.audit = audit;
         this.validator = validator;
+        this.planLimits = planLimits;
     }
 
     /** Busca por nome (parcial), CPF, telefone ou e-mail, com paginação. */
@@ -124,6 +127,7 @@ public class PatientService {
         UUID tenantId = TenantContext.requireTenantId();
         Normalized n = normalize(r);
         rejectDuplicateCpf(tenantId, n.cpf(), null);
+        planLimits.requirePatientSlot(tenantId);
         UUID id = insert(tenantId, r, n);
         audit.record(AuditAction.RECORD_CREATED, "patient", id, Map.of());
         return get(id);
@@ -131,7 +135,8 @@ public class PatientService {
 
     /**
      * Importação de planilha. Cada linha passa pelas mesmas regras do cadastro manual; linhas inválidas e CPFs já
-     * cadastrados (ou repetidos na planilha) são listados e não entram. Com {@code dryRun}, só valida.
+     * cadastrados (ou repetidos na planilha) são listados e não entram. Com {@code dryRun}, só valida. Linhas além das
+     * vagas de pacientes ativos do plano também não entram e são listadas como erro.
      */
     @Transactional
     public ImportResult importRows(List<ImportRow> rows, boolean dryRun) {
@@ -141,6 +146,7 @@ public class PatientService {
                     "Envie no máximo " + IMPORT_MAX_ROWS + " pacientes por vez (divida a planilha).");
         }
         UUID tenantId = TenantContext.requireTenantId();
+        int slots = planLimits.availablePatients(tenantId);
         List<ImportIssue> issues = new ArrayList<>();
         Set<String> cpfsInFile = new HashSet<>();
         int ready = 0;
@@ -164,6 +170,14 @@ public class PatientService {
                 if (n.cpf() != null && (!cpfsInFile.add(n.cpf()) || cpfExists(tenantId, n.cpf()))) {
                     issues.add(new ImportIssue(
                             row.line(), name, "DUPLICATE", "CPF já cadastrado ou repetido na planilha."));
+                    continue;
+                }
+                if (ready >= slots) {
+                    issues.add(new ImportIssue(
+                            row.line(),
+                            name,
+                            "ERROR",
+                            "Limite de pacientes ativos do plano atingido: a linha não foi importada."));
                     continue;
                 }
                 ready++;
@@ -192,7 +206,9 @@ public class PatientService {
                             mobile, email, zip_code, street, number, complement, district, city, state, occupation,
                             referral_source, health_insurance, insurance_number, guardian_name, guardian_cpf,
                             guardian_phone, notes, allow_email, allow_sms, allow_whatsapp)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            coalesce(cast(? as boolean), false), coalesce(cast(? as boolean), false),
+                            coalesce(cast(? as boolean), false))
                         """).params(values(id, tenantId, r, n)).update();
         return id;
     }
@@ -212,7 +228,9 @@ public class PatientService {
                             phone = ?, mobile = ?, email = ?, zip_code = ?, street = ?, number = ?, complement = ?,
                             district = ?, city = ?, state = ?, occupation = ?, referral_source = ?,
                             health_insurance = ?, insurance_number = ?, guardian_name = ?, guardian_cpf = ?,
-                            guardian_phone = ?, notes = ?, allow_email = ?, allow_sms = ?, allow_whatsapp = ?,
+                            guardian_phone = ?, notes = ?, allow_email = coalesce(cast(? as boolean), allow_email),
+                            allow_sms = coalesce(cast(? as boolean), allow_sms),
+                            allow_whatsapp = coalesce(cast(? as boolean), allow_whatsapp),
                             updated_at = now(), version = version + 1
                         where tenant_id = ? and id = ? and (cast(? as bigint) is null or version = ?)
                         """).params(params).update();
@@ -224,6 +242,9 @@ public class PatientService {
     @Transactional
     public PatientView setActive(UUID id, boolean active) {
         UUID tenantId = TenantContext.requireTenantId();
+        if (active && isInactive(tenantId, id)) {
+            planLimits.requirePatientSlot(tenantId);
+        }
         int updated = jdbc.sql("update patients set active = ?, updated_at = now(), version = version + 1"
                         + " where tenant_id = ? and id = ?")
                 .params(active, tenantId, id)
@@ -231,6 +252,13 @@ public class PatientService {
         Versioned.requireFound(updated, "Paciente");
         audit.record(active ? AuditAction.RECORD_UPDATED : AuditAction.RECORD_DEACTIVATED, "patient", id, Map.of());
         return get(id);
+    }
+
+    private boolean isInactive(UUID tenantId, UUID id) {
+        return jdbc.sql("select exists(select 1 from patients where tenant_id = ? and id = ? and not active)")
+                .params(tenantId, id)
+                .query(Boolean.class)
+                .single();
     }
 
     private boolean exists(UUID tenantId, UUID id) {

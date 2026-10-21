@@ -12,10 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
-/**
- * Simula um navegador: guarda o cookie de sessão recebido e envia o par CSRF (cookie XSRF-TOKEN + header
- * X-XSRF-TOKEN) em requisições que alteram estado, como o front-end real faz.
- */
+
 public final class Browser {
 
     public static final String SESSION_COOKIE = "odonto_session";
@@ -41,6 +38,10 @@ public final class Browser {
         return send(HttpMethod.GET, uri, null, true);
     }
 
+    public MvcTestResult getEncoded(String rawUri) {
+        return send(HttpMethod.GET, java.net.URI.create(rawUri), null, true);
+    }
+
     public MvcTestResult post(String uri, String json) {
         return send(HttpMethod.POST, uri, json, true);
     }
@@ -53,12 +54,10 @@ public final class Browser {
         return send(HttpMethod.DELETE, uri, null, true);
     }
 
-    /** POST sem o header CSRF (simula um site de terceiros tentando usar a sessão). */
     public MvcTestResult postWithoutCsrf(String uri, String json) {
         return send(HttpMethod.POST, uri, json, false);
     }
 
-    /** Faz login e guarda a sessão; falha o teste se não retornar 200. */
     public Browser login(String email, String password) {
         MvcTestResult result = post("/api/v1/auth/login", loginJson(email, password));
         assertThat(result).hasStatusOk();
@@ -87,12 +86,14 @@ public final class Browser {
         }
     }
 
-    private MvcTestResult send(HttpMethod method, String uri, String json, boolean withCsrf) {
+    private MvcTestResult send(HttpMethod method, Object uri, String json, boolean withCsrf) {
         List<Cookie> cookies = new ArrayList<>();
         cookies.add(new Cookie("XSRF-TOKEN", csrf));
         if (session != null) cookies.add(new Cookie(SESSION_COOKIE, session));
 
-        var request = mvc.method(method).uri(uri).cookie(cookies.toArray(Cookie[]::new));
+        var builder = mvc.method(method);
+        var request = (uri instanceof java.net.URI raw ? builder.uri(raw) : builder.uri((String) uri))
+                .cookie(cookies.toArray(Cookie[]::new));
         if (withCsrf) request = request.header("X-XSRF-TOKEN", csrf);
         if (json != null)
             request = request.contentType(MediaType.APPLICATION_JSON).content(json);

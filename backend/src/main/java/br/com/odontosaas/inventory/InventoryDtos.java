@@ -22,7 +22,7 @@ public final class InventoryDtos {
             @NotBlank @Size(max = 20) String unit,
             @NotNull @DecimalMin("0") @DecimalMax("9999999") BigDecimal minStock,
             UUID supplierId,
-            boolean active) {}
+            Boolean active) {}
 
     public record ProductView(
             UUID id,

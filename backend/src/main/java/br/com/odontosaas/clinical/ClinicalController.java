@@ -126,7 +126,8 @@ public class ClinicalController {
         return clinical.updateForm(id, request);
     }
 
-    public record ActiveRequest(boolean active) {}
+    public record ActiveRequest(
+            @jakarta.validation.constraints.NotNull Boolean active) {}
 
     @PostMapping("/api/v1/clinic/anamnesis-forms/{id}/active")
     @PreAuthorize(MANAGE)

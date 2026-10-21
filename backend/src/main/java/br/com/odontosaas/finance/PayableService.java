@@ -7,6 +7,7 @@ import br.com.odontosaas.finance.FinanceDtos.PayableView;
 import br.com.odontosaas.finance.FinanceDtos.SupplierRequest;
 import br.com.odontosaas.finance.FinanceDtos.SupplierView;
 import br.com.odontosaas.shared.ApiException;
+import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.TenantRefs;
 import br.com.odontosaas.shared.Versioned;
@@ -171,16 +172,18 @@ public class PayableService {
                         FinanceService.blank(r.phone()),
                         FinanceService.blank(r.email()),
                         FinanceService.blank(r.notes()),
-                        r.active())
+                        Flags.activeIfOmitted(r.active()))
                 .update();
         audit.record(AuditAction.RECORD_CREATED, "supplier", id, Map.of());
-        return new SupplierView(id, r.name().strip(), r.document(), r.phone(), r.email(), r.notes(), r.active());
+        return new SupplierView(
+                id, r.name().strip(), r.document(), r.phone(), r.email(), r.notes(), Flags.activeIfOmitted(r.active()));
     }
 
     @Transactional
     public SupplierView updateSupplier(UUID id, SupplierRequest r) {
         int updated = jdbc.sql("""
-                        update suppliers set name = ?, document = ?, phone = ?, email = ?, notes = ?, active = ?
+                        update suppliers set name = ?, document = ?, phone = ?, email = ?, notes = ?,
+                            active = coalesce(cast(? as boolean), active)
                         where tenant_id = ? and id = ?
                         """)
                 .params(
@@ -195,6 +198,10 @@ public class PayableService {
                 .update();
         Versioned.requireFound(updated, "Fornecedor");
         audit.record(AuditAction.RECORD_UPDATED, "supplier", id, Map.of());
-        return new SupplierView(id, r.name().strip(), r.document(), r.phone(), r.email(), r.notes(), r.active());
+        boolean active = jdbc.sql("select active from suppliers where tenant_id = ? and id = ?")
+                .params(TenantContext.requireTenantId(), id)
+                .query(Boolean.class)
+                .single();
+        return new SupplierView(id, r.name().strip(), r.document(), r.phone(), r.email(), r.notes(), active);
     }
 }
