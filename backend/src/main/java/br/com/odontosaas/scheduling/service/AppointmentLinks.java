@@ -2,12 +2,12 @@ package br.com.odontosaas.scheduling.service;
 
 import br.com.odontosaas.scheduling.dto.response.AppointmentView;
 import br.com.odontosaas.scheduling.dto.response.PublicAppointmentView;
+import br.com.odontosaas.scheduling.repository.AppointmentRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.SecureTokens;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AppointmentLinks {
 
-    private final JdbcClient jdbc;
+    private final AppointmentRepository repository;
     private final AppointmentService appointments;
 
-    public AppointmentLinks(JdbcClient jdbc, AppointmentService appointments) {
-        this.jdbc = jdbc;
+    public AppointmentLinks(AppointmentRepository repository, AppointmentService appointments) {
+        this.repository = repository;
         this.appointments = appointments;
     }
 
@@ -31,17 +31,13 @@ public class AppointmentLinks {
     public String issueToken(UUID appointmentId) {
         UUID tenantId = TenantContext.requireTenantId();
         String raw = SecureTokens.generate();
-        jdbc.sql("update appointments set confirmation_token_hash = ? where tenant_id = ? and id = ?")
-                .params(SecureTokens.sha256Hex(raw), tenantId, appointmentId)
-                .update();
+        repository.updateConfirmationTokenHash(tenantId, appointmentId, SecureTokens.sha256Hex(raw));
         return raw;
     }
 
     @Transactional
     public void markReminderSent(UUID appointmentId) {
-        jdbc.sql("update appointments set reminder_sent_at = now() where tenant_id = ? and id = ?")
-                .params(TenantContext.requireTenantId(), appointmentId)
-                .update();
+        repository.markReminderSent(TenantContext.requireTenantId(), appointmentId);
     }
 
     @Transactional(readOnly = true)
@@ -49,10 +45,7 @@ public class AppointmentLinks {
         Target target = resolve(rawToken);
         return TenantContext.runAs(target.tenantId(), null, () -> {
             AppointmentView a = appointments.get(target.appointmentId());
-            String clinic = jdbc.sql("select name from tenants where id = ?")
-                    .param(target.tenantId())
-                    .query(String.class)
-                    .single();
+            String clinic = repository.clinicName(target.tenantId());
             return new PublicAppointmentView(
                     clinic,
                     a.patientName().split(" ")[0],
@@ -80,11 +73,7 @@ public class AppointmentLinks {
         String hash = SecureTokens.sha256Hex(rawToken);
         Optional<Target> target = TenantContext.runWithToken(
                 hash,
-                () -> jdbc.sql(
-                                "select tenant_id, id as appointment_id from appointments where confirmation_token_hash = ?")
-                        .param(hash)
-                        .query(Target.class)
-                        .optional());
+                () -> repository.findByTokenHash(hash).map(row -> new Target(row.tenantId(), row.appointmentId())));
         return target.orElseThrow(() -> invalid);
     }
 }

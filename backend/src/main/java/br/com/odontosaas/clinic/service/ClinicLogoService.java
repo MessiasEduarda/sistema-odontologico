@@ -2,6 +2,7 @@ package br.com.odontosaas.clinic.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
+import br.com.odontosaas.clinic.repository.LogoRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.io.IOException;
@@ -9,7 +10,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,23 +25,18 @@ public class ClinicLogoService {
 
     public record Logo(String contentType, byte[] data, Instant updatedAt) {}
 
-    private final JdbcClient jdbc;
+    private final LogoRepository logos;
     private final AuditService audit;
 
-    public ClinicLogoService(JdbcClient jdbc, AuditService audit) {
-        this.jdbc = jdbc;
+    public ClinicLogoService(LogoRepository logos, AuditService audit) {
+        this.logos = logos;
         this.audit = audit;
     }
 
     @Transactional(readOnly = true)
     public Optional<Logo> get() {
-        return jdbc.sql("select content_type, data, updated_at from clinic_logos where tenant_id = ?")
-                .param(TenantContext.requireTenantId())
-                .query((rs, n) -> new Logo(
-                        rs.getString("content_type"),
-                        rs.getBytes("data"),
-                        rs.getTimestamp("updated_at").toInstant()))
-                .optional();
+        return logos.find(TenantContext.requireTenantId())
+                .map(row -> new Logo(row.contentType(), row.data(), row.updatedAt()));
     }
 
     @Transactional
@@ -57,13 +52,7 @@ public class ClinicLogoService {
         String type = detectImage(bytes);
         if (!"image/png".equals(type)) throw ApiException.invalidField("file", "Envie a logo em PNG.");
         UUID tenantId = TenantContext.requireTenantId();
-        jdbc.sql("""
-                        insert into clinic_logos (tenant_id, content_type, data, updated_by) values (?, ?, ?, ?)
-                        on conflict (tenant_id) do update set content_type = excluded.content_type,
-                            data = excluded.data, updated_by = excluded.updated_by, updated_at = now()
-                        """)
-                .params(tenantId, type, bytes, TenantContext.userId().orElse(null))
-                .update();
+        logos.upsert(tenantId, type, bytes, TenantContext.userId().orElse(null));
         audit.record(AuditAction.RECORD_UPDATED, "clinic_logo", tenantId, Map.of("bytes", bytes.length));
         return get().map(Logo::updatedAt).orElseThrow();
     }
@@ -71,10 +60,7 @@ public class ClinicLogoService {
     @Transactional
     public void delete() {
         UUID tenantId = TenantContext.requireTenantId();
-        if (jdbc.sql("delete from clinic_logos where tenant_id = ?")
-                        .param(tenantId)
-                        .update()
-                > 0) {
+        if (logos.delete(tenantId) > 0) {
             audit.record(AuditAction.RECORD_DEACTIVATED, "clinic_logo", tenantId, Map.of());
         }
     }
