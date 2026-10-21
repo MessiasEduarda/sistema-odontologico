@@ -1,13 +1,14 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.platformadmin.controller;
 
 import br.com.odontosaas.identity.security.CurrentUser;
+import br.com.odontosaas.platformadmin.dto.request.CreateTenantRequest;
+import br.com.odontosaas.platformadmin.dto.request.ResendOwnerInviteRequest;
+import br.com.odontosaas.platformadmin.dto.response.TenantView;
+import br.com.odontosaas.platformadmin.service.PlatformTenantService;
 import br.com.odontosaas.shared.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,12 +38,9 @@ public class PlatformTenantController {
     @Operation(
             summary = "Cria uma clínica",
             description = "Cria papéis padrão e envia convite ao responsável. 409 SLUG_TAKEN.")
-    public PlatformDtos.TenantView create(@Valid @RequestBody PlatformDtos.CreateTenantRequest request) {
+    public TenantView create(@Valid @RequestBody CreateTenantRequest request) {
         return service.create(request, CurrentUser.require().userId());
     }
-
-    public record ResendOwnerInviteRequest(
-            @NotBlank @Email @Size(max = 254) String ownerEmail) {}
 
     @PostMapping("/{id}/owner-invitation")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -57,7 +55,7 @@ public class PlatformTenantController {
 
     @GetMapping
     @Operation(summary = "Lista clínicas (paginado)")
-    public PageResponse<PlatformDtos.TenantView> list(
+    public PageResponse<TenantView> list(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return service.list(page, size);
     }

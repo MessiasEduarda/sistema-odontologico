@@ -1,10 +1,13 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.platformadmin.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.identity.ClinicProvisioning;
+import br.com.odontosaas.platformadmin.dto.request.CreateTenantRequest;
+import br.com.odontosaas.platformadmin.dto.response.TenantView;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.PageResponse;
+import br.com.odontosaas.subscription.service.SubscriptionService;
 import br.com.odontosaas.tenancy.TenantContext;
 import br.com.odontosaas.tenancy.entity.Tenant;
 import br.com.odontosaas.tenancy.repository.TenantRepository;
@@ -37,7 +40,7 @@ public class PlatformTenantService {
 
     /** Cria a clínica, seus papéis padrão e convida o responsável (que define a própria senha pelo e-mail). */
     @Transactional
-    public PlatformDtos.TenantView create(PlatformDtos.CreateTenantRequest request, UUID actorUserId) {
+    public TenantView create(CreateTenantRequest request, UUID actorUserId) {
         if (tenants.existsBySlugIgnoreCase(request.slug())) {
             throw ApiException.conflict("SLUG_TAKEN", "Já existe uma clínica com esse identificador.");
         }
@@ -49,7 +52,7 @@ public class PlatformTenantService {
             audit.record(AuditAction.TENANT_CREATED, "tenant", tenant.getId(), Map.of("slug", tenant.getSlug()));
             return null;
         });
-        return PlatformDtos.TenantView.of(tenant);
+        return toView(tenant);
     }
 
     /**
@@ -65,8 +68,12 @@ public class PlatformTenantService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<PlatformDtos.TenantView> list(int page, int size) {
+    public PageResponse<TenantView> list(int page, int size) {
         PageRequest request = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, 100), Sort.by("name"));
-        return PageResponse.of(tenants.findAll(request), PlatformDtos.TenantView::of);
+        return PageResponse.of(tenants.findAll(request), PlatformTenantService::toView);
+    }
+
+    private static TenantView toView(Tenant t) {
+        return new TenantView(t.getId(), t.getName(), t.getSlug(), t.getStatus().name(), t.getCreatedAt());
     }
 }

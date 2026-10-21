@@ -1,17 +1,15 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.subscription.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
+import br.com.odontosaas.subscription.dto.request.PlanRequest;
+import br.com.odontosaas.subscription.dto.request.SubscriptionRequest;
+import br.com.odontosaas.subscription.dto.response.Billing;
+import br.com.odontosaas.subscription.dto.response.PlanView;
+import br.com.odontosaas.subscription.dto.response.SubscriptionView;
 import br.com.odontosaas.tenancy.TenantContext;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -52,62 +50,11 @@ public class SubscriptionService {
 
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
 
-    public record PlanView(
-            UUID id,
-            String code,
-            String name,
-            BigDecimal priceMonthly,
-            Integer maxProfessionals,
-            Integer maxPatients,
-            List<String> features,
-            boolean active,
-            long tenants) {}
-
-    public record PlanRequest(
-            @NotBlank @Pattern(regexp = "^[A-Z0-9_]{2,40}$") String code,
-            @NotBlank @Size(max = 80) String name,
-            @NotNull @DecimalMin("0") BigDecimal priceMonthly,
-            @Min(1) Integer maxProfessionals,
-            @Min(1) Integer maxPatients,
-            @NotNull List<String> features,
-            @NotNull Boolean active) {}
-
-    public record SubscriptionView(
-            UUID tenantId,
-            String planCode,
-            String planName,
-            BigDecimal priceMonthly,
-            String status,
-            LocalDate trialEndsAt,
-            LocalDate currentPeriodEnd,
-            List<String> features,
-            Integer maxProfessionals,
-            Integer maxPatients,
-            long professionals,
-            long patients,
-            String notes,
-            Instant updatedAt,
-            String paymentUrl,
-            Billing billing) {}
-
-    /**
-     * Situação da cobrança. {@code state}: OK; DUE (vencida, ainda dentro da tolerância: aviso para pagar); BLOCKED
-     * (tolerância esgotada: só a tela de pagamento funciona). {@code blockedFrom}: primeiro dia de bloqueio.
-     */
-    public record Billing(String state, LocalDate dueDate, LocalDate blockedFrom) {
-
-        static final Billing OK = new Billing("OK", null, null);
-
-        public boolean blocked() {
-            return "BLOCKED".equals(state);
-        }
-    }
-
     /**
      * Vencimento: inadimplente (marcado pela plataforma), período pago encerrado ou avaliação terminada sem
      * pagamento. Cancelada é tratada à parte (bloqueio definitivo).
      */
-    static Billing billing(
+    public static Billing billing(
             String status, LocalDate trialEndsAt, LocalDate currentPeriodEnd, Instant updatedAt, LocalDate today) {
         LocalDate due = switch (status) {
             case "PAST_DUE" -> currentPeriodEnd != null ? currentPeriodEnd : LocalDate.ofInstant(updatedAt, ZONE);
@@ -120,19 +67,6 @@ public class SubscriptionService {
         LocalDate blockedFrom = due.plusDays(GRACE_DAYS + 1L);
         return new Billing(today.isBefore(blockedFrom) ? "DUE" : "BLOCKED", due, blockedFrom);
     }
-
-    public record SubscriptionRequest(
-            @NotBlank String planCode,
-
-            @NotBlank @Pattern(regexp = "TRIALING|ACTIVE|PAST_DUE|CANCELLED")
-            String status,
-
-            LocalDate trialEndsAt,
-            LocalDate currentPeriodEnd,
-            @Size(max = 500) String notes,
-
-            @Size(max = 500) @Pattern(regexp = "^$|^https://\\S+$", message = "Use um link https://.")
-            String paymentUrl) {}
 
     private final JdbcClient jdbc;
     private final AuditService audit;

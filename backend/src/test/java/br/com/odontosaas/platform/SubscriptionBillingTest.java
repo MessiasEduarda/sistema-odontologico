@@ -3,7 +3,8 @@ package br.com.odontosaas.platform;
 import static br.com.odontosaas.support.Browser.json;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import br.com.odontosaas.platform.SubscriptionService.Billing;
+import br.com.odontosaas.subscription.dto.response.Billing;
+import br.com.odontosaas.subscription.service.SubscriptionService;
 import br.com.odontosaas.support.Browser;
 import br.com.odontosaas.support.PostgresIntegrationTest;
 import br.com.odontosaas.support.TestData;

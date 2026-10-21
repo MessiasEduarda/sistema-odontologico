@@ -1,4 +1,4 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.devdata.service;
 
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.tenancy.TenantContext;

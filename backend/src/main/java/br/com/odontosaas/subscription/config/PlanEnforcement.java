@@ -1,7 +1,8 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.subscription.config;
 
-import br.com.odontosaas.platform.SubscriptionService.SubscriptionView;
 import br.com.odontosaas.shared.web.ProblemResponseWriter;
+import br.com.odontosaas.subscription.dto.response.SubscriptionView;
+import br.com.odontosaas.subscription.service.SubscriptionService;
 import br.com.odontosaas.tenancy.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

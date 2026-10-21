@@ -23,13 +23,13 @@ public class TestData {
     private final ClinicProvisioning provisioning;
     private final TenantRepository tenants;
     private final TransactionTemplate tx;
-    private final br.com.odontosaas.platform.SubscriptionService subscriptions;
+    private final br.com.odontosaas.subscription.service.SubscriptionService subscriptions;
 
     public TestData(
             ClinicProvisioning provisioning,
             TenantRepository tenants,
             TransactionTemplate tx,
-            br.com.odontosaas.platform.SubscriptionService subscriptions) {
+            br.com.odontosaas.subscription.service.SubscriptionService subscriptions) {
         this.provisioning = provisioning;
         this.tenants = tenants;
         this.tx = tx;

@@ -1,12 +1,12 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.platformadmin.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
+import br.com.odontosaas.platformadmin.dto.response.Metrics;
+import br.com.odontosaas.platformadmin.dto.response.PlatformEvent;
+import br.com.odontosaas.platformadmin.dto.response.TenantRow;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.tenancy.TenantContext;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,38 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class PlatformAdminService {
-
-    public record TenantRow(
-            UUID id,
-            String name,
-            String slug,
-            String status,
-            Instant createdAt,
-            String planCode,
-            String planName,
-            String subscriptionStatus,
-            LocalDate trialEndsAt,
-            BigDecimal priceMonthly) {}
-
-    public record Metrics(
-            long tenants,
-            long activeTenants,
-            long suspendedTenants,
-            long trialing,
-            long payingSubscriptions,
-            long pastDue,
-            BigDecimal monthlyRecurringRevenue,
-            long users,
-            long activeSessions24h) {}
-
-    public record PlatformEvent(
-            UUID id,
-            String action,
-            String actorEmail,
-            String resourceType,
-            String resourceId,
-            String ip,
-            Instant occurredAt) {}
 
     private final JdbcClient jdbc;
     private final AuditService audit;

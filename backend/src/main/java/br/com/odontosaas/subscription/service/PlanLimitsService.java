@@ -1,7 +1,7 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.subscription.service;
 
-import br.com.odontosaas.platform.SubscriptionService.SubscriptionView;
 import br.com.odontosaas.shared.PlanLimits;
+import br.com.odontosaas.subscription.dto.response.SubscriptionView;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
