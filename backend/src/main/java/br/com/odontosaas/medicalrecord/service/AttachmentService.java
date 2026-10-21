@@ -3,6 +3,8 @@ package br.com.odontosaas.medicalrecord.service;
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.medicalrecord.dto.response.AttachmentView;
+import br.com.odontosaas.medicalrecord.repository.AttachmentRepository;
+import br.com.odontosaas.medicalrecord.repository.AttachmentRepository.AttachmentFileRow;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.TenantRefs;
@@ -19,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,17 +37,17 @@ public class AttachmentService {
     static final long MAX_BYTES = 15L * 1024 * 1024;
     private static final Set<String> CATEGORIES = Set.of("XRAY", "PHOTO", "EXAM", "DOCUMENT", "OTHER");
 
-    private final JdbcClient jdbc;
+    private final AttachmentRepository attachments;
     private final TenantRefs refs;
     private final AuditService audit;
     private final Path root;
 
     public AttachmentService(
-            JdbcClient jdbc,
+            AttachmentRepository attachments,
             TenantRefs refs,
             AuditService audit,
             @Value("${app.storage.path:./data/uploads}") String storagePath) {
-        this.jdbc = jdbc;
+        this.attachments = attachments;
         this.refs = refs;
         this.audit = audit;
         this.root = Path.of(storagePath).toAbsolutePath().normalize();
@@ -58,16 +59,7 @@ public class AttachmentService {
     public List<AttachmentView> list(UUID patientId) {
         UUID tenantId = TenantContext.requireTenantId();
         refs.require("patients", tenantId, patientId, "Paciente");
-        return jdbc.sql("""
-                        select a.id, a.category, a.description, a.filename, a.content_type, a.size_bytes,
-                               u.name as uploaded_by_name, a.created_at
-                        from attachments a left join users u on u.id = a.uploaded_by
-                        where a.tenant_id = ? and a.patient_id = ? and a.deleted_at is null
-                        order by a.created_at desc
-                        """)
-                .params(tenantId, patientId)
-                .query(AttachmentView.class)
-                .list();
+        return attachments.findByPatient(tenantId, patientId);
     }
 
     @Transactional
@@ -100,24 +92,18 @@ public class AttachmentService {
             throw new UncheckedIOException("Falha ao gravar anexo", e);
         }
         String filename = sanitize(file.getOriginalFilename());
-        jdbc.sql("""
-                        insert into attachments (id, tenant_id, patient_id, category, description, filename,
-                            content_type, size_bytes, sha256, storage_key, uploaded_by)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        patientId,
-                        category,
-                        description == null || description.isBlank() ? null : description.strip(),
-                        filename,
-                        contentType,
-                        (long) bytes.length,
-                        sha256(bytes),
-                        key,
-                        TenantContext.userId().orElse(null))
-                .update();
+        attachments.insert(
+                id,
+                tenantId,
+                patientId,
+                category,
+                description == null || description.isBlank() ? null : description.strip(),
+                filename,
+                contentType,
+                (long) bytes.length,
+                sha256(bytes),
+                key,
+                TenantContext.userId().orElse(null));
         audit.record(AuditAction.RECORD_CREATED, "attachment", id, Map.of("category", category));
         return list(patientId).stream()
                 .filter(a -> a.id().equals(id))
@@ -128,14 +114,8 @@ public class AttachmentService {
     @Transactional
     public StoredFile download(UUID patientId, UUID attachmentId) {
         UUID tenantId = TenantContext.requireTenantId();
-        record Row(String filename, String contentType, String storageKey) {}
-        Row row = jdbc.sql("""
-                        select filename, content_type, storage_key from attachments
-                        where tenant_id = ? and patient_id = ? and id = ? and deleted_at is null
-                        """)
-                .params(tenantId, patientId, attachmentId)
-                .query(Row.class)
-                .optional()
+        AttachmentFileRow row = attachments
+                .findFile(tenantId, patientId, attachmentId)
                 .orElseThrow(() -> ApiException.notFound("Anexo"));
         Path path = resolve(row.storageKey());
         if (!Files.exists(path)) throw ApiException.notFound("Arquivo do anexo");
@@ -146,12 +126,11 @@ public class AttachmentService {
     /** Exclusão lógica: o arquivo é mantido (retenção legal do prontuário) e some das listagens. */
     @Transactional
     public void delete(UUID patientId, UUID attachmentId) {
-        int updated = jdbc.sql("""
-                        update attachments set deleted_at = now(), deleted_by = ?
-                        where tenant_id = ? and patient_id = ? and id = ? and deleted_at is null
-                        """)
-                .params(TenantContext.userId().orElse(null), TenantContext.requireTenantId(), patientId, attachmentId)
-                .update();
+        int updated = attachments.softDelete(
+                TenantContext.requireTenantId(),
+                patientId,
+                attachmentId,
+                TenantContext.userId().orElse(null));
         if (updated == 0) throw ApiException.notFound("Anexo");
         audit.record(AuditAction.RECORD_VOIDED, "attachment", attachmentId, Map.of());
     }

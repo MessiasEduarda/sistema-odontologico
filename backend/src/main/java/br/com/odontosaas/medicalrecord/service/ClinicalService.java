@@ -22,30 +22,31 @@ import br.com.odontosaas.medicalrecord.dto.response.PerformedView;
 import br.com.odontosaas.medicalrecord.dto.response.RecentAnamnesis;
 import br.com.odontosaas.medicalrecord.dto.response.RecordSummary;
 import br.com.odontosaas.medicalrecord.event.ProcedurePerformed;
+import br.com.odontosaas.medicalrecord.repository.AnamnesisFormRepository;
+import br.com.odontosaas.medicalrecord.repository.AnamnesisFormRepository.FormKindsRow;
+import br.com.odontosaas.medicalrecord.repository.AnamnesisRepository;
+import br.com.odontosaas.medicalrecord.repository.ChartRepository;
+import br.com.odontosaas.medicalrecord.repository.ClinicalDocumentRepository;
+import br.com.odontosaas.medicalrecord.repository.ClinicalNoteRepository;
+import br.com.odontosaas.medicalrecord.repository.PerformedProcedureRepository;
+import br.com.odontosaas.medicalrecord.repository.RecordSummaryRepository;
+import br.com.odontosaas.medicalrecord.repository.RecordSummaryRepository.PatientBasicRow;
 import br.com.odontosaas.medicalrecord.support.DefaultAnamnesis;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.TenantRefs;
 import br.com.odontosaas.tenancy.TenantContext;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Prontuário: anamnese, odontograma, evoluções, procedimentos realizados e documentos. Registros não são editados
@@ -69,28 +70,39 @@ public class ClinicalService {
             "MOBILITY",
             "OTHER");
 
-    private static final TypeReference<List<Question>> QUESTIONS = new TypeReference<>() {};
-    private static final TypeReference<Map<String, Answer>> ANSWERS = new TypeReference<>() {};
-    private static final TypeReference<List<Alert>> ALERTS = new TypeReference<>() {};
-
-    private final JdbcClient jdbc;
+    private final RecordSummaryRepository summaries;
+    private final AnamnesisFormRepository forms;
+    private final AnamnesisRepository anamnesisRecords;
+    private final ChartRepository charts;
+    private final ClinicalNoteRepository clinicalNotes;
+    private final PerformedProcedureRepository performedProcedures;
+    private final ClinicalDocumentRepository clinicalDocuments;
     private final TenantRefs refs;
     private final AuditService audit;
-    private final JsonMapper json;
     private final ApplicationEventPublisher events;
     private final ProfessionalAuthorship authorship;
 
     public ClinicalService(
-            JdbcClient jdbc,
+            RecordSummaryRepository summaries,
+            AnamnesisFormRepository forms,
+            AnamnesisRepository anamnesisRecords,
+            ChartRepository charts,
+            ClinicalNoteRepository clinicalNotes,
+            PerformedProcedureRepository performedProcedures,
+            ClinicalDocumentRepository clinicalDocuments,
             TenantRefs refs,
             AuditService audit,
-            JsonMapper json,
             ApplicationEventPublisher events,
             ProfessionalAuthorship authorship) {
-        this.jdbc = jdbc;
+        this.summaries = summaries;
+        this.forms = forms;
+        this.anamnesisRecords = anamnesisRecords;
+        this.charts = charts;
+        this.clinicalNotes = clinicalNotes;
+        this.performedProcedures = performedProcedures;
+        this.clinicalDocuments = clinicalDocuments;
         this.refs = refs;
         this.audit = audit;
-        this.json = json;
         this.events = events;
         this.authorship = authorship;
     }
@@ -110,22 +122,11 @@ public class ClinicalService {
     @Transactional
     public RecordSummary summary(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
-        record Basic(String fullName, LocalDate birthDate) {}
-        Basic basic = jdbc.sql("select full_name, birth_date from patients where tenant_id = ? and id = ?")
-                .params(tenantId, patientId)
-                .query(Basic.class)
-                .single();
+        PatientBasicRow basic = summaries.findPatientBasic(tenantId, patientId);
         List<AnamnesisView> all = anamneses(patientId);
-        int notes = count(
-                "select count(*) from clinical_notes where tenant_id = ? and patient_id = ?", tenantId, patientId);
-        int pending = count(
-                "select count(*) from patient_consents where tenant_id = ? and patient_id = ? and status = 'PENDING'",
-                tenantId,
-                patientId);
-        int attachments = count(
-                "select count(*) from attachments where tenant_id = ? and patient_id = ? and deleted_at is null",
-                tenantId,
-                patientId);
+        int notes = summaries.countNotes(tenantId, patientId);
+        int pending = summaries.countPendingConsents(tenantId, patientId);
+        int attachments = summaries.countAttachments(tenantId, patientId);
         audit.record(AuditAction.CLINICAL_RECORD_VIEWED, "patient", patientId, Map.of());
         return new RecordSummary(
                 patientId,
@@ -138,24 +139,7 @@ public class ClinicalService {
                 attachments);
     }
 
-    private int count(String sql, UUID tenantId, UUID patientId) {
-        return jdbc.sql(sql).params(tenantId, patientId).query(Integer.class).single();
-    }
-
     // ------------------------------------------------------------------ Fichas de anamnese
-
-    private static final String FORM_SELECT =
-            "select id, name, kind, questions::text as questions, active, updated_at from anamnesis_forms";
-
-    private FormView mapForm(ResultSet rs) throws SQLException {
-        return new FormView(
-                rs.getObject("id", UUID.class),
-                rs.getString("name"),
-                rs.getString("kind"),
-                json.readValue(rs.getString("questions"), QUESTIONS),
-                rs.getBoolean("active"),
-                rs.getTimestamp("updated_at").toInstant());
-    }
 
     /**
      * Fichas da clínica. Na primeira consulta cria a ficha odontológica padrão e, se a clínica realiza harmonização
@@ -165,25 +149,11 @@ public class ClinicalService {
     public List<FormView> forms(boolean includeInactive) {
         UUID tenantId = TenantContext.requireTenantId();
         ensureDefaultForms(tenantId);
-        return jdbc.sql(FORM_SELECT + " where tenant_id = ?" + (includeInactive ? "" : " and active")
-                        + " order by case kind when 'DENTAL' then 0 when 'AESTHETIC' then 1 else 2 end, name")
-                .param(tenantId)
-                .query((rs, n) -> mapForm(rs))
-                .list();
+        return forms.findAll(tenantId, includeInactive);
     }
 
     private void ensureDefaultForms(UUID tenantId) {
-        record Kinds(boolean dental, boolean aesthetic, boolean aestheticsEnabled) {}
-        Kinds k = jdbc.sql("""
-                        select exists(select 1 from anamnesis_forms where tenant_id = ? and kind = 'DENTAL') as dental,
-                               exists(select 1 from anamnesis_forms where tenant_id = ? and kind = 'AESTHETIC')
-                                   as aesthetic,
-                               coalesce((select aesthetics_enabled from clinic_settings where tenant_id = ?), false)
-                                   as aesthetics_enabled
-                        """)
-                .params(tenantId, tenantId, tenantId)
-                .query(Kinds.class)
-                .single();
+        FormKindsRow k = forms.findKinds(tenantId);
         if (!k.dental()) insertForm(tenantId, DefaultAnamnesis.DENTAL_NAME, "DENTAL", DefaultAnamnesis.QUESTIONS);
         if (k.aestheticsEnabled() && !k.aesthetic()) {
             insertForm(tenantId, DefaultAnamnesis.AESTHETIC_NAME, "AESTHETIC", DefaultAnamnesis.AESTHETIC);
@@ -191,20 +161,11 @@ public class ClinicalService {
     }
 
     private void insertForm(UUID tenantId, String name, String kind, List<Question> questions) {
-        jdbc.sql("""
-                        insert into anamnesis_forms (id, tenant_id, name, kind, questions, updated_by)
-                        values (?, ?, ?, ?, cast(? as jsonb), ?) on conflict (tenant_id, name) do nothing
-                        """)
-                .params(Ids.newId(), tenantId, name, kind, json.writeValueAsString(questions), actor())
-                .update();
+        forms.insertIfAbsent(Ids.newId(), tenantId, name, kind, questions, actor());
     }
 
     private FormView form(UUID tenantId, UUID formId) {
-        return jdbc.sql(FORM_SELECT + " where tenant_id = ? and id = ?")
-                .params(tenantId, formId)
-                .query((rs, n) -> mapForm(rs))
-                .optional()
-                .orElseThrow(() -> ApiException.notFound("Ficha de anamnese"));
+        return forms.find(tenantId, formId).orElseThrow(() -> ApiException.notFound("Ficha de anamnese"));
     }
 
     private static void checkQuestions(List<Question> questions) {
@@ -219,12 +180,7 @@ public class ClinicalService {
         UUID tenantId = TenantContext.requireTenantId();
         checkQuestions(r.questions());
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into anamnesis_forms (id, tenant_id, name, kind, questions, updated_by)
-                        values (?, ?, ?, ?, cast(? as jsonb), ?)
-                        """)
-                .params(id, tenantId, r.name().strip(), r.kind(), json.writeValueAsString(r.questions()), actor())
-                .update();
+        forms.insert(id, tenantId, r.name().strip(), r.kind(), r.questions(), actor());
         audit.record(AuditAction.RECORD_CREATED, "anamnesis_form", id, Map.of());
         return form(tenantId, id);
     }
@@ -235,12 +191,7 @@ public class ClinicalService {
         UUID tenantId = TenantContext.requireTenantId();
         form(tenantId, formId);
         checkQuestions(r.questions());
-        jdbc.sql("""
-                        update anamnesis_forms set name = ?, kind = ?, questions = cast(? as jsonb), updated_by = ?,
-                            updated_at = now() where tenant_id = ? and id = ?
-                        """)
-                .params(r.name().strip(), r.kind(), json.writeValueAsString(r.questions()), actor(), tenantId, formId)
-                .update();
+        forms.update(tenantId, formId, r.name().strip(), r.kind(), r.questions(), actor());
         audit.record(AuditAction.RECORD_UPDATED, "anamnesis_form", formId, Map.of());
         return form(tenantId, formId);
     }
@@ -249,9 +200,7 @@ public class ClinicalService {
     public FormView setFormActive(UUID formId, boolean active) {
         UUID tenantId = TenantContext.requireTenantId();
         form(tenantId, formId);
-        jdbc.sql("update anamnesis_forms set active = ?, updated_at = now() where tenant_id = ? and id = ?")
-                .params(active, tenantId, formId)
-                .update();
+        forms.setActive(tenantId, formId, active);
         audit.record(
                 active ? AuditAction.RECORD_UPDATED : AuditAction.RECORD_DEACTIVATED,
                 "anamnesis_form",
@@ -291,25 +240,19 @@ public class ClinicalService {
             }
         }
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into anamneses (id, tenant_id, patient_id, form_id, form_name, form_kind, questions,
-                            answers, alerts, notes, filled_by, created_by)
-                        values (?, ?, ?, ?, ?, ?, cast(? as jsonb), cast(? as jsonb), cast(? as jsonb), ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        patientId,
-                        form.id(),
-                        form.name(),
-                        form.kind(),
-                        json.writeValueAsString(questions),
-                        json.writeValueAsString(r.answers()),
-                        json.writeValueAsString(alerts),
-                        blank(r.notes()),
-                        r.filledBy() == null ? "PROFESSIONAL" : r.filledBy(),
-                        actor())
-                .update();
+        anamnesisRecords.insert(
+                id,
+                tenantId,
+                patientId,
+                form.id(),
+                form.name(),
+                form.kind(),
+                questions,
+                r.answers(),
+                alerts,
+                blank(r.notes()),
+                r.filledBy() == null ? "PROFESSIONAL" : r.filledBy(),
+                actor());
         audit.record(AuditAction.RECORD_CREATED, "anamnesis", id, Map.of("patient", patientId.toString()));
         return anamneses(patientId).stream()
                 .filter(a -> a.id().equals(id))
@@ -320,27 +263,7 @@ public class ClinicalService {
     @Transactional(readOnly = true)
     public List<AnamnesisView> anamneses(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
-        return jdbc.sql("""
-                        select a.id, a.form_id, a.form_name, a.form_kind, a.questions::text as questions,
-                               a.answers::text as answers, a.alerts::text as alerts, a.notes, a.filled_by,
-                               u.name as created_by_name, a.created_at
-                        from anamneses a left join users u on u.id = a.created_by
-                        where a.tenant_id = ? and a.patient_id = ? order by a.created_at desc
-                        """)
-                .params(tenantId, patientId)
-                .query((rs, n) -> new AnamnesisView(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("form_id", UUID.class),
-                        rs.getString("form_name"),
-                        rs.getString("form_kind"),
-                        json.readValue(rs.getString("questions"), QUESTIONS),
-                        json.readValue(rs.getString("answers"), ANSWERS),
-                        json.readValue(rs.getString("alerts"), ALERTS),
-                        rs.getString("notes"),
-                        rs.getString("filled_by"),
-                        rs.getString("created_by_name"),
-                        rs.getTimestamp("created_at").toInstant()))
-                .list();
+        return anamnesisRecords.findByPatient(tenantId, patientId);
     }
 
     /** Preenchimentos recentes da clínica (todas as fichas), com filtros por tipo de ficha, alertas e paciente. */
@@ -348,33 +271,7 @@ public class ClinicalService {
     public List<RecentAnamnesis> recentAnamneses(String kind, boolean alertsOnly, String query) {
         UUID tenantId = TenantContext.requireTenantId();
         String q = query == null || query.isBlank() ? null : "%" + query.strip().toLowerCase() + "%";
-        return jdbc.sql("""
-                        select a.id, a.patient_id, p.full_name as patient_name, a.form_name, a.form_kind,
-                               a.alerts::text as alerts, a.filled_by, u.name as created_by_name, a.created_at
-                        from anamneses a
-                        join patients p on p.tenant_id = a.tenant_id and p.id = a.patient_id
-                        left join users u on u.id = a.created_by
-                        where a.tenant_id = :tenant
-                          and (cast(:kind as varchar) is null or a.form_kind = :kind)
-                          and (not :alertsOnly or jsonb_array_length(a.alerts) > 0)
-                          and (cast(:q as varchar) is null or lower(p.full_name) like :q)
-                        order by a.created_at desc limit 200
-                        """)
-                .param("tenant", tenantId)
-                .param("kind", kind == null || kind.isBlank() ? null : kind)
-                .param("alertsOnly", alertsOnly)
-                .param("q", q)
-                .query((rs, n) -> new RecentAnamnesis(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("patient_id", UUID.class),
-                        rs.getString("patient_name"),
-                        rs.getString("form_name"),
-                        rs.getString("form_kind"),
-                        json.readValue(rs.getString("alerts"), ALERTS),
-                        rs.getString("filled_by"),
-                        rs.getString("created_by_name"),
-                        rs.getTimestamp("created_at").toInstant()))
-                .list();
+        return anamnesisRecords.findRecent(tenantId, kind == null || kind.isBlank() ? null : kind, alertsOnly, q);
     }
 
     /**
@@ -409,15 +306,7 @@ public class ClinicalService {
     @Transactional(readOnly = true)
     public List<ChartEntryView> chart(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
-        return jdbc.sql("""
-                        select e.id, e.tooth, e.surfaces, e.condition, e.status, e.notes, u.name as created_by_name,
-                               e.created_at, e.voided_at, e.void_reason
-                        from dental_chart_entries e left join users u on u.id = e.created_by
-                        where e.tenant_id = ? and e.patient_id = ? order by e.created_at
-                        """)
-                .params(tenantId, patientId)
-                .query(ChartEntryView.class)
-                .list();
+        return charts.findByPatient(tenantId, patientId);
     }
 
     @Transactional
@@ -426,21 +315,16 @@ public class ClinicalService {
         if (!isValidTooth(r.tooth())) throw ApiException.invalidField("tooth", "Dente inválido (notação FDI).");
         if (!CONDITIONS.contains(r.condition())) throw ApiException.invalidField("condition", "Condição inválida.");
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into dental_chart_entries (id, tenant_id, patient_id, tooth, surfaces, condition, status,
-                            notes, created_by) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        patientId,
-                        r.tooth(),
-                        blank(r.surfaces()),
-                        r.condition(),
-                        r.status(),
-                        blank(r.notes()),
-                        actor())
-                .update();
+        charts.insert(
+                id,
+                tenantId,
+                patientId,
+                r.tooth(),
+                blank(r.surfaces()),
+                r.condition(),
+                r.status(),
+                blank(r.notes()),
+                actor());
         audit.record(AuditAction.RECORD_CREATED, "dental_chart_entry", id, Map.of());
         return chart(patientId).stream()
                 .filter(e -> e.id().equals(id))
@@ -451,12 +335,7 @@ public class ClinicalService {
     @Transactional
     public void voidChartEntry(UUID patientId, UUID entryId, String reason) {
         UUID tenantId = tenantFor(patientId);
-        int updated = jdbc.sql("""
-                        update dental_chart_entries set voided_at = now(), voided_by = ?, void_reason = ?
-                        where tenant_id = ? and patient_id = ? and id = ? and voided_at is null
-                        """)
-                .params(actor(), reason.strip(), tenantId, patientId, entryId)
-                .update();
+        int updated = charts.voidEntry(tenantId, patientId, entryId, actor(), reason.strip());
         if (updated == 0) throw ApiException.notFound("Registro do odontograma");
         audit.record(AuditAction.RECORD_VOIDED, "dental_chart_entry", entryId, Map.of());
     }
@@ -473,14 +352,7 @@ public class ClinicalService {
     @Transactional(readOnly = true)
     public List<NoteView> notes(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
-        return jdbc.sql("""
-                        select n.id, n.content, n.professional_id, p.name as professional_name, n.appointment_id,
-                               n.amends_note_id, u.name as created_by_name, n.created_at
-                        from clinical_notes n
-                        left join professionals p on p.tenant_id = n.tenant_id and p.id = n.professional_id
-                        left join users u on u.id = n.created_by
-                        where n.tenant_id = ? and n.patient_id = ? order by n.created_at desc
-                        """).params(tenantId, patientId).query(NoteView.class).list();
+        return clinicalNotes.findByPatient(tenantId, patientId);
     }
 
     @Transactional
@@ -490,28 +362,19 @@ public class ClinicalService {
         authorship.require(tenantId, r.professionalId());
         refs.require("appointments", tenantId, r.appointmentId(), "Agendamento");
         if (r.amendsNoteId() != null) {
-            boolean samePatient = jdbc.sql(
-                            "select exists(select 1 from clinical_notes where tenant_id = ? and id = ? and patient_id = ?)")
-                    .params(tenantId, r.amendsNoteId(), patientId)
-                    .query(Boolean.class)
-                    .single();
+            boolean samePatient = clinicalNotes.belongsToPatient(tenantId, r.amendsNoteId(), patientId);
             if (!samePatient) throw ApiException.notFound("Evolução a retificar");
         }
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into clinical_notes (id, tenant_id, patient_id, professional_id, appointment_id, content,
-                            amends_note_id, created_by) values (?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        patientId,
-                        r.professionalId(),
-                        r.appointmentId(),
-                        r.content().strip(),
-                        r.amendsNoteId(),
-                        actor())
-                .update();
+        clinicalNotes.insert(
+                id,
+                tenantId,
+                patientId,
+                r.professionalId(),
+                r.appointmentId(),
+                r.content().strip(),
+                r.amendsNoteId(),
+                actor());
         audit.record(AuditAction.RECORD_CREATED, "clinical_note", id, Map.of());
         return notes(patientId).stream()
                 .filter(n -> n.id().equals(id))
@@ -524,17 +387,7 @@ public class ClinicalService {
     @Transactional(readOnly = true)
     public List<PerformedView> performed(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
-        return jdbc.sql("""
-                        select x.id, x.professional_id, p.name as professional_name, x.procedure_id, x.description,
-                               x.tooth, x.surfaces, x.treatment_item_id, x.performed_at, x.notes, x.voided_at,
-                               x.void_reason
-                        from performed_procedures x
-                        join professionals p on p.tenant_id = x.tenant_id and p.id = x.professional_id
-                        where x.tenant_id = ? and x.patient_id = ? order by x.performed_at desc
-                        """)
-                .params(tenantId, patientId)
-                .query(PerformedView.class)
-                .list();
+        return performedProcedures.findByPatient(tenantId, patientId);
     }
 
     @Transactional
@@ -547,15 +400,7 @@ public class ClinicalService {
             throw ApiException.invalidField("tooth", "Dente inválido (notação FDI).");
         }
         if (r.treatmentItemId() != null) {
-            boolean ok = jdbc.sql("""
-                            select exists(select 1 from treatment_plan_items i
-                                join treatment_plans t on t.tenant_id = i.tenant_id and t.id = i.plan_id
-                                where i.tenant_id = ? and i.id = ? and t.patient_id = ? and i.status = 'PLANNED'
-                                  and t.status in ('APPROVED'))
-                            """)
-                    .params(tenantId, r.treatmentItemId(), patientId)
-                    .query(Boolean.class)
-                    .single();
+            boolean ok = performedProcedures.isApprovedPlannedItem(tenantId, r.treatmentItemId(), patientId);
             if (!ok) {
                 throw ApiException.businessRule(
                         "INVALID_TREATMENT_ITEM", "O item do plano não existe, não está aprovado ou já foi realizado.");
@@ -565,25 +410,19 @@ public class ClinicalService {
             throw ApiException.invalidField("performedAt", "A data de realização não pode estar no futuro.");
         }
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into performed_procedures (id, tenant_id, patient_id, professional_id, procedure_id,
-                            description, tooth, surfaces, treatment_item_id, performed_at, notes, created_by)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        patientId,
-                        r.professionalId(),
-                        r.procedureId(),
-                        r.description().strip(),
-                        r.tooth(),
-                        blank(r.surfaces()),
-                        r.treatmentItemId(),
-                        Timestamp.from(r.performedAt() == null ? Instant.now() : r.performedAt()),
-                        blank(r.notes()),
-                        actor())
-                .update();
+        performedProcedures.insert(
+                id,
+                tenantId,
+                patientId,
+                r.professionalId(),
+                r.procedureId(),
+                r.description().strip(),
+                r.tooth(),
+                blank(r.surfaces()),
+                r.treatmentItemId(),
+                r.performedAt() == null ? Instant.now() : r.performedAt(),
+                blank(r.notes()),
+                actor());
         audit.record(AuditAction.RECORD_CREATED, "performed_procedure", id, Map.of());
         if (r.treatmentItemId() != null) {
             events.publishEvent(new ProcedurePerformed(tenantId, r.treatmentItemId(), false));
@@ -597,16 +436,10 @@ public class ClinicalService {
     @Transactional
     public void voidPerformed(UUID patientId, UUID performedId, String reason) {
         UUID tenantId = tenantFor(patientId);
-        UUID itemId = jdbc.sql("""
-                        update performed_procedures set voided_at = now(), voided_by = ?, void_reason = ?
-                        where tenant_id = ? and patient_id = ? and id = ? and voided_at is null
-                        returning treatment_item_id
-                        """)
-                .params(actor(), reason.strip(), tenantId, patientId, performedId)
-                .query((rs, n) -> Optional.ofNullable(rs.getObject(1, UUID.class)))
-                .optional()
+        UUID itemId = performedProcedures
+                .voidReturningItem(tenantId, patientId, performedId, actor(), reason.strip())
                 .orElseThrow(() -> ApiException.notFound("Procedimento realizado"))
-                .orElse(null);
+                .treatmentItemId();
         audit.record(AuditAction.RECORD_VOIDED, "performed_procedure", performedId, Map.of());
         if (itemId != null) events.publishEvent(new ProcedurePerformed(tenantId, itemId, true));
     }
@@ -616,18 +449,7 @@ public class ClinicalService {
     @Transactional(readOnly = true)
     public List<DocumentView> documents(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
-        return jdbc.sql("""
-                        select d.id, d.professional_id, p.name as professional_name,
-                               case when p.cro is not null then 'CRO-' || coalesce(p.cro_state, '') || ' ' || p.cro end
-                                   as professional_cro,
-                               d.type, d.title, d.content, d.issued_at
-                        from clinical_documents d
-                        join professionals p on p.tenant_id = d.tenant_id and p.id = d.professional_id
-                        where d.tenant_id = ? and d.patient_id = ? order by d.issued_at desc
-                        """)
-                .params(tenantId, patientId)
-                .query(DocumentView.class)
-                .list();
+        return clinicalDocuments.findByPatient(tenantId, patientId);
     }
 
     @Transactional
@@ -636,20 +458,15 @@ public class ClinicalService {
         refs.require("professionals", tenantId, r.professionalId(), "Profissional");
         authorship.require(tenantId, r.professionalId());
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into clinical_documents (id, tenant_id, patient_id, professional_id, type, title, content,
-                            created_by) values (?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        patientId,
-                        r.professionalId(),
-                        r.type(),
-                        r.title().strip(),
-                        r.content().strip(),
-                        actor())
-                .update();
+        clinicalDocuments.insert(
+                id,
+                tenantId,
+                patientId,
+                r.professionalId(),
+                r.type(),
+                r.title().strip(),
+                r.content().strip(),
+                actor());
         audit.record(AuditAction.RECORD_CREATED, "clinical_document", id, Map.of("type", r.type()));
         return documents(patientId).stream()
                 .filter(d -> d.id().equals(id))
@@ -661,19 +478,7 @@ public class ClinicalService {
     @Transactional(readOnly = true)
     public List<IssuedDocument> recentDocuments(String type) {
         UUID tenantId = TenantContext.requireTenantId();
-        return jdbc.sql("""
-                        select d.id, d.patient_id, pa.full_name as patient_name, p.name as professional_name, d.type,
-                               d.title, d.issued_at
-                        from clinical_documents d
-                        join patients pa on pa.tenant_id = d.tenant_id and pa.id = d.patient_id
-                        join professionals p on p.tenant_id = d.tenant_id and p.id = d.professional_id
-                        where d.tenant_id = :tenant and (cast(:type as varchar) is null or d.type = :type)
-                        order by d.issued_at desc limit 200
-                        """)
-                .param("tenant", tenantId)
-                .param("type", type == null || type.isBlank() ? null : type)
-                .query(IssuedDocument.class)
-                .list();
+        return clinicalDocuments.findRecent(tenantId, type == null || type.isBlank() ? null : type);
     }
 
     private static String blank(String value) {
