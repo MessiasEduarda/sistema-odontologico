@@ -8,6 +8,7 @@ import br.com.odontosaas.scheduling.dto.response.AppointmentEventView;
 import br.com.odontosaas.scheduling.dto.response.AppointmentView;
 import br.com.odontosaas.scheduling.dto.response.FreeSlot;
 import br.com.odontosaas.scheduling.event.AppointmentChanged;
+import br.com.odontosaas.scheduling.repository.AppointmentRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.TenantRefs;
@@ -16,7 +17,6 @@ import br.com.odontosaas.tenancy.TenantContext;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
@@ -34,19 +33,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class AppointmentService {
-
-    static final String SELECT = """
-            select a.id, a.patient_id, p.full_name as patient_name, p.mobile as patient_mobile,
-                   a.professional_id, pr.name as professional_name, pr.color as professional_color,
-                   a.room_id, r.name as room_name, a.procedure_id, pc.name as procedure_name,
-                   a.starts_at, a.ends_at, a.status, a.notes, a.cancellation_reason, a.confirmed_at,
-                   a.reminder_sent_at, a.version
-            from appointments a
-            join patients p on p.tenant_id = a.tenant_id and p.id = a.patient_id
-            join professionals pr on pr.tenant_id = a.tenant_id and pr.id = a.professional_id
-            left join rooms r on r.tenant_id = a.tenant_id and r.id = a.room_id
-            left join procedures pc on pc.tenant_id = a.tenant_id and pc.id = a.procedure_id
-            """;
 
     /** Transições permitidas de status (máquina de estados do atendimento). */
     private static final Map<String, Set<String>> TRANSITIONS = Map.of(
@@ -60,7 +46,7 @@ public class AppointmentService {
 
     private static final Duration MAX_DURATION = Duration.ofHours(8);
 
-    private final JdbcClient jdbc;
+    private final AppointmentRepository repository;
     private final TenantRefs refs;
     private final AuditService audit;
     private final ApplicationEventPublisher events;
@@ -68,13 +54,13 @@ public class AppointmentService {
     private final ScheduleBlockService blocks;
 
     public AppointmentService(
-            JdbcClient jdbc,
+            AppointmentRepository repository,
             TenantRefs refs,
             AuditService audit,
             ApplicationEventPublisher events,
             JsonMapper json,
             ScheduleBlockService blocks) {
-        this.jdbc = jdbc;
+        this.repository = repository;
         this.refs = refs;
         this.audit = audit;
         this.events = events;
@@ -91,60 +77,22 @@ public class AppointmentService {
         if (from != null && to != null && Duration.between(from, to).toDays() > 62) {
             throw ApiException.badRequest("PERIOD_TOO_LONG", "O período máximo de consulta é de 62 dias.");
         }
-        StringBuilder sql = new StringBuilder(SELECT).append(" where a.tenant_id = ?");
-        List<Object> params = new ArrayList<>(List.of(tenantId));
-        if (from != null) {
-            sql.append(" and a.ends_at > ?");
-            params.add(java.sql.Timestamp.from(from));
-        }
-        if (to != null) {
-            sql.append(" and a.starts_at < ?");
-            params.add(java.sql.Timestamp.from(to));
-        }
-        if (professionalId != null) {
-            sql.append(" and a.professional_id = ?");
-            params.add(professionalId);
-        }
-        if (patientId != null) {
-            sql.append(" and a.patient_id = ?");
-            params.add(patientId);
-        }
-        if (status != null && !status.isBlank()) {
-            sql.append(" and a.status = ?");
-            params.add(status);
-        }
-        sql.append(
-                patientId != null && from == null ? " order by a.starts_at desc limit 200" : " order by a.starts_at");
-        return jdbc.sql(sql.toString())
-                .params(params)
-                .query(AppointmentView.class)
-                .list();
+        return repository.list(tenantId, from, to, professionalId, patientId, status);
     }
 
     @Transactional(readOnly = true)
     public AppointmentView get(UUID id) {
-        return jdbc.sql(SELECT + " where a.tenant_id = ? and a.id = ?")
-                .params(TenantContext.requireTenantId(), id)
-                .query(AppointmentView.class)
-                .optional()
+        return repository
+                .find(TenantContext.requireTenantId(), id)
                 .orElseThrow(() -> ApiException.notFound("Agendamento"));
     }
 
     @Transactional(readOnly = true)
     public AppointmentDetail detail(UUID id) {
         AppointmentView appointment = get(id);
-        List<AppointmentEventView> history = jdbc.sql("""
-                        select e.action, e.details::text as details, u.name as actor_name, e.occurred_at
-                        from appointment_events e left join users u on u.id = e.actor_user_id
-                        where e.tenant_id = ? and e.appointment_id = ? order by e.occurred_at
-                        """)
-                .params(TenantContext.requireTenantId(), id)
-                .query((rs, n) -> new AppointmentEventView(
-                        rs.getString("action"),
-                        parse(rs.getString("details")),
-                        rs.getString("actor_name"),
-                        rs.getTimestamp("occurred_at").toInstant()))
-                .list();
+        List<AppointmentEventView> history = repository.history(TenantContext.requireTenantId(), id).stream()
+                .map(e -> new AppointmentEventView(e.action(), parse(e.details()), e.actorName(), e.occurredAt()))
+                .toList();
         return new AppointmentDetail(appointment, history);
     }
 
@@ -153,23 +101,8 @@ public class AppointmentService {
         UUID tenantId = TenantContext.requireTenantId();
         validate(tenantId, r);
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into appointments (id, tenant_id, patient_id, professional_id, room_id, procedure_id,
-                            starts_at, ends_at, notes, created_by)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        r.patientId(),
-                        r.professionalId(),
-                        r.roomId(),
-                        r.procedureId(),
-                        java.sql.Timestamp.from(r.startsAt()),
-                        java.sql.Timestamp.from(r.endsAt()),
-                        blank(r.notes()),
-                        TenantContext.userId().orElse(null))
-                .update();
+        repository.insert(
+                id, tenantId, r, blank(r.notes()), TenantContext.userId().orElse(null));
         event(
                 tenantId,
                 id,
@@ -193,30 +126,7 @@ public class AppointmentService {
         boolean rescheduled = !current.startsAt().equals(r.startsAt())
                 || !current.endsAt().equals(r.endsAt())
                 || !current.professionalId().equals(r.professionalId());
-        int updated = jdbc.sql("""
-                        update appointments set patient_id = ?, professional_id = ?, room_id = ?, procedure_id = ?,
-                            starts_at = ?, ends_at = ?, notes = ?, updated_at = now(), version = version + 1,
-                            reminder_sent_at = case when ? then null else reminder_sent_at end,
-                            status = case when ? and status = 'CONFIRMED' then 'SCHEDULED' else status end,
-                            confirmed_at = case when ? then null else confirmed_at end
-                        where tenant_id = ? and id = ? and (cast(? as bigint) is null or version = ?)
-                        """)
-                .params(
-                        r.patientId(),
-                        r.professionalId(),
-                        r.roomId(),
-                        r.procedureId(),
-                        java.sql.Timestamp.from(r.startsAt()),
-                        java.sql.Timestamp.from(r.endsAt()),
-                        blank(r.notes()),
-                        rescheduled,
-                        rescheduled,
-                        rescheduled,
-                        tenantId,
-                        id,
-                        r.version(),
-                        r.version())
-                .update();
+        int updated = repository.update(tenantId, id, r, blank(r.notes()), rescheduled);
         Versioned.check(updated, true, "Agendamento");
         Map<String, Object> details = new LinkedHashMap<>();
         if (rescheduled) {
@@ -251,14 +161,7 @@ public class AppointmentService {
         if ("CANCELLED".equals(status) && (reason == null || reason.isBlank())) {
             throw ApiException.invalidField("reason", "Informe o motivo do cancelamento.");
         }
-        int updated = jdbc.sql("""
-                        update appointments set status = ?, updated_at = now(), version = version + 1,
-                            cancellation_reason = case when ? = 'CANCELLED' then ? else cancellation_reason end,
-                            confirmed_at = case when ? = 'CONFIRMED' then now() else confirmed_at end
-                        where tenant_id = ? and id = ? and version = ?
-                        """)
-                .params(status, status, blank(reason), status, tenantId, current.id(), current.version())
-                .update();
+        int updated = repository.updateStatus(tenantId, current.id(), current.version(), status, blank(reason));
         Versioned.check(updated, true, "Agendamento");
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("from", current.status());
@@ -307,39 +210,21 @@ public class AppointmentService {
     public List<FreeSlot> availability(UUID professionalId, LocalDate date, int durationMinutes) {
         UUID tenantId = TenantContext.requireTenantId();
         refs.require("professionals", tenantId, professionalId, "Profissional");
-        ZoneId zone = ZoneId.of(jdbc.sql("select time_zone from tenants where id = ?")
-                .param(tenantId)
-                .query(String.class)
-                .single());
-        record Window(LocalTime startTime, LocalTime endTime) {}
-        List<Window> windows = jdbc.sql("""
-                        select start_time, end_time from professional_schedules
-                        where tenant_id = ? and professional_id = ? and weekday = ? order by start_time
-                        """)
-                .params(tenantId, professionalId, date.getDayOfWeek().getValue())
-                .query(Window.class)
-                .list();
+        ZoneId zone = ZoneId.of(repository.clinicTimeZone(tenantId));
+        List<AppointmentRepository.ScheduleWindowRow> windows = repository.scheduleWindows(
+                tenantId, professionalId, date.getDayOfWeek().getValue());
         Instant dayStart = date.atStartOfDay(zone).toInstant();
         Instant dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant();
-        record Busy(Instant startsAt, Instant endsAt) {}
-        List<Busy> busy = new ArrayList<>(jdbc.sql("""
-                        select starts_at, ends_at from appointments
-                        where tenant_id = ? and professional_id = ? and status not in ('CANCELLED', 'NO_SHOW')
-                          and starts_at < ? and ends_at > ?
-                        """)
-                .params(tenantId, professionalId, java.sql.Timestamp.from(dayEnd), java.sql.Timestamp.from(dayStart))
-                .query((rs, n) -> new Busy(
-                        rs.getTimestamp("starts_at").toInstant(),
-                        rs.getTimestamp("ends_at").toInstant()))
-                .list());
+        List<AppointmentRepository.BusyRow> busy =
+                new ArrayList<>(repository.busyPeriods(tenantId, professionalId, dayStart, dayEnd));
         for (Instant[] period : blocks.blockedPeriods(tenantId, professionalId, dayStart, dayEnd)) {
-            busy.add(new Busy(period[0], period[1]));
+            busy.add(new AppointmentRepository.BusyRow(period[0], period[1]));
         }
 
         Duration step = Duration.ofMinutes(durationMinutes);
         Instant now = Instant.now();
         List<FreeSlot> free = new ArrayList<>();
-        for (Window w : windows) {
+        for (AppointmentRepository.ScheduleWindowRow w : windows) {
             ZonedDateTime cursor = date.atTime(w.startTime()).atZone(zone);
             ZonedDateTime end = date.atTime(w.endTime()).atZone(zone);
             while (!cursor.plus(step).isAfter(end)) {
@@ -377,12 +262,7 @@ public class AppointmentService {
     }
 
     private void insertEvent(UUID tenantId, UUID appointmentId, String action, Map<String, ?> details, UUID actor) {
-        jdbc.sql("""
-                        insert into appointment_events (id, tenant_id, appointment_id, action, details, actor_user_id)
-                        values (?, ?, ?, ?, cast(? as jsonb), ?)
-                        """)
-                .params(Ids.newId(), tenantId, appointmentId, action, json.writeValueAsString(details), actor)
-                .update();
+        repository.insertEvent(Ids.newId(), tenantId, appointmentId, action, json.writeValueAsString(details), actor);
     }
 
     private Map<String, Object> parse(String value) {

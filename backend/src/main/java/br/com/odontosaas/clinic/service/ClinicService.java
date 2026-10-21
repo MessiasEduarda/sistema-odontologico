@@ -11,6 +11,10 @@ import br.com.odontosaas.clinic.dto.response.ProcedureView;
 import br.com.odontosaas.clinic.dto.response.ProfessionalView;
 import br.com.odontosaas.clinic.dto.response.RoomView;
 import br.com.odontosaas.clinic.dto.response.SettingsView;
+import br.com.odontosaas.clinic.repository.ClinicSettingsRepository;
+import br.com.odontosaas.clinic.repository.ProcedureRepository;
+import br.com.odontosaas.clinic.repository.ProfessionalRepository;
+import br.com.odontosaas.clinic.repository.RoomRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;
@@ -20,7 +24,6 @@ import br.com.odontosaas.tenancy.TenantContext;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,12 +34,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ClinicService {
 
-    private final JdbcClient jdbc;
+    private final ClinicSettingsRepository settingsRepository;
+    private final ProfessionalRepository professionalRepository;
+    private final RoomRepository roomRepository;
+    private final ProcedureRepository procedureRepository;
     private final AuditService audit;
     private final PlanLimits planLimits;
 
-    public ClinicService(JdbcClient jdbc, AuditService audit, PlanLimits planLimits) {
-        this.jdbc = jdbc;
+    public ClinicService(
+            ClinicSettingsRepository settingsRepository,
+            ProfessionalRepository professionalRepository,
+            RoomRepository roomRepository,
+            ProcedureRepository procedureRepository,
+            AuditService audit,
+            PlanLimits planLimits) {
+        this.settingsRepository = settingsRepository;
+        this.professionalRepository = professionalRepository;
+        this.roomRepository = roomRepository;
+        this.procedureRepository = procedureRepository;
         this.audit = audit;
         this.planLimits = planLimits;
     }
@@ -49,82 +64,28 @@ public class ClinicService {
 
     @Transactional(readOnly = true)
     public SettingsView settings() {
-        return jdbc.sql("""
-                        select t.name, s.legal_name, s.document, s.phone, s.email, s.zip_code, s.address, s.city,
-                               s.state,
-                               coalesce(s.default_appointment_minutes, 30) as default_appointment_minutes,
-                               coalesce(s.reminders_enabled, true) as reminders_enabled,
-                               coalesce(s.reminder_hours_before, 24) as reminder_hours_before,
-                               t.time_zone,
-                               coalesce(s.aesthetics_enabled, false) as aesthetics_enabled,
-                               l.updated_at as logo_updated_at
-                        from tenants t left join clinic_settings s on s.tenant_id = t.id
-                        left join clinic_logos l on l.tenant_id = t.id
-                        where t.id = ?
-                        """).param(tenant()).query(SettingsView.class).single();
+        return settingsRepository.find(tenant());
     }
 
     @Transactional
     public SettingsView updateSettings(SettingsRequest r) {
         UUID tenantId = tenant();
-        jdbc.sql("update tenants set name = ?, updated_at = now() where id = ?")
-                .params(r.name().strip(), tenantId)
-                .update();
-        jdbc.sql("""
-                        insert into clinic_settings (tenant_id, legal_name, document, phone, email, zip_code, address,
-                            city, state, default_appointment_minutes, reminders_enabled, reminder_hours_before,
-                            aesthetics_enabled)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        on conflict (tenant_id) do update set
-                            legal_name = excluded.legal_name, document = excluded.document, phone = excluded.phone,
-                            email = excluded.email, zip_code = excluded.zip_code, address = excluded.address,
-                            city = excluded.city, state = excluded.state,
-                            default_appointment_minutes = excluded.default_appointment_minutes,
-                            reminders_enabled = excluded.reminders_enabled,
-                            reminder_hours_before = excluded.reminder_hours_before,
-                            aesthetics_enabled = excluded.aesthetics_enabled, updated_at = now()
-                        """)
-                .params(
-                        tenantId,
-                        r.legalName(),
-                        r.document(),
-                        r.phone(),
-                        r.email(),
-                        r.zipCode(),
-                        r.address(),
-                        r.city(),
-                        r.state(),
-                        r.defaultAppointmentMinutes(),
-                        r.remindersEnabled(),
-                        r.reminderHoursBefore(),
-                        r.aestheticsEnabled())
-                .update();
+        settingsRepository.updateTenantName(r.name().strip(), tenantId);
+        settingsRepository.upsert(tenantId, r);
         audit.record(AuditAction.RECORD_UPDATED, "clinic_settings", tenantId, Map.of());
         return settings();
     }
 
     // ------------------------------------------------------------------ Profissionais
 
-    private static final String PROFESSIONAL_COLUMNS =
-            "id, user_id, name, cro, cro_state, specialty, color, phone, email, commission_percent, active, version";
-
     @Transactional(readOnly = true)
     public List<ProfessionalView> professionals(Boolean active) {
-        return jdbc.sql("select " + PROFESSIONAL_COLUMNS + " from professionals where tenant_id = ?"
-                        + (active == null ? "" : " and active = " + (active ? "true" : "false"))
-                        + " order by name")
-                .param(tenant())
-                .query(ProfessionalView.class)
-                .list();
+        return professionalRepository.list(tenant(), active);
     }
 
     @Transactional(readOnly = true)
     public ProfessionalView professional(UUID id) {
-        return jdbc.sql("select " + PROFESSIONAL_COLUMNS + " from professionals where tenant_id = ? and id = ?")
-                .params(tenant(), id)
-                .query(ProfessionalView.class)
-                .optional()
-                .orElseThrow(() -> ApiException.notFound("Profissional"));
+        return professionalRepository.find(tenant(), id).orElseThrow(() -> ApiException.notFound("Profissional"));
     }
 
     @Transactional
@@ -136,25 +97,7 @@ public class ClinicService {
             planLimits.requireProfessionalSlot(tenantId);
         }
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into professionals (id, tenant_id, user_id, name, cro, cro_state, specialty, color,
-                            phone, email, commission_percent, active)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        r.userId(),
-                        r.name().strip(),
-                        r.cro(),
-                        r.croState(),
-                        r.specialty(),
-                        r.color(),
-                        r.phone(),
-                        r.email(),
-                        r.commissionPercent(),
-                        active)
-                .update();
+        professionalRepository.insert(id, tenantId, r.name().strip(), r, active);
         audit.record(AuditAction.RECORD_CREATED, "professional", id, Map.of());
         return professional(id);
     }
@@ -163,54 +106,19 @@ public class ClinicService {
     public ProfessionalView updateProfessional(UUID id, ProfessionalRequest r) {
         UUID tenantId = tenant();
         requireMemberUser(tenantId, r.userId());
-        if (Boolean.TRUE.equals(r.active()) && isInactiveProfessional(tenantId, id)) {
+        if (Boolean.TRUE.equals(r.active()) && professionalRepository.isInactive(tenantId, id)) {
             planLimits.requireProfessionalSlot(tenantId);
         }
-        int updated = jdbc.sql("""
-                        update professionals set user_id = ?, name = ?, cro = ?, cro_state = ?, specialty = ?,
-                            color = ?, phone = ?, email = ?, commission_percent = ?,
-                            active = coalesce(cast(? as boolean), active),
-                            updated_at = now(), version = version + 1
-                        where tenant_id = ? and id = ? and (cast(? as bigint) is null or version = ?)
-                        """)
-                .params(
-                        r.userId(),
-                        r.name().strip(),
-                        r.cro(),
-                        r.croState(),
-                        r.specialty(),
-                        r.color(),
-                        r.phone(),
-                        r.email(),
-                        r.commissionPercent(),
-                        r.active(),
-                        tenantId,
-                        id,
-                        r.version(),
-                        r.version())
-                .update();
-        Versioned.check(updated, exists("professionals", tenantId, id), "Profissional");
+        int updated = professionalRepository.update(tenantId, id, r.name().strip(), r);
+        Versioned.check(updated, professionalRepository.exists(tenantId, id), "Profissional");
         audit.record(AuditAction.RECORD_UPDATED, "professional", id, Map.of());
         return professional(id);
-    }
-
-    private boolean isInactiveProfessional(UUID tenantId, UUID id) {
-        return jdbc.sql("select exists(select 1 from professionals where tenant_id = ? and id = ? and not active)")
-                .params(tenantId, id)
-                .query(Boolean.class)
-                .single();
     }
 
     @Transactional(readOnly = true)
     public List<ScheduleSlot> schedule(UUID professionalId) {
         professional(professionalId);
-        return jdbc.sql("""
-                        select weekday, start_time, end_time from professional_schedules
-                        where tenant_id = ? and professional_id = ? order by weekday, start_time
-                        """)
-                .params(tenant(), professionalId)
-                .query(ScheduleSlot.class)
-                .list();
+        return professionalRepository.schedule(tenant(), professionalId);
     }
 
     /** Substitui a grade semanal do profissional. Intervalos do mesmo dia não podem se sobrepor. */
@@ -229,16 +137,9 @@ public class ClinicService {
                             && s.startTime().isBefore(o.endTime()));
             if (overlaps) throw ApiException.invalidField("slots", "Há horários sobrepostos no mesmo dia.");
         }
-        jdbc.sql("delete from professional_schedules where tenant_id = ? and professional_id = ?")
-                .params(tenantId, professionalId)
-                .update();
+        professionalRepository.deleteSchedule(tenantId, professionalId);
         for (ScheduleSlot s : slots) {
-            jdbc.sql("""
-                            insert into professional_schedules (id, tenant_id, professional_id, weekday, start_time,
-                                end_time) values (?, ?, ?, ?, ?, ?)
-                            """)
-                    .params(Ids.newId(), tenantId, professionalId, s.weekday(), s.startTime(), s.endTime())
-                    .update();
+            professionalRepository.insertScheduleSlot(Ids.newId(), tenantId, professionalId, s);
         }
         audit.record(AuditAction.RECORD_UPDATED, "professional_schedule", professionalId, Map.of());
         return schedule(professionalId);
@@ -246,10 +147,7 @@ public class ClinicService {
 
     private void requireMemberUser(UUID tenantId, UUID userId) {
         if (userId == null) return;
-        boolean member = jdbc.sql("select exists(select 1 from memberships where tenant_id = ? and user_id = ?)")
-                .params(tenantId, userId)
-                .query(Boolean.class)
-                .single();
+        boolean member = professionalRepository.isMemberUser(tenantId, userId);
         if (!member) throw ApiException.invalidField("userId", "Usuário não faz parte da equipe desta clínica.");
     }
 
@@ -257,101 +155,58 @@ public class ClinicService {
 
     @Transactional(readOnly = true)
     public List<RoomView> rooms() {
-        return jdbc.sql("select id, name, active from rooms where tenant_id = ? order by name")
-                .param(tenant())
-                .query(RoomView.class)
-                .list();
+        return roomRepository.list(tenant());
     }
 
     @Transactional
     public RoomView createRoom(RoomRequest r) {
         UUID id = Ids.newId();
-        jdbc.sql("insert into rooms (id, tenant_id, name, active) values (?, ?, ?, ?)")
-                .params(id, tenant(), r.name().strip(), Flags.activeIfOmitted(r.active()))
-                .update();
+        roomRepository.insert(id, tenant(), r.name().strip(), Flags.activeIfOmitted(r.active()));
         audit.record(AuditAction.RECORD_CREATED, "room", id, Map.of());
         return new RoomView(id, r.name().strip(), Flags.activeIfOmitted(r.active()));
     }
 
     @Transactional
     public RoomView updateRoom(UUID id, RoomRequest r) {
-        int updated = jdbc.sql("update rooms set name = ?, active = coalesce(cast(? as boolean), active)"
-                        + " where tenant_id = ? and id = ?")
-                .params(r.name().strip(), r.active(), tenant(), id)
-                .update();
+        int updated = roomRepository.update(tenant(), id, r.name().strip(), r.active());
         Versioned.requireFound(updated, "Sala");
         audit.record(AuditAction.RECORD_UPDATED, "room", id, Map.of());
-        return jdbc.sql("select id, name, active from rooms where tenant_id = ? and id = ?")
-                .params(tenant(), id)
-                .query(RoomView.class)
-                .single();
+        return roomRepository.get(tenant(), id);
     }
 
     // ------------------------------------------------------------------ Procedimentos
-
-    private static final String PROCEDURE_COLUMNS =
-            "id, code, name, category, default_price, duration_minutes, active, updated_at";
 
     @Transactional(readOnly = true)
     public List<ProcedureView> procedures(String query, Boolean active) {
         String like =
                 query == null || query.isBlank() ? null : "%" + query.strip().toLowerCase() + "%";
-        return jdbc.sql("select " + PROCEDURE_COLUMNS + " from procedures where tenant_id = ?"
-                        + " and (cast(? as text) is null or lower(name) like ? or lower(coalesce(code, '')) like ?)"
-                        + " and (cast(? as boolean) is null or active = ?) order by name")
-                .params(tenant(), like, like, like, active, active)
-                .query(ProcedureView.class)
-                .list();
+        return procedureRepository.list(tenant(), like, active);
     }
 
     @Transactional(readOnly = true)
     public ProcedureView procedure(UUID id) {
-        return jdbc.sql("select " + PROCEDURE_COLUMNS + " from procedures where tenant_id = ? and id = ?")
-                .params(tenant(), id)
-                .query(ProcedureView.class)
-                .optional()
-                .orElseThrow(() -> ApiException.notFound("Procedimento"));
+        return procedureRepository.find(tenant(), id).orElseThrow(() -> ApiException.notFound("Procedimento"));
     }
 
     @Transactional
     public ProcedureView createProcedure(ProcedureRequest r) {
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into procedures (id, tenant_id, code, name, category, default_price, duration_minutes,
-                            active) values (?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenant(),
-                        blankToNull(r.code()),
-                        r.name().strip(),
-                        blankToNull(r.category()),
-                        r.defaultPrice(),
-                        r.durationMinutes(),
-                        Flags.activeIfOmitted(r.active()))
-                .update();
+        procedureRepository.insert(
+                id,
+                tenant(),
+                blankToNull(r.code()),
+                r.name().strip(),
+                blankToNull(r.category()),
+                r,
+                Flags.activeIfOmitted(r.active()));
         audit.record(AuditAction.RECORD_CREATED, "procedure", id, Map.of());
         return procedure(id);
     }
 
     @Transactional
     public ProcedureView updateProcedure(UUID id, ProcedureRequest r) {
-        int updated = jdbc.sql("""
-                        update procedures set code = ?, name = ?, category = ?, default_price = ?,
-                            duration_minutes = ?, active = coalesce(cast(? as boolean), active),
-                            updated_at = now()
-                        where tenant_id = ? and id = ?
-                        """)
-                .params(
-                        blankToNull(r.code()),
-                        r.name().strip(),
-                        blankToNull(r.category()),
-                        r.defaultPrice(),
-                        r.durationMinutes(),
-                        r.active(),
-                        tenant(),
-                        id)
-                .update();
+        int updated = procedureRepository.update(
+                tenant(), id, blankToNull(r.code()), r.name().strip(), blankToNull(r.category()), r);
         Versioned.requireFound(updated, "Procedimento");
         audit.record(
                 AuditAction.RECORD_UPDATED,
@@ -359,13 +214,6 @@ public class ClinicService {
                 id,
                 Map.of("price", r.defaultPrice().toPlainString()));
         return procedure(id);
-    }
-
-    private boolean exists(String table, UUID tenantId, UUID id) {
-        return jdbc.sql("select exists(select 1 from " + table + " where tenant_id = ? and id = ?)")
-                .params(tenantId, id)
-                .query(Boolean.class)
-                .single();
     }
 
     static String blankToNull(String value) {

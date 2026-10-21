@@ -1,12 +1,12 @@
 package br.com.odontosaas.clinic;
 
+import br.com.odontosaas.clinic.repository.ProfessionalRepository;
 import br.com.odontosaas.identity.security.AuthenticatedUser;
 import br.com.odontosaas.identity.security.CurrentUser;
 import br.com.odontosaas.identity.security.Permission;
 import br.com.odontosaas.shared.ApiException;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,10 +18,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProfessionalAuthorship {
 
-    private final JdbcClient jdbc;
+    private final ProfessionalRepository professionals;
 
-    public ProfessionalAuthorship(JdbcClient jdbc) {
-        this.jdbc = jdbc;
+    public ProfessionalAuthorship(ProfessionalRepository professionals) {
+        this.professionals = professionals;
     }
 
     /** Sem {@code professionalId} (campo opcional) não há autoria a conferir. */
@@ -29,11 +29,7 @@ public class ProfessionalAuthorship {
         if (professionalId == null) return;
         AuthenticatedUser user = CurrentUser.require();
         if (user.has(Permission.CLINIC_SETTINGS_MANAGE)) return;
-        boolean own = jdbc.sql(
-                        "select exists(select 1 from professionals where tenant_id = ? and id = ? and user_id = ?)")
-                .params(tenantId, professionalId, user.userId())
-                .query(Boolean.class)
-                .single();
+        boolean own = professionals.isLinkedToUser(tenantId, professionalId, user.userId());
         if (!own) {
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
