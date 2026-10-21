@@ -1,7 +1,7 @@
 package br.com.odontosaas.communication;
 
-import br.com.odontosaas.clinical.CareInstructionsSent;
-import br.com.odontosaas.clinical.ConsentLinkRequested;
+import br.com.odontosaas.consent.event.ConsentLinkRequested;
+import br.com.odontosaas.medicalrecord.event.CareInstructionsSent;
 import br.com.odontosaas.scheduling.event.AppointmentChanged;
 import br.com.odontosaas.scheduling.service.AppointmentLinks;
 import br.com.odontosaas.tenancy.TenantContext;
