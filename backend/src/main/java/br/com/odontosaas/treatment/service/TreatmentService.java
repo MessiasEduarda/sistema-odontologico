@@ -15,6 +15,9 @@ import br.com.odontosaas.treatment.dto.response.ItemView;
 import br.com.odontosaas.treatment.dto.response.PlanSummary;
 import br.com.odontosaas.treatment.dto.response.PlanView;
 import br.com.odontosaas.treatment.event.TreatmentPlanApproved;
+import br.com.odontosaas.treatment.repository.TreatmentPlanHeadRow;
+import br.com.odontosaas.treatment.repository.TreatmentPlanItemRepository;
+import br.com.odontosaas.treatment.repository.TreatmentPlanRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,8 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,13 +37,20 @@ public class TreatmentService {
 
     private static final Set<String> EDITABLE = Set.of("DRAFT", "PROPOSED");
 
-    private final JdbcClient jdbc;
+    private final TreatmentPlanRepository plans;
+    private final TreatmentPlanItemRepository planItems;
     private final TenantRefs refs;
     private final AuditService audit;
     private final ApplicationEventPublisher events;
 
-    public TreatmentService(JdbcClient jdbc, TenantRefs refs, AuditService audit, ApplicationEventPublisher events) {
-        this.jdbc = jdbc;
+    public TreatmentService(
+            TreatmentPlanRepository plans,
+            TreatmentPlanItemRepository planItems,
+            TenantRefs refs,
+            AuditService audit,
+            ApplicationEventPublisher events) {
+        this.plans = plans;
+        this.planItems = planItems;
         this.refs = refs;
         this.audit = audit;
         this.events = events;
@@ -51,70 +59,15 @@ public class TreatmentService {
     @Transactional(readOnly = true)
     public List<PlanSummary> list(UUID patientId, String status) {
         UUID tenantId = TenantContext.requireTenantId();
-        return jdbc.sql("""
-                        select t.id, t.patient_id, p.full_name as patient_name, t.professional_id,
-                               pr.name as professional_name, t.title, t.status,
-                               greatest(coalesce(sum(case when i.status <> 'CANCELLED'
-                                   then i.quantity * i.unit_price - i.discount end), 0) - t.discount, 0) as total,
-                               count(i.id) filter (where i.status <> 'CANCELLED') as items_total,
-                               count(i.id) filter (where i.status = 'DONE') as items_done,
-                               t.created_at, t.approved_at
-                        from treatment_plans t
-                        join patients p on p.tenant_id = t.tenant_id and p.id = t.patient_id
-                        join professionals pr on pr.tenant_id = t.tenant_id and pr.id = t.professional_id
-                        left join treatment_plan_items i on i.tenant_id = t.tenant_id and i.plan_id = t.id
-                        where t.tenant_id = ? and (cast(? as uuid) is null or t.patient_id = ?)
-                          and (cast(? as text) is null or t.status = ?)
-                        group by t.id, p.full_name, pr.name
-                        order by t.created_at desc limit 300
-                        """)
-                .params(tenantId, patientId, patientId, blank(status), blank(status))
-                .query(PlanSummary.class)
-                .list();
+        return plans.list(tenantId, patientId, blank(status));
     }
 
     @Transactional(readOnly = true)
     public PlanView get(UUID id) {
         UUID tenantId = TenantContext.requireTenantId();
-        record Head(
-                UUID id,
-                UUID patientId,
-                String patientName,
-                UUID professionalId,
-                String professionalName,
-                String title,
-                String status,
-                BigDecimal discount,
-                String paymentConditions,
-                String notes,
-                LocalDate validUntil,
-                java.time.Instant approvedAt,
-                String approvedByName,
-                java.time.Instant createdAt,
-                long version,
-                UUID receivableId) {}
-        Head h = jdbc.sql("""
-                        select t.id, t.patient_id, p.full_name as patient_name, t.professional_id,
-                               pr.name as professional_name, t.title, t.status, t.discount, t.payment_conditions,
-                               t.notes, t.valid_until, t.approved_at, t.approved_by_name, t.created_at, t.version,
-                               (select r.id from receivables r where r.tenant_id = t.tenant_id
-                                   and r.treatment_plan_id = t.id and r.status <> 'CANCELLED' limit 1)
-                                   as receivable_id
-                        from treatment_plans t
-                        join patients p on p.tenant_id = t.tenant_id and p.id = t.patient_id
-                        join professionals pr on pr.tenant_id = t.tenant_id and pr.id = t.professional_id
-                        where t.tenant_id = ? and t.id = ?
-                        """)
-                .params(tenantId, id)
-                .query(Head.class)
-                .optional()
-                .orElseThrow(() -> ApiException.notFound("Plano de tratamento"));
-        List<ItemView> items =
-                jdbc.sql("""
-                        select id, procedure_id, description, tooth, surfaces, quantity, unit_price, discount,
-                               quantity * unit_price - discount as total, status, done_at
-                        from treatment_plan_items where tenant_id = ? and plan_id = ? order by sort_order
-                        """).params(tenantId, id).query(ItemView.class).list();
+        TreatmentPlanHeadRow h =
+                plans.findHead(tenantId, id).orElseThrow(() -> ApiException.notFound("Plano de tratamento"));
+        List<ItemView> items = planItems.findByPlan(tenantId, id);
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal itemsDiscount = BigDecimal.ZERO;
         for (ItemView i : items) {
@@ -152,23 +105,17 @@ public class TreatmentService {
         UUID tenantId = TenantContext.requireTenantId();
         validate(tenantId, r);
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into treatment_plans (id, tenant_id, patient_id, professional_id, title, discount,
-                            payment_conditions, notes, valid_until, created_by)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        r.patientId(),
-                        r.professionalId(),
-                        r.title().strip(),
-                        zero(r.discount()),
-                        blank(r.paymentConditions()),
-                        blank(r.notes()),
-                        r.validUntil(),
-                        TenantContext.userId().orElse(null))
-                .update();
+        plans.insert(
+                id,
+                tenantId,
+                r.patientId(),
+                r.professionalId(),
+                r.title().strip(),
+                zero(r.discount()),
+                blank(r.paymentConditions()),
+                blank(r.notes()),
+                r.validUntil(),
+                TenantContext.userId().orElse(null));
         insertItems(tenantId, id, r.items());
         ensureNonNegative(id);
         audit.record(AuditAction.RECORD_CREATED, "treatment_plan", id, Map.of());
@@ -187,28 +134,18 @@ public class TreatmentService {
             throw ApiException.invalidField("patientId", "Não é possível trocar o paciente de um orçamento.");
         }
         validate(tenantId, r);
-        int updated = jdbc.sql("""
-                        update treatment_plans set professional_id = ?, title = ?, discount = ?,
-                            payment_conditions = ?, notes = ?, valid_until = ?, updated_at = now(),
-                            version = version + 1
-                        where tenant_id = ? and id = ? and (cast(? as bigint) is null or version = ?)
-                        """)
-                .params(
-                        r.professionalId(),
-                        r.title().strip(),
-                        zero(r.discount()),
-                        blank(r.paymentConditions()),
-                        blank(r.notes()),
-                        r.validUntil(),
-                        tenantId,
-                        id,
-                        r.version(),
-                        r.version())
-                .update();
+        int updated = plans.update(
+                r.professionalId(),
+                r.title().strip(),
+                zero(r.discount()),
+                blank(r.paymentConditions()),
+                blank(r.notes()),
+                r.validUntil(),
+                tenantId,
+                id,
+                r.version());
         Versioned.check(updated, true, "Plano de tratamento");
-        jdbc.sql("delete from treatment_plan_items where tenant_id = ? and plan_id = ?")
-                .params(tenantId, id)
-                .update();
+        planItems.deleteByPlan(tenantId, id);
         insertItems(tenantId, id, r.items());
         ensureNonNegative(id);
         audit.record(AuditAction.RECORD_UPDATED, "treatment_plan", id, Map.of());
@@ -246,13 +183,7 @@ public class TreatmentService {
         if (plan.validUntil() != null && plan.validUntil().isBefore(LocalDate.now())) {
             throw ApiException.businessRule("PLAN_EXPIRED", "A validade deste orçamento já passou. Atualize-o.");
         }
-        int updated = jdbc.sql("""
-                        update treatment_plans set status = 'APPROVED', approved_at = now(), approved_by_name = ?,
-                            updated_at = now(), version = version + 1
-                        where tenant_id = ? and id = ? and version = ?
-                        """)
-                .params(r.approvedByName().strip(), tenantId, id, plan.version())
-                .update();
+        int updated = plans.approve(r.approvedByName().strip(), tenantId, id, plan.version());
         Versioned.check(updated, true, "Plano de tratamento");
         audit.record(AuditAction.RECORD_UPDATED, "treatment_plan", id, Map.of("status", "APPROVED"));
         if (r.generateReceivable() && plan.total().signum() > 0) {
@@ -268,27 +199,16 @@ public class TreatmentService {
         return get(id);
     }
 
-    /** Baixa (ou reabre) o item quando o procedimento é registrado (ou anulado) no prontuário. */
-    @EventListener
-    public void onProcedurePerformed(ProcedurePerformed event) {
-        jdbc.sql("""
-                        update treatment_plan_items set status = ?, done_at = case when ? then null else now() end
-                        where tenant_id = ? and id = ?
-                        """)
-                .params(event.voided() ? "PLANNED" : "DONE", event.voided(), event.tenantId(), event.treatmentItemId())
-                .update();
-        UUID planId = jdbc.sql("select plan_id from treatment_plan_items where tenant_id = ? and id = ?")
-                .params(event.tenantId(), event.treatmentItemId())
-                .query(UUID.class)
-                .single();
+    /**
+     * Baixa (ou reabre) o item quando o procedimento é registrado (ou anulado) no prontuário. Chamado pelo listener do
+     * módulo, dentro da transação de quem publica o evento.
+     */
+    public void applyProcedurePerformed(ProcedurePerformed event) {
+        planItems.updateStatus(
+                event.voided() ? "PLANNED" : "DONE", event.voided(), event.tenantId(), event.treatmentItemId());
+        UUID planId = planItems.findPlanId(event.tenantId(), event.treatmentItemId());
         // Plano aprovado com todos os itens realizados (ou cancelados) passa a "concluído", e volta se reaberto.
-        jdbc.sql("""
-                        update treatment_plans t set status = case
-                                when not exists (select 1 from treatment_plan_items i where i.tenant_id = t.tenant_id
-                                    and i.plan_id = t.id and i.status = 'PLANNED') then 'COMPLETED' else 'APPROVED' end,
-                            updated_at = now(), version = version + 1
-                        where t.tenant_id = ? and t.id = ? and t.status in ('APPROVED', 'COMPLETED')
-                        """).params(event.tenantId(), planId).update();
+        plans.refreshCompletion(event.tenantId(), planId);
     }
 
     private PlanView transition(UUID id, Set<String> from, String to, String reason) {
@@ -297,14 +217,7 @@ public class TreatmentService {
         if (!from.contains(plan.status())) {
             throw ApiException.businessRule("INVALID_PLAN_STATUS", "Ação não permitida no status atual do orçamento.");
         }
-        jdbc.sql("""
-                        update treatment_plans set status = ?, updated_at = now(), version = version + 1,
-                            notes = case when cast(? as text) is null then notes
-                                else concat_ws(E'\\n', notes, cast(? as text)) end
-                        where tenant_id = ? and id = ?
-                        """)
-                .params(to, reason, reason == null ? null : "Motivo (" + to + "): " + reason, tenantId, id)
-                .update();
+        plans.transition(to, reason, reason == null ? null : "Motivo (" + to + "): " + reason, tenantId, id);
         audit.record(
                 "CANCELLED".equals(to) ? AuditAction.RECORD_CANCELLED : AuditAction.RECORD_UPDATED,
                 "treatment_plan",
@@ -328,24 +241,18 @@ public class TreatmentService {
     private void insertItems(UUID tenantId, UUID planId, List<ItemRequest> items) {
         int order = 0;
         for (ItemRequest i : items) {
-            jdbc.sql("""
-                            insert into treatment_plan_items (id, tenant_id, plan_id, procedure_id, description, tooth,
-                                surfaces, quantity, unit_price, discount, sort_order)
-                            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """)
-                    .params(
-                            Ids.newId(),
-                            tenantId,
-                            planId,
-                            i.procedureId(),
-                            i.description().strip(),
-                            i.tooth(),
-                            blank(i.surfaces()),
-                            i.quantity(),
-                            i.unitPrice(),
-                            zero(i.discount()),
-                            order++)
-                    .update();
+            planItems.insert(
+                    Ids.newId(),
+                    tenantId,
+                    planId,
+                    i.procedureId(),
+                    i.description().strip(),
+                    i.tooth(),
+                    blank(i.surfaces()),
+                    i.quantity(),
+                    i.unitPrice(),
+                    zero(i.discount()),
+                    order++);
         }
     }
 

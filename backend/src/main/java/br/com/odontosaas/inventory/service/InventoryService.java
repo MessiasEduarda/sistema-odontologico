@@ -8,6 +8,8 @@ import br.com.odontosaas.inventory.dto.response.Alerts;
 import br.com.odontosaas.inventory.dto.response.ExpiringLot;
 import br.com.odontosaas.inventory.dto.response.MovementView;
 import br.com.odontosaas.inventory.dto.response.ProductView;
+import br.com.odontosaas.inventory.repository.ProductRepository;
+import br.com.odontosaas.inventory.repository.StockMovementRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;
@@ -18,7 +20,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,19 +27,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InventoryService {
 
-    private static final String SELECT = """
-            select pr.id, pr.name, pr.category, pr.unit, pr.min_stock, pr.current_stock,
-                   (pr.current_stock <= pr.min_stock) as low_stock, pr.supplier_id, s.name as supplier_name,
-                   pr.active, pr.updated_at
-            from products pr left join suppliers s on s.tenant_id = pr.tenant_id and s.id = pr.supplier_id
-            """;
-
-    private final JdbcClient jdbc;
+    private final ProductRepository productRepo;
+    private final StockMovementRepository movementRepo;
     private final TenantRefs refs;
     private final AuditService audit;
 
-    public InventoryService(JdbcClient jdbc, TenantRefs refs, AuditService audit) {
-        this.jdbc = jdbc;
+    public InventoryService(
+            ProductRepository productRepo, StockMovementRepository movementRepo, TenantRefs refs, AuditService audit) {
+        this.productRepo = productRepo;
+        this.movementRepo = movementRepo;
         this.refs = refs;
         this.audit = audit;
     }
@@ -47,22 +44,13 @@ public class InventoryService {
     public List<ProductView> products(String query, boolean onlyLowStock) {
         String like =
                 query == null || query.isBlank() ? null : "%" + query.strip().toLowerCase() + "%";
-        return jdbc.sql(SELECT
-                        + " where pr.tenant_id = ? and (cast(? as text) is null or lower(pr.name) like ?"
-                        + " or lower(coalesce(pr.category, '')) like ?)"
-                        + (onlyLowStock ? " and pr.active and pr.current_stock <= pr.min_stock" : "")
-                        + " order by pr.name")
-                .params(TenantContext.requireTenantId(), like, like, like)
-                .query(ProductView.class)
-                .list();
+        return productRepo.list(TenantContext.requireTenantId(), like, onlyLowStock);
     }
 
     @Transactional(readOnly = true)
     public ProductView product(UUID id) {
-        return jdbc.sql(SELECT + " where pr.tenant_id = ? and pr.id = ?")
-                .params(TenantContext.requireTenantId(), id)
-                .query(ProductView.class)
-                .optional()
+        return productRepo
+                .find(TenantContext.requireTenantId(), id)
                 .orElseThrow(() -> ApiException.notFound("Produto"));
     }
 
@@ -71,20 +59,15 @@ public class InventoryService {
         UUID tenantId = TenantContext.requireTenantId();
         refs.require("suppliers", tenantId, r.supplierId(), "Fornecedor");
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into products (id, tenant_id, name, category, unit, min_stock, supplier_id, active)
-                        values (?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        r.name().strip(),
-                        blank(r.category()),
-                        r.unit().strip(),
-                        r.minStock(),
-                        r.supplierId(),
-                        Flags.activeIfOmitted(r.active()))
-                .update();
+        productRepo.insert(
+                id,
+                tenantId,
+                r.name().strip(),
+                blank(r.category()),
+                r.unit().strip(),
+                r.minStock(),
+                r.supplierId(),
+                Flags.activeIfOmitted(r.active()));
         audit.record(AuditAction.RECORD_CREATED, "product", id, Map.of());
         return product(id);
     }
@@ -93,20 +76,15 @@ public class InventoryService {
     public ProductView update(UUID id, ProductRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
         refs.require("suppliers", tenantId, r.supplierId(), "Fornecedor");
-        int updated = jdbc.sql("""
-                        update products set name = ?, category = ?, unit = ?, min_stock = ?, supplier_id = ?,
-                            active = coalesce(cast(? as boolean), active), updated_at = now(), version = version + 1 where tenant_id = ? and id = ?
-                        """)
-                .params(
-                        r.name().strip(),
-                        blank(r.category()),
-                        r.unit().strip(),
-                        r.minStock(),
-                        r.supplierId(),
-                        r.active(),
-                        tenantId,
-                        id)
-                .update();
+        int updated = productRepo.update(
+                r.name().strip(),
+                blank(r.category()),
+                r.unit().strip(),
+                r.minStock(),
+                r.supplierId(),
+                r.active(),
+                tenantId,
+                id);
         Versioned.requireFound(updated, "Produto");
         audit.record(AuditAction.RECORD_UPDATED, "product", id, Map.of());
         return product(id);
@@ -115,26 +93,15 @@ public class InventoryService {
     @Transactional(readOnly = true)
     public List<MovementView> movements(UUID productId) {
         product(productId);
-        return jdbc.sql("""
-                        select m.id, m.type, m.quantity, m.unit_cost, m.lot_number, m.expiry_date, m.reason,
-                               m.balance_after, u.name as created_by_name, m.created_at
-                        from stock_movements m left join users u on u.id = m.created_by
-                        where m.tenant_id = ? and m.product_id = ? order by m.created_at desc limit 500
-                        """)
-                .params(TenantContext.requireTenantId(), productId)
-                .query(MovementView.class)
-                .list();
+        return movementRepo.findByProduct(TenantContext.requireTenantId(), productId);
     }
 
     /** Registra a movimentação e atualiza o saldo na mesma transação (com bloqueio da linha do produto). */
     @Transactional
     public ProductView move(UUID productId, MovementRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
-        BigDecimal current = jdbc.sql("select current_stock from products where tenant_id = ? and id = ? for update")
-                .params(tenantId, productId)
-                .query(BigDecimal.class)
-                .optional()
-                .orElseThrow(() -> ApiException.notFound("Produto"));
+        BigDecimal current =
+                productRepo.findStockForUpdate(tenantId, productId).orElseThrow(() -> ApiException.notFound("Produto"));
         BigDecimal delta = switch (r.type()) {
             case "IN" -> r.quantity();
             case "OUT" -> r.quantity().negate();
@@ -156,28 +123,19 @@ public class InventoryService {
                     "Saldo insuficiente: há " + current.stripTrailingZeros().toPlainString() + ".");
         }
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into stock_movements (id, tenant_id, product_id, type, quantity, unit_cost, lot_number,
-                            expiry_date, reason, balance_after, created_by)
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        productId,
-                        r.type(),
-                        delta,
-                        r.unitCost(),
-                        blank(r.lotNumber()),
-                        r.expiryDate(),
-                        blank(r.reason()),
-                        balance,
-                        TenantContext.userId().orElse(null))
-                .update();
-        jdbc.sql("""
-                        update products set current_stock = ?, updated_at = now(), version = version + 1
-                        where tenant_id = ? and id = ?
-                        """).params(balance, tenantId, productId).update();
+        movementRepo.insert(
+                id,
+                tenantId,
+                productId,
+                r.type(),
+                delta,
+                r.unitCost(),
+                blank(r.lotNumber()),
+                r.expiryDate(),
+                blank(r.reason()),
+                balance,
+                TenantContext.userId().orElse(null));
+        productRepo.updateStock(balance, tenantId, productId);
         audit.record(AuditAction.RECORD_CREATED, "stock_movement", id, Map.of("type", r.type()));
         return product(productId);
     }
@@ -185,14 +143,7 @@ public class InventoryService {
     @Transactional(readOnly = true)
     public Alerts alerts() {
         UUID tenantId = TenantContext.requireTenantId();
-        List<ExpiringLot> expiring =
-                jdbc.sql("""
-                        select distinct m.product_id, p.name as product_name, m.lot_number, m.expiry_date
-                        from stock_movements m join products p on p.tenant_id = m.tenant_id and p.id = m.product_id
-                        where m.tenant_id = ? and m.type = 'IN' and m.expiry_date is not null
-                          and m.expiry_date <= current_date + 60 and p.current_stock > 0 and p.active
-                        order by m.expiry_date limit 100
-                        """).param(tenantId).query(ExpiringLot.class).list();
+        List<ExpiringLot> expiring = movementRepo.findExpiringLots(tenantId);
         return new Alerts(products(null, true), expiring);
     }
 
