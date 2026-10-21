@@ -1,14 +1,14 @@
 package br.com.odontosaas.identity;
 
-import br.com.odontosaas.identity.access.AccessQueries;
-import br.com.odontosaas.identity.access.InvitationService;
-import br.com.odontosaas.identity.access.Membership;
-import br.com.odontosaas.identity.access.MembershipRepository;
-import br.com.odontosaas.identity.access.Role;
-import br.com.odontosaas.identity.access.RoleRepository;
-import br.com.odontosaas.identity.access.RoleTemplates;
-import br.com.odontosaas.identity.user.User;
-import br.com.odontosaas.identity.user.UserRepository;
+import br.com.odontosaas.identity.entity.Membership;
+import br.com.odontosaas.identity.entity.Role;
+import br.com.odontosaas.identity.entity.User;
+import br.com.odontosaas.identity.repository.MembershipRepository;
+import br.com.odontosaas.identity.repository.RoleRepository;
+import br.com.odontosaas.identity.repository.UserRepository;
+import br.com.odontosaas.identity.service.AccessQueries;
+import br.com.odontosaas.identity.service.InvitationService;
+import br.com.odontosaas.identity.support.RoleTemplates;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;

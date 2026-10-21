@@ -1,6 +1,6 @@
 package br.com.odontosaas.reporting.controller;
 
-import br.com.odontosaas.identity.CurrentUser;
+import br.com.odontosaas.identity.security.CurrentUser;
 import br.com.odontosaas.reporting.dto.response.AgendaReport;
 import br.com.odontosaas.reporting.dto.response.Dashboard;
 import br.com.odontosaas.reporting.dto.response.FinancialReport;
@@ -86,7 +86,7 @@ public class ReportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         if ("financial".equals(type)
-                && !CurrentUser.require().has(br.com.odontosaas.identity.Permission.FINANCE_READ)) {
+                && !CurrentUser.require().has(br.com.odontosaas.identity.security.Permission.FINANCE_READ)) {
             throw br.com.odontosaas.shared.ApiException.forbidden();
         }
         String csv = reports.exportCsv(type, from, to);

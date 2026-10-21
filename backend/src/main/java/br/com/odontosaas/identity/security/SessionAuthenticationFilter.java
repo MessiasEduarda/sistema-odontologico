@@ -1,11 +1,9 @@
 package br.com.odontosaas.identity.security;
 
-import br.com.odontosaas.identity.AuthenticatedUser;
-import br.com.odontosaas.identity.Permission;
-import br.com.odontosaas.identity.access.AccessQueries;
-import br.com.odontosaas.identity.session.SessionCookies;
-import br.com.odontosaas.identity.session.SessionStore;
-import br.com.odontosaas.identity.session.SessionStore.ActiveSession;
+import br.com.odontosaas.identity.service.AccessQueries;
+import br.com.odontosaas.identity.service.SessionStore;
+import br.com.odontosaas.identity.service.SessionStore.ActiveSession;
+import br.com.odontosaas.identity.support.SessionCookies;
 import br.com.odontosaas.tenancy.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

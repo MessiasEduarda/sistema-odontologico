@@ -1,8 +1,8 @@
 package br.com.odontosaas.clinical;
 
-import br.com.odontosaas.identity.AuthenticatedUser;
-import br.com.odontosaas.identity.CurrentUser;
-import br.com.odontosaas.identity.Permission;
+import br.com.odontosaas.identity.security.AuthenticatedUser;
+import br.com.odontosaas.identity.security.CurrentUser;
+import br.com.odontosaas.identity.security.Permission;
 import br.com.odontosaas.shared.ApiException;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;

@@ -1,7 +1,7 @@
 package br.com.odontosaas.reporting.service;
 
-import br.com.odontosaas.identity.AuthenticatedUser;
-import br.com.odontosaas.identity.Permission;
+import br.com.odontosaas.identity.security.AuthenticatedUser;
+import br.com.odontosaas.identity.security.Permission;
 import br.com.odontosaas.reporting.dto.response.Dashboard;
 import br.com.odontosaas.reporting.dto.response.DashboardAlert;
 import br.com.odontosaas.reporting.dto.response.TodayAppointment;

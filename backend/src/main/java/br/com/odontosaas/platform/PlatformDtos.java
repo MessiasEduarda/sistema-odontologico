@@ -1,6 +1,6 @@
 package br.com.odontosaas.platform;
 
-import br.com.odontosaas.tenancy.Tenant;
+import br.com.odontosaas.tenancy.entity.Tenant;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

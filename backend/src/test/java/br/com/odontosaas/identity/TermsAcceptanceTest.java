@@ -3,7 +3,7 @@ package br.com.odontosaas.identity;
 import static br.com.odontosaas.support.Browser.json;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import br.com.odontosaas.identity.auth.TermsService;
+import br.com.odontosaas.identity.service.TermsService;
 import br.com.odontosaas.support.Browser;
 import br.com.odontosaas.support.PostgresIntegrationTest;
 import br.com.odontosaas.support.TestData;

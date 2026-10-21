@@ -1,6 +1,6 @@
 package br.com.odontosaas.platform;
 
-import br.com.odontosaas.identity.CurrentUser;
+import br.com.odontosaas.identity.security.CurrentUser;
 import br.com.odontosaas.shared.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

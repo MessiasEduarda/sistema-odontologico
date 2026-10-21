@@ -17,7 +17,7 @@ public final class TenantContext {
     public record State(UUID tenantId, UUID userId, String accessTokenHash, boolean platformAdmin) {
         static final State EMPTY = new State(null, null, null, false);
 
-        String key() {
+        public String key() {
             return tenantId + "|" + userId + "|" + accessTokenHash + "|" + platformAdmin;
         }
     }

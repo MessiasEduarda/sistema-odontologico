@@ -2,10 +2,10 @@ package br.com.odontosaas.platform;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
-import br.com.odontosaas.identity.AppProperties;
 import br.com.odontosaas.identity.ClinicProvisioning;
-import br.com.odontosaas.tenancy.Tenant;
-import br.com.odontosaas.tenancy.TenantRepository;
+import br.com.odontosaas.identity.config.AppProperties;
+import br.com.odontosaas.tenancy.entity.Tenant;
+import br.com.odontosaas.tenancy.repository.TenantRepository;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;

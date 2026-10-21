@@ -1,8 +1,8 @@
 package br.com.odontosaas.support;
 
 import br.com.odontosaas.identity.ClinicProvisioning;
-import br.com.odontosaas.tenancy.Tenant;
-import br.com.odontosaas.tenancy.TenantRepository;
+import br.com.odontosaas.tenancy.entity.Tenant;
+import br.com.odontosaas.tenancy.repository.TenantRepository;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Component;
