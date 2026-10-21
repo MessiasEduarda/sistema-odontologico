@@ -4,7 +4,7 @@ import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.clinical.ConsentService;
 import br.com.odontosaas.communication.CommunicationService;
-import br.com.odontosaas.scheduling.AppointmentService;
+import br.com.odontosaas.scheduling.service.AppointmentService;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.SecureTokens;
