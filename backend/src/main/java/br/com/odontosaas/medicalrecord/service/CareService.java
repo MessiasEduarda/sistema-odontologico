@@ -8,6 +8,7 @@ import br.com.odontosaas.medicalrecord.dto.request.DocumentRequest;
 import br.com.odontosaas.medicalrecord.dto.response.CareTemplateView;
 import br.com.odontosaas.medicalrecord.dto.response.DocumentView;
 import br.com.odontosaas.medicalrecord.event.CareInstructionsSent;
+import br.com.odontosaas.medicalrecord.repository.CareTemplateRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Flags;
 import br.com.odontosaas.shared.Ids;
@@ -16,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,17 +28,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CareService {
 
-    private static final String SELECT =
-            "select id, title, category, moment, body, active, updated_at from care_instruction_templates";
-
-    private final JdbcClient jdbc;
+    private final CareTemplateRepository careTemplates;
     private final AuditService audit;
     private final ClinicalService clinical;
     private final ApplicationEventPublisher events;
 
     public CareService(
-            JdbcClient jdbc, AuditService audit, ClinicalService clinical, ApplicationEventPublisher events) {
-        this.jdbc = jdbc;
+            CareTemplateRepository careTemplates,
+            AuditService audit,
+            ClinicalService clinical,
+            ApplicationEventPublisher events) {
+        this.careTemplates = careTemplates;
         this.audit = audit;
         this.clinical = clinical;
         this.events = events;
@@ -46,39 +46,26 @@ public class CareService {
 
     @Transactional(readOnly = true)
     public List<CareTemplateView> templates(boolean includeInactive) {
-        return jdbc.sql(SELECT + " where tenant_id = ?" + (includeInactive ? "" : " and active")
-                        + " order by category, moment, title")
-                .param(TenantContext.requireTenantId())
-                .query(CareTemplateView.class)
-                .list();
+        return careTemplates.findAll(TenantContext.requireTenantId(), includeInactive);
     }
 
     private CareTemplateView template(UUID tenantId, UUID id) {
-        return jdbc.sql(SELECT + " where tenant_id = ? and id = ?")
-                .params(tenantId, id)
-                .query(CareTemplateView.class)
-                .optional()
-                .orElseThrow(() -> ApiException.notFound("Modelo de orientação"));
+        return careTemplates.find(tenantId, id).orElseThrow(() -> ApiException.notFound("Modelo de orientação"));
     }
 
     @Transactional
     public CareTemplateView create(CareTemplateRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into care_instruction_templates (id, tenant_id, title, category, moment, body, active,
-                            created_by) values (?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        r.title().strip(),
-                        r.category(),
-                        r.moment(),
-                        r.body().strip(),
-                        Flags.activeIfOmitted(r.active()),
-                        TenantContext.userId().orElse(null))
-                .update();
+        careTemplates.insert(
+                id,
+                tenantId,
+                r.title().strip(),
+                r.category(),
+                r.moment(),
+                r.body().strip(),
+                Flags.activeIfOmitted(r.active()),
+                TenantContext.userId().orElse(null));
         audit.record(AuditAction.RECORD_CREATED, "care_instruction_template", id, Map.of());
         return template(tenantId, id);
     }
@@ -87,12 +74,14 @@ public class CareService {
     public CareTemplateView update(UUID id, CareTemplateRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
         template(tenantId, id);
-        jdbc.sql("""
-                        update care_instruction_templates set title = ?, category = ?, moment = ?, body = ?,
-                            active = coalesce(cast(? as boolean), active), updated_at = now() where tenant_id = ? and id = ?
-                        """)
-                .params(r.title().strip(), r.category(), r.moment(), r.body().strip(), r.active(), tenantId, id)
-                .update();
+        careTemplates.update(
+                tenantId,
+                id,
+                r.title().strip(),
+                r.category(),
+                r.moment(),
+                r.body().strip(),
+                r.active());
         audit.record(AuditAction.RECORD_UPDATED, "care_instruction_template", id, Map.of());
         return template(tenantId, id);
     }
