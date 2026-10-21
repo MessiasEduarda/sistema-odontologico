@@ -8,6 +8,7 @@ Modelos e termos de consentimento, assinatura presencial e por link público.
 - `dto/request/`
 - `dto/response/`
 - `event/`
+- `repository/`
 - `service/`
 - `support/`
 

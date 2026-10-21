@@ -8,6 +8,7 @@ Planos, assinatura de cada clínica, limites, bloqueio por plano e por pagamento
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `repository/`
 - `service/`
 
 ## Controllers

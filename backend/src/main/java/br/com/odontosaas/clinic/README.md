@@ -7,6 +7,7 @@ Dados da clínica, profissionais (e agenda de atendimento), salas, procedimentos
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `repository/`
 - `service/`
 
 ## Controllers

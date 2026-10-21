@@ -7,6 +7,8 @@ Recebíveis, parcelas, pagamentos, estornos, contas a pagar, fornecedores e flux
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `listener/`
+- `repository/`
 - `service/`
 - `support/`
 

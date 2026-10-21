@@ -8,6 +8,7 @@ Prontuário: anamnese, odontograma, evoluções, procedimentos realizados, docum
 - `dto/request/`
 - `dto/response/`
 - `event/`
+- `repository/`
 - `service/`
 - `support/`
 

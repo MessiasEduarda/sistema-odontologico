@@ -6,6 +6,7 @@ Painel inicial e relatórios (agenda, produção, financeiro, pacientes) com exp
 
 - `controller/`
 - `dto/response/`
+- `repository/`
 - `service/`
 
 ## Controllers

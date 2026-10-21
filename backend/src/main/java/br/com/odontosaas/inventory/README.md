@@ -7,6 +7,7 @@ Produtos, movimentações e alertas de estoque e validade.
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `repository/`
 - `service/`
 
 ## Controllers

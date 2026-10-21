@@ -7,6 +7,7 @@ Acesso do paciente por link: consultas, termos e contato com a clínica.
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `repository/`
 - `service/`
 
 ## Controllers

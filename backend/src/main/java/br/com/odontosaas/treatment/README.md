@@ -8,6 +8,8 @@ Orçamentos e planos de tratamento (rascunho, apresentado, aprovado).
 - `dto/request/`
 - `dto/response/`
 - `event/`
+- `listener/`
+- `repository/`
 - `service/`
 
 ## Controllers

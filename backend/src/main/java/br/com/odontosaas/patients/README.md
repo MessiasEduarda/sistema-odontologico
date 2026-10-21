@@ -7,6 +7,7 @@ Cadastro, importação em massa e exportação LGPD de pacientes.
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `repository/`
 - `service/`
 - `support/`
 

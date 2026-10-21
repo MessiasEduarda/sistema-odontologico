@@ -10,6 +10,7 @@ Mensagens por e-mail (confirmação, lembrete, orientações, links), modelos e 
 - `dto/response/`
 - `job/`
 - `listener/`
+- `repository/`
 - `service/`
 
 ## Controllers

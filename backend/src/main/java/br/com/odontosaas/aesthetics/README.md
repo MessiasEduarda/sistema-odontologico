@@ -7,6 +7,7 @@ Aplicações de harmonização com produto, lote, validade e regiões (rastreabi
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `repository/`
 - `service/`
 
 ## Controllers

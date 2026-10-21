@@ -7,6 +7,7 @@ Indicadores, clínicas (criação e situação), auditoria da plataforma e prime
 - `controller/`
 - `dto/request/`
 - `dto/response/`
+- `repository/`
 - `service/`
 
 ## Controllers
