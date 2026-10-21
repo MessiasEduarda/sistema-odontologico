@@ -148,20 +148,27 @@ class ApiContractGoldenTest extends PostgresIntegrationTest {
         return node;
     }
 
+    /** O pretty printer usa o separador do sistema (CRLF no Windows); o repositório guarda LF. */
+    private static String normalize(String text) {
+        return text.replace("
+", "
+");
+    }
+
     private static void assertGolden(String name, String actual) {
         Path file = Path.of("src/test/resources/golden", name);
         try {
             if (Boolean.getBoolean("golden.update")) {
                 Files.createDirectories(file.getParent());
-                Files.writeString(file, actual, StandardCharsets.UTF_8);
+                Files.writeString(file, normalize(actual), StandardCharsets.UTF_8);
                 return;
             }
             if (!Files.exists(file)) {
                 fail("Arquivo golden ausente: %s. Gere com -Dgolden.update=true no código ANTES da mudança.", file);
             }
-            assertThat(actual)
+            assertThat(normalize(actual))
                     .as("contrato mudou em %s", name)
-                    .isEqualTo(Files.readString(file, StandardCharsets.UTF_8));
+                    .isEqualTo(normalize(Files.readString(file, StandardCharsets.UTF_8)));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
