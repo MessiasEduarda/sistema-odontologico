@@ -12,6 +12,9 @@ import br.com.odontosaas.portal.dto.response.PortalAppointment;
 import br.com.odontosaas.portal.dto.response.PortalConsent;
 import br.com.odontosaas.portal.dto.response.PortalContact;
 import br.com.odontosaas.portal.dto.response.PortalOverview;
+import br.com.odontosaas.portal.repository.PortalRepository;
+import br.com.odontosaas.portal.repository.PortalRepository.AccessRow;
+import br.com.odontosaas.portal.repository.PortalRepository.ClinicRow;
 import br.com.odontosaas.scheduling.service.AppointmentService;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
@@ -27,7 +30,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +42,7 @@ public class PortalService {
 
     static final Duration TTL = Duration.ofDays(30);
 
-    private final JdbcClient jdbc;
+    private final PortalRepository repository;
     private final TenantRefs refs;
     private final AuditService audit;
     private final AppointmentService appointments;
@@ -49,14 +51,14 @@ public class PortalService {
     private final String publicUrl;
 
     public PortalService(
-            JdbcClient jdbc,
+            PortalRepository repository,
             TenantRefs refs,
             AuditService audit,
             AppointmentService appointments,
             ConsentService consents,
             CommunicationService communication,
             @Value("${app.public-url}") String publicUrl) {
-        this.jdbc = jdbc;
+        this.repository = repository;
         this.refs = refs;
         this.audit = audit;
         this.appointments = appointments;
@@ -70,24 +72,16 @@ public class PortalService {
     public AccessView grant(UUID patientId, boolean sendEmail) {
         UUID tenantId = TenantContext.requireTenantId();
         refs.require("patients", tenantId, patientId, "Paciente");
-        jdbc.sql("update portal_access_tokens set revoked_at = now() where tenant_id = ? and patient_id = ?"
-                        + " and revoked_at is null")
-                .params(tenantId, patientId)
-                .update();
+        repository.revokeTokens(tenantId, patientId);
         String raw = SecureTokens.generate();
         Instant expires = Instant.now().plus(TTL);
-        jdbc.sql("""
-                        insert into portal_access_tokens (id, tenant_id, patient_id, token_hash, expires_at, created_by)
-                        values (?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        Ids.newId(),
-                        tenantId,
-                        patientId,
-                        SecureTokens.sha256Hex(raw),
-                        Timestamp.from(expires),
-                        TenantContext.userId().orElse(null))
-                .update();
+        repository.insertToken(
+                Ids.newId(),
+                tenantId,
+                patientId,
+                SecureTokens.sha256Hex(raw),
+                Timestamp.from(expires),
+                TenantContext.userId().orElse(null));
         String url = publicUrl + "/portal#token=" + raw;
         boolean queued = sendEmail
                 && communication
@@ -101,30 +95,19 @@ public class PortalService {
     public void revoke(UUID patientId) {
         UUID tenantId = TenantContext.requireTenantId();
         refs.require("patients", tenantId, patientId, "Paciente");
-        jdbc.sql("update portal_access_tokens set revoked_at = now() where tenant_id = ? and patient_id = ?"
-                        + " and revoked_at is null")
-                .params(tenantId, patientId)
-                .update();
+        repository.revokeTokens(tenantId, patientId);
     }
 
     // ------------------------------------------------------------------ Público
 
-    private record Access(UUID id, UUID tenantId, UUID patientId) {}
-
-    private <T> T withAccess(String rawToken, java.util.function.Function<Access, T> action) {
+    private <T> T withAccess(String rawToken, java.util.function.Function<AccessRow, T> action) {
         ApiException invalid = ApiException.badRequest("INVALID_TOKEN", "Este link é inválido ou expirou.");
         if (!SecureTokens.looksValid(rawToken)) throw invalid;
         String hash = SecureTokens.sha256Hex(rawToken);
-        Optional<Access> access = TenantContext.runWithToken(
-                hash, () -> jdbc.sql("""
-                        select id, tenant_id, patient_id from portal_access_tokens
-                        where token_hash = ? and revoked_at is null and expires_at > now()
-                        """).param(hash).query(Access.class).optional());
-        Access a = access.orElseThrow(() -> invalid);
+        Optional<AccessRow> access = TenantContext.runWithToken(hash, () -> repository.findValidAccess(hash));
+        AccessRow a = access.orElseThrow(() -> invalid);
         return TenantContext.runAs(a.tenantId(), null, (Supplier<T>) () -> {
-            jdbc.sql("update portal_access_tokens set last_used_at = now() where tenant_id = ? and id = ?")
-                    .params(a.tenantId(), a.id())
-                    .update();
+            repository.touchLastUsed(a.tenantId(), a.id());
             return action.apply(a);
         });
     }
@@ -132,20 +115,8 @@ public class PortalService {
     @Transactional
     public PortalOverview overview(String token) {
         return withAccess(token, a -> {
-            record Clinic(String name, String phone) {}
-            Clinic clinic = jdbc.sql(
-                            "select t.name, s.phone from tenants t left join clinic_settings s on s.tenant_id = t.id"
-                                    + " where t.id = ?")
-                    .param(a.tenantId())
-                    .query(Clinic.class)
-                    .single();
-            PortalContact contact = jdbc.sql("""
-                            select full_name, email, mobile, phone, allow_email, allow_sms, allow_whatsapp
-                            from patients where tenant_id = ? and id = ?
-                            """)
-                    .params(a.tenantId(), a.patientId())
-                    .query(PortalContact.class)
-                    .single();
+            ClinicRow clinic = repository.clinic(a.tenantId());
+            PortalContact contact = repository.contact(a.tenantId(), a.patientId());
             List<PortalAppointment> upcoming =
                     appointments
                             .list(Instant.now(), Instant.now().plus(Duration.ofDays(60)), null, a.patientId(), null)
@@ -171,10 +142,8 @@ public class PortalService {
     @Transactional
     public PortalOverview respond(RespondBody body) {
         withAccess(body.token(), a -> {
-            UUID owner = jdbc.sql("select patient_id from appointments where tenant_id = ? and id = ?")
-                    .params(a.tenantId(), body.appointmentId())
-                    .query(UUID.class)
-                    .optional()
+            UUID owner = repository
+                    .appointmentPatientId(a.tenantId(), body.appointmentId())
                     .orElse(null);
             if (!a.patientId().equals(owner)) throw ApiException.notFound("Consulta");
             return appointments.respondAsPatient(body.appointmentId(), body.action());
@@ -198,21 +167,15 @@ public class PortalService {
     @Transactional
     public PortalOverview updateContact(ContactBody body) {
         withAccess(body.token(), a -> {
-            jdbc.sql("""
-                            update patients set email = ?, mobile = ?, phone = ?, allow_email = ?, allow_sms = ?,
-                                allow_whatsapp = ?, updated_at = now(), version = version + 1
-                            where tenant_id = ? and id = ?
-                            """)
-                    .params(
-                            blank(body.email()),
-                            blank(body.mobile()),
-                            blank(body.phone()),
-                            body.allowEmail(),
-                            body.allowSms(),
-                            body.allowWhatsapp(),
-                            a.tenantId(),
-                            a.patientId())
-                    .update();
+            repository.updateContact(
+                    a.tenantId(),
+                    a.patientId(),
+                    blank(body.email()),
+                    blank(body.mobile()),
+                    blank(body.phone()),
+                    body.allowEmail(),
+                    body.allowSms(),
+                    body.allowWhatsapp());
             audit.record(AuditAction.RECORD_UPDATED, "patient", a.patientId(), Map.of("via", "portal"));
             return null;
         });

@@ -1,5 +1,6 @@
 package br.com.odontosaas.communication.listener;
 
+import br.com.odontosaas.communication.repository.MessageRepository;
 import br.com.odontosaas.communication.service.CommunicationService;
 import br.com.odontosaas.consent.event.ConsentLinkRequested;
 import br.com.odontosaas.medicalrecord.event.CareInstructionsSent;
@@ -10,7 +11,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /** Reage a eventos de outros módulos enfileirando mensagens (na mesma transação do evento). */
@@ -19,27 +19,24 @@ class CommunicationListeners {
 
     private final CommunicationService communication;
     private final AppointmentLinks links;
-    private final JdbcClient jdbc;
+    private final MessageRepository messages;
     private final String publicUrl;
 
     CommunicationListeners(
             CommunicationService communication,
             AppointmentLinks links,
-            JdbcClient jdbc,
+            MessageRepository messages,
             @Value("${app.public-url}") String publicUrl) {
         this.communication = communication;
         this.links = links;
-        this.jdbc = jdbc;
+        this.messages = messages;
         this.publicUrl = publicUrl;
     }
 
     @EventListener
     void onAppointmentChanged(AppointmentChanged event) {
         TenantContext.runAs(event.tenantId(), TenantContext.userId().orElse(null), () -> {
-            UUID patientId = jdbc.sql("select patient_id from appointments where tenant_id = ? and id = ?")
-                    .params(event.tenantId(), event.appointmentId())
-                    .query(UUID.class)
-                    .single();
+            UUID patientId = messages.appointmentPatientId(event.tenantId(), event.appointmentId());
             Map<String, String> fields = communication.appointmentFields(event.tenantId(), event.appointmentId());
             switch (event.kind()) {
                 case CREATED, RESCHEDULED -> {
