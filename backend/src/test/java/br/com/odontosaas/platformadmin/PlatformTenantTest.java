@@ -1,4 +1,4 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.platformadmin;
 
 import static br.com.odontosaas.support.Browser.json;
 import static org.assertj.core.api.Assertions.assertThat;

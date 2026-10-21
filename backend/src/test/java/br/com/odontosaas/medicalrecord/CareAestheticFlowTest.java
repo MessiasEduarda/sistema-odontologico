@@ -1,4 +1,4 @@
-package br.com.odontosaas.clinical;
+package br.com.odontosaas.medicalrecord;
 
 import static br.com.odontosaas.support.Browser.json;
 import static br.com.odontosaas.support.Fixtures.createPatient;

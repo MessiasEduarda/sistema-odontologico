@@ -1,4 +1,4 @@
-package br.com.odontosaas.platform;
+package br.com.odontosaas.flow;
 
 import static br.com.odontosaas.support.Browser.json;
 import static br.com.odontosaas.support.Fixtures.createAppointment;
