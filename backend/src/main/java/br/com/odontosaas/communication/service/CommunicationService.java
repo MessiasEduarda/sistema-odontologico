@@ -5,10 +5,13 @@ import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.communication.dto.request.TemplateRequest;
 import br.com.odontosaas.communication.dto.response.MessageView;
 import br.com.odontosaas.communication.dto.response.TemplateView;
+import br.com.odontosaas.communication.repository.MessageRepository;
+import br.com.odontosaas.communication.repository.MessageRepository.AppointmentSlotRow;
+import br.com.odontosaas.communication.repository.MessageRepository.ContactRow;
+import br.com.odontosaas.communication.repository.MessageTemplateRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.tenancy.TenantContext;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -17,7 +20,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,11 +43,13 @@ public class CommunicationService {
 
     private static final Map<String, Template> DEFAULTS = defaults();
 
-    private final JdbcClient jdbc;
+    private final MessageRepository messages;
+    private final MessageTemplateRepository templates;
     private final AuditService audit;
 
-    public CommunicationService(JdbcClient jdbc, AuditService audit) {
-        this.jdbc = jdbc;
+    public CommunicationService(MessageRepository messages, MessageTemplateRepository templates, AuditService audit) {
+        this.messages = messages;
+        this.templates = templates;
         this.audit = audit;
     }
 
@@ -115,11 +119,9 @@ public class CommunicationService {
     }
 
     Template template(UUID tenantId, String type) {
-        return jdbc.sql("select type, subject, body, active, true as custom from message_templates"
-                        + " where tenant_id = ? and type = ?")
-                .params(tenantId, type)
-                .query(Template.class)
-                .optional()
+        return templates
+                .find(tenantId, type)
+                .map(r -> new Template(r.type(), r.subject(), r.body(), r.active(), r.custom()))
                 .orElse(DEFAULTS.get(type));
     }
 
@@ -127,14 +129,7 @@ public class CommunicationService {
     public TemplateView saveTemplate(String type, TemplateRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
         if (!TYPES.contains(type)) throw ApiException.notFound("Modelo de mensagem");
-        jdbc.sql("""
-                        insert into message_templates (tenant_id, type, subject, body, active)
-                        values (?, ?, ?, ?, coalesce(cast(? as boolean), true))
-                        on conflict (tenant_id, type) do update set subject = excluded.subject, body = excluded.body,
-                            active = coalesce(cast(? as boolean), message_templates.active), updated_at = now()
-                        """)
-                .params(tenantId, type, r.subject().strip(), r.body().strip(), r.active(), r.active())
-                .update();
+        templates.upsert(tenantId, type, r.subject().strip(), r.body().strip(), r.active());
         audit.record(AuditAction.RECORD_UPDATED, "message_template", type, Map.of());
         Template t = template(tenantId, type);
         return new TemplateView(t.type(), t.subject(), t.body(), t.active(), t.custom());
@@ -142,26 +137,12 @@ public class CommunicationService {
 
     @Transactional(readOnly = true)
     public List<MessageView> messages(String status) {
-        return jdbc.sql("""
-                        select m.id, m.type, m.to_address, m.subject, m.status, m.attempts, m.last_error,
-                               p.full_name as patient_name, m.created_at, m.sent_at
-                        from outbound_messages m
-                        left join patients p on p.tenant_id = m.tenant_id and p.id = m.patient_id
-                        where m.tenant_id = ? and (cast(? as text) is null or m.status = ?)
-                        order by m.created_at desc limit 300
-                        """)
-                .params(TenantContext.requireTenantId(), status, status)
-                .query(MessageView.class)
-                .list();
+        return messages.list(TenantContext.requireTenantId(), status);
     }
 
     @Transactional
     public void retry(UUID messageId) {
-        int updated =
-                jdbc.sql("""
-                        update outbound_messages set status = 'PENDING', attempts = 0, last_error = null
-                        where tenant_id = ? and id = ? and status = 'FAILED'
-                        """).params(TenantContext.requireTenantId(), messageId).update();
+        int updated = messages.requeueFailed(TenantContext.requireTenantId(), messageId);
         if (updated == 0) throw ApiException.notFound("Mensagem com falha");
     }
 
@@ -174,32 +155,22 @@ public class CommunicationService {
         UUID tenantId = TenantContext.requireTenantId();
         Template t = template(tenantId, type);
         if (!t.active()) return Optional.empty();
-        record Contact(String fullName, String email, boolean allowEmail, String clinic) {}
-        Optional<Contact> contact =
-                jdbc.sql("""
-                        select p.full_name, p.email, p.allow_email, t.name as clinic from patients p
-                        join tenants t on t.id = p.tenant_id where p.tenant_id = ? and p.id = ?
-                        """).params(tenantId, patientId).query(Contact.class).optional();
+        Optional<ContactRow> contact = messages.findContact(tenantId, patientId);
         if (contact.isEmpty() || contact.get().email() == null || !contact.get().allowEmail()) return Optional.empty();
 
         Map<String, String> all = new LinkedHashMap<>(fields);
         all.putIfAbsent("paciente", contact.get().fullName().split(" ")[0]);
         all.putIfAbsent("clinica", contact.get().clinic());
         UUID id = Ids.newId();
-        jdbc.sql("""
-                        insert into outbound_messages (id, tenant_id, patient_id, appointment_id, type, to_address,
-                            subject, body) values (?, ?, ?, ?, ?, ?, ?, ?)
-                        """)
-                .params(
-                        id,
-                        tenantId,
-                        patientId,
-                        appointmentId,
-                        type,
-                        contact.get().email(),
-                        render(t.subject(), all),
-                        render(t.body(), all))
-                .update();
+        messages.insert(
+                id,
+                tenantId,
+                patientId,
+                appointmentId,
+                type,
+                contact.get().email(),
+                render(t.subject(), all),
+                render(t.body(), all));
         return Optional.of(id);
     }
 
@@ -213,16 +184,7 @@ public class CommunicationService {
 
     /** Campos de data/hora/profissional de um agendamento, no fuso da clínica. */
     public Map<String, String> appointmentFields(UUID tenantId, UUID appointmentId) {
-        record A(Instant startsAt, String professional, String zone) {}
-        A a = jdbc.sql("""
-                        select a.starts_at, pr.name as professional, t.time_zone as zone from appointments a
-                        join professionals pr on pr.tenant_id = a.tenant_id and pr.id = a.professional_id
-                        join tenants t on t.id = a.tenant_id where a.tenant_id = ? and a.id = ?
-                        """)
-                .params(tenantId, appointmentId)
-                .query((rs, n) -> new A(
-                        rs.getTimestamp("starts_at").toInstant(), rs.getString("professional"), rs.getString("zone")))
-                .single();
+        AppointmentSlotRow a = messages.appointmentSlot(tenantId, appointmentId);
         var local = a.startsAt().atZone(ZoneId.of(a.zone()));
         Map<String, String> m = new LinkedHashMap<>();
         m.put("data", local.format(DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.forLanguageTag("pt-BR"))));

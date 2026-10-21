@@ -1,5 +1,8 @@
 package br.com.odontosaas.communication.job;
 
+import br.com.odontosaas.communication.repository.MessageRepository;
+import br.com.odontosaas.communication.repository.MessageRepository.DueReminderRow;
+import br.com.odontosaas.communication.repository.MessageRepository.PendingMessageRow;
 import br.com.odontosaas.communication.service.CommunicationService;
 import br.com.odontosaas.scheduling.service.AppointmentLinks;
 import br.com.odontosaas.tenancy.TenantContext;
@@ -10,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -28,7 +30,7 @@ public class CommunicationJobs {
     private static final Logger log = LoggerFactory.getLogger(CommunicationJobs.class);
     private static final int MAX_ATTEMPTS = 5;
 
-    private final JdbcClient jdbc;
+    private final MessageRepository messages;
     private final CommunicationService communication;
     private final AppointmentLinks links;
     private final JavaMailSender mail;
@@ -37,14 +39,14 @@ public class CommunicationJobs {
     private final String publicUrl;
 
     public CommunicationJobs(
-            JdbcClient jdbc,
+            MessageRepository messages,
             CommunicationService communication,
             AppointmentLinks links,
             JavaMailSender mail,
             TransactionTemplate tx,
             @Value("${app.mail.from}") String from,
             @Value("${app.public-url}") String publicUrl) {
-        this.jdbc = jdbc;
+        this.messages = messages;
         this.communication = communication;
         this.links = links;
         this.mail = mail;
@@ -54,9 +56,7 @@ public class CommunicationJobs {
     }
 
     private List<UUID> activeTenants() {
-        return jdbc.sql("select id from tenants where status = 'ACTIVE'")
-                .query(UUID.class)
-                .list();
+        return messages.activeTenantIds();
     }
 
     /** Cria lembretes para consultas dentro da antecedência configurada pela clínica (padrão 24h). */
@@ -67,17 +67,8 @@ public class CommunicationJobs {
                     tenantId,
                     null,
                     () -> tx.execute(status -> {
-                        record Due(UUID id, UUID patientId) {}
-                        List<Due> due =
-                                jdbc.sql("""
-                                select a.id, a.patient_id from appointments a
-                                left join clinic_settings s on s.tenant_id = a.tenant_id
-                                where a.tenant_id = ? and coalesce(s.reminders_enabled, true)
-                                  and a.status in ('SCHEDULED', 'CONFIRMED') and a.reminder_sent_at is null
-                                  and a.starts_at > now()
-                                  and a.starts_at <= now() + make_interval(hours => coalesce(s.reminder_hours_before, 24))
-                                """).param(tenantId).query(Due.class).list();
-                        for (Due d : due) {
+                        List<DueReminderRow> due = messages.dueReminders(tenantId);
+                        for (DueReminderRow d : due) {
                             Map<String, String> fields = communication.appointmentFields(tenantId, d.id());
                             fields.put("link", publicUrl + "/consulta#token=" + links.issueToken(d.id()));
                             communication.enqueue(d.patientId(), d.id(), "APPOINTMENT_REMINDER", fields);
@@ -94,14 +85,9 @@ public class CommunicationJobs {
         int sent = 0;
         for (UUID tenantId : activeTenants()) {
             sent += TenantContext.runAs(tenantId, null, () -> {
-                record Pending(UUID id, String toAddress, String subject, String body, int attempts) {}
-                List<Pending> pending =
-                        jdbc.sql("""
-                                select id, to_address, subject, body, attempts from outbound_messages
-                                where tenant_id = ? and status = 'PENDING' order by created_at limit 50
-                                """).param(tenantId).query(Pending.class).list();
+                List<PendingMessageRow> pending = messages.pending(tenantId);
                 int ok = 0;
-                for (Pending p : pending) {
+                for (PendingMessageRow p : pending) {
                     try {
                         SimpleMailMessage m = new SimpleMailMessage();
                         m.setFrom(from);
@@ -109,22 +95,16 @@ public class CommunicationJobs {
                         m.setSubject(p.subject());
                         m.setText(p.body());
                         mail.send(m);
-                        jdbc.sql("update outbound_messages set status = 'SENT', sent_at = now(),"
-                                        + " attempts = attempts + 1 where tenant_id = ? and id = ?")
-                                .params(tenantId, p.id())
-                                .update();
+                        messages.markSent(tenantId, p.id());
                         ok++;
                     } catch (MailException e) {
                         int attempts = p.attempts() + 1;
-                        jdbc.sql("update outbound_messages set attempts = ?, last_error = ?, status = ?"
-                                        + " where tenant_id = ? and id = ?")
-                                .params(
-                                        attempts,
-                                        e.getClass().getSimpleName(),
-                                        attempts >= MAX_ATTEMPTS ? "FAILED" : "PENDING",
-                                        tenantId,
-                                        p.id())
-                                .update();
+                        messages.recordFailure(
+                                tenantId,
+                                p.id(),
+                                attempts,
+                                e.getClass().getSimpleName(),
+                                attempts >= MAX_ATTEMPTS ? "FAILED" : "PENDING");
                         log.warn(
                                 "Falha ao enviar mensagem {} (tentativa {}): {}",
                                 p.id(),
