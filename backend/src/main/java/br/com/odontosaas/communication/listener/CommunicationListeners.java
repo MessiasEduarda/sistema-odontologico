@@ -1,5 +1,6 @@
-package br.com.odontosaas.communication;
+package br.com.odontosaas.communication.listener;
 
+import br.com.odontosaas.communication.service.CommunicationService;
 import br.com.odontosaas.consent.event.ConsentLinkRequested;
 import br.com.odontosaas.medicalrecord.event.CareInstructionsSent;
 import br.com.odontosaas.scheduling.event.AppointmentChanged;

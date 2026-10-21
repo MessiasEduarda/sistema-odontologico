@@ -1,4 +1,4 @@
-package br.com.odontosaas.communication;
+package br.com.odontosaas.communication.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;

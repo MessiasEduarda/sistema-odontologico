@@ -1,8 +1,9 @@
-package br.com.odontosaas.communication;
+package br.com.odontosaas.communication.controller;
 
-import br.com.odontosaas.communication.CommunicationService.MessageView;
-import br.com.odontosaas.communication.CommunicationService.TemplateRequest;
-import br.com.odontosaas.communication.CommunicationService.TemplateView;
+import br.com.odontosaas.communication.dto.request.TemplateRequest;
+import br.com.odontosaas.communication.dto.response.MessageView;
+import br.com.odontosaas.communication.dto.response.TemplateView;
+import br.com.odontosaas.communication.service.CommunicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

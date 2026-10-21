@@ -1,5 +1,6 @@
-package br.com.odontosaas.communication;
+package br.com.odontosaas.communication.job;
 
+import br.com.odontosaas.communication.service.CommunicationService;
 import br.com.odontosaas.scheduling.service.AppointmentLinks;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.util.List;

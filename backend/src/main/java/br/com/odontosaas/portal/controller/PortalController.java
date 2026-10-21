@@ -1,11 +1,13 @@
-package br.com.odontosaas.portal;
+package br.com.odontosaas.portal.controller;
 
-import br.com.odontosaas.portal.PortalService.AccessView;
-import br.com.odontosaas.portal.PortalService.ContactBody;
-import br.com.odontosaas.portal.PortalService.PortalOverview;
-import br.com.odontosaas.portal.PortalService.RespondBody;
-import br.com.odontosaas.portal.PortalService.SignBody;
-import br.com.odontosaas.portal.PortalService.TokenBody;
+import br.com.odontosaas.portal.dto.request.ContactBody;
+import br.com.odontosaas.portal.dto.request.GrantRequest;
+import br.com.odontosaas.portal.dto.request.RespondBody;
+import br.com.odontosaas.portal.dto.request.SignBody;
+import br.com.odontosaas.portal.dto.request.TokenBody;
+import br.com.odontosaas.portal.dto.response.AccessView;
+import br.com.odontosaas.portal.dto.response.PortalOverview;
+import br.com.odontosaas.portal.service.PortalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,8 +29,6 @@ public class PortalController {
     public PortalController(PortalService service) {
         this.service = service;
     }
-
-    public record GrantRequest(boolean sendEmail) {}
 
     @PostMapping("/api/v1/patients/{patientId}/portal-access")
     @PreAuthorize("hasAuthority('patients:write')")

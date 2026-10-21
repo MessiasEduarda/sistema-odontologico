@@ -10,7 +10,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
-import br.com.odontosaas.communication.CommunicationJobs;
+import br.com.odontosaas.communication.job.CommunicationJobs;
 import br.com.odontosaas.support.Browser;
 import br.com.odontosaas.support.PostgresIntegrationTest;
 import br.com.odontosaas.support.TestData;

@@ -1,21 +1,23 @@
-package br.com.odontosaas.portal;
+package br.com.odontosaas.portal.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
-import br.com.odontosaas.communication.CommunicationService;
+import br.com.odontosaas.communication.service.CommunicationService;
 import br.com.odontosaas.consent.service.ConsentService;
+import br.com.odontosaas.portal.dto.request.ContactBody;
+import br.com.odontosaas.portal.dto.request.RespondBody;
+import br.com.odontosaas.portal.dto.request.SignBody;
+import br.com.odontosaas.portal.dto.response.AccessView;
+import br.com.odontosaas.portal.dto.response.PortalAppointment;
+import br.com.odontosaas.portal.dto.response.PortalConsent;
+import br.com.odontosaas.portal.dto.response.PortalContact;
+import br.com.odontosaas.portal.dto.response.PortalOverview;
 import br.com.odontosaas.scheduling.service.AppointmentService;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.shared.SecureTokens;
 import br.com.odontosaas.shared.TenantRefs;
 import br.com.odontosaas.tenancy.TenantContext;
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -37,59 +39,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class PortalService {
 
     static final Duration TTL = Duration.ofDays(30);
-
-    public record AccessView(String url, Instant expiresAt, boolean emailQueued) {}
-
-    public record PortalAppointment(
-            UUID id, Instant startsAt, Instant endsAt, String professionalName, String status, boolean canRespond) {}
-
-    public record PortalConsent(UUID id, String title, String body, String status, Instant createdAt) {}
-
-    public record PortalContact(
-            String fullName,
-            String email,
-            String mobile,
-            String phone,
-            boolean allowEmail,
-            boolean allowSms,
-            boolean allowWhatsapp) {}
-
-    public record PortalOverview(
-            String clinicName,
-            String clinicPhone,
-            PortalContact patient,
-            List<PortalAppointment> upcoming,
-            List<PortalConsent> pendingConsents) {}
-
-    public record TokenBody(@NotBlank @Size(max = 64) String token) {}
-
-    public record RespondBody(
-            @NotBlank @Size(max = 64) String token,
-            @NotNull UUID appointmentId,
-            @NotBlank @Pattern(regexp = "CONFIRM|CANCEL") String action) {}
-
-    public record SignBody(
-            @NotBlank @Size(max = 64) String token,
-            @NotNull UUID consentId,
-            @NotBlank @Size(max = 160) String signerName,
-            @Size(max = 20) String signerDocument,
-
-            @NotBlank
-            @Size(max = 400000)
-            @Pattern(regexp = "^data:image/png;base64,[A-Za-z0-9+/=]+$", message = "assinatura inválida")
-            String signatureImage,
-
-            @AssertTrue(message = "é necessário declarar que leu e concorda com o termo")
-            boolean accepted) {}
-
-    public record ContactBody(
-            @NotBlank @Size(max = 64) String token,
-            @Email @Size(max = 254) String email,
-            @Size(max = 20) String mobile,
-            @Size(max = 20) String phone,
-            boolean allowEmail,
-            boolean allowSms,
-            boolean allowWhatsapp) {}
 
     private final JdbcClient jdbc;
     private final TenantRefs refs;

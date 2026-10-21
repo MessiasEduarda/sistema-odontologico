@@ -1,12 +1,13 @@
-package br.com.odontosaas.communication;
+package br.com.odontosaas.communication.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
+import br.com.odontosaas.communication.dto.request.TemplateRequest;
+import br.com.odontosaas.communication.dto.response.MessageView;
+import br.com.odontosaas.communication.dto.response.TemplateView;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.Ids;
 import br.com.odontosaas.tenancy.TenantContext;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -37,25 +38,6 @@ public class CommunicationService {
             "CARE_INSTRUCTIONS");
 
     record Template(String type, String subject, String body, boolean active, boolean custom) {}
-
-    public record TemplateView(String type, String subject, String body, boolean active, boolean custom) {}
-
-    public record TemplateRequest(
-            @NotBlank @Size(max = 200) String subject,
-            @NotBlank @Size(max = 5000) String body,
-            Boolean active) {}
-
-    public record MessageView(
-            UUID id,
-            String type,
-            String toAddress,
-            String subject,
-            String status,
-            int attempts,
-            String lastError,
-            String patientName,
-            Instant createdAt,
-            Instant sentAt) {}
 
     private static final Map<String, Template> DEFAULTS = defaults();
 
@@ -230,7 +212,7 @@ public class CommunicationService {
     }
 
     /** Campos de data/hora/profissional de um agendamento, no fuso da clínica. */
-    Map<String, String> appointmentFields(UUID tenantId, UUID appointmentId) {
+    public Map<String, String> appointmentFields(UUID tenantId, UUID appointmentId) {
         record A(Instant startsAt, String professional, String zone) {}
         A a = jdbc.sql("""
                         select a.starts_at, pr.name as professional, t.time_zone as zone from appointments a
