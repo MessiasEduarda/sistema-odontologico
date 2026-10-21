@@ -1,9 +1,9 @@
 package br.com.odontosaas.identity.job;
 
+import br.com.odontosaas.identity.repository.AccessCleanupRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
@@ -21,25 +21,17 @@ public class SessionMaintenance {
 
     public record Result(int sessions, int loginAttempts, int resetTokens) {}
 
-    private final JdbcClient jdbc;
+    private final AccessCleanupRepository cleanup;
 
-    public SessionMaintenance(JdbcClient jdbc) {
-        this.jdbc = jdbc;
+    public SessionMaintenance(AccessCleanupRepository cleanup) {
+        this.cleanup = cleanup;
     }
 
     @Transactional
     public Result cleanup() {
-        int sessions = jdbc.sql("""
-                        delete from sessions
-                        where expires_at < now() - interval '30 days'
-                           or revoked_at < now() - interval '30 days'
-                        """).update();
-        int attempts = jdbc.sql("delete from login_attempts where attempted_at < now() - interval '30 days'")
-                .update();
-        int tokens = jdbc.sql("""
-                        delete from password_reset_tokens
-                        where expires_at < now() - interval '7 days' or used_at < now() - interval '7 days'
-                        """).update();
+        int sessions = cleanup.deleteOldSessions();
+        int attempts = cleanup.deleteOldLoginAttempts();
+        int tokens = cleanup.deleteOldResetTokens();
         Result result = new Result(sessions, attempts, tokens);
         if (sessions + attempts + tokens > 0) log.info("Limpeza de dados temporários de acesso: {}", result);
         return result;

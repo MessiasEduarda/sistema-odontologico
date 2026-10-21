@@ -1,4 +1,4 @@
-package br.com.odontosaas.identity.service;
+package br.com.odontosaas.identity.repository;
 
 import br.com.odontosaas.identity.dto.response.ClinicSummary;
 import br.com.odontosaas.identity.security.Permission;

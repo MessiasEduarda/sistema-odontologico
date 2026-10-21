@@ -4,6 +4,8 @@ import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.identity.config.SecurityProperties;
 import br.com.odontosaas.identity.entity.User;
+import br.com.odontosaas.identity.repository.PasswordResetRepository;
+import br.com.odontosaas.identity.repository.SessionStore;
 import br.com.odontosaas.identity.repository.UserRepository;
 import br.com.odontosaas.identity.security.AuthenticatedUser;
 import br.com.odontosaas.identity.support.PasswordPolicy;
@@ -14,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,7 @@ public class PasswordService {
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final PasswordPolicy policy;
-    private final JdbcClient jdbc;
+    private final PasswordResetRepository resetTokens;
     private final SessionStore sessions;
     private final IdentityMailer mailer;
     private final AuditService audit;
@@ -35,7 +36,7 @@ public class PasswordService {
             UserRepository users,
             PasswordEncoder encoder,
             PasswordPolicy policy,
-            JdbcClient jdbc,
+            PasswordResetRepository resetTokens,
             SessionStore sessions,
             IdentityMailer mailer,
             AuditService audit,
@@ -43,7 +44,7 @@ public class PasswordService {
         this.users = users;
         this.encoder = encoder;
         this.policy = policy;
-        this.jdbc = jdbc;
+        this.resetTokens = resetTokens;
         this.sessions = sessions;
         this.mailer = mailer;
         this.audit = audit;
@@ -60,23 +61,15 @@ public class PasswordService {
         if (found.isEmpty() || !found.get().isActive()) return;
         User user = found.get();
 
-        long recent = jdbc.sql("""
-                        select count(*) from password_reset_tokens
-                        where user_id = ? and created_at > now() - interval '1 hour'
-                        """).param(user.getId()).query(Long.class).single();
+        long recent = resetTokens.countCreatedLastHour(user.getId());
         if (recent >= props.passwordResetMaxPerHour()) return;
 
         String raw = SecureTokens.generate();
-        jdbc.sql("""
-                        insert into password_reset_tokens (id, user_id, token_hash, expires_at)
-                        values (?, ?, ?, now() + make_interval(secs => ?))
-                        """)
-                .params(
-                        Ids.newId(),
-                        user.getId(),
-                        SecureTokens.sha256Hex(raw),
-                        props.passwordResetTtl().toSeconds())
-                .update();
+        resetTokens.insert(
+                Ids.newId(),
+                user.getId(),
+                SecureTokens.sha256Hex(raw),
+                props.passwordResetTtl().toSeconds());
         audit.recordGlobal(AuditAction.PASSWORD_RESET_REQUESTED, user.getId(), "user", user.getId(), Map.of());
         mailer.sendPasswordReset(user.getEmail(), user.getName(), raw);
     }
@@ -88,24 +81,15 @@ public class PasswordService {
                 "INVALID_TOKEN", "Este link de redefinição é inválido ou expirou. Solicite um novo.");
         if (!SecureTokens.looksValid(rawToken)) throw invalid;
 
-        UUID userId = jdbc.sql("""
-                        select user_id from password_reset_tokens
-                        where token_hash = ? and used_at is null and expires_at > now()
-                        for update
-                        """)
-                .param(SecureTokens.sha256Hex(rawToken))
-                .query(UUID.class)
-                .optional()
-                .orElseThrow(() -> invalid);
+        UUID userId =
+                resetTokens.lockValidUserId(SecureTokens.sha256Hex(rawToken)).orElseThrow(() -> invalid);
         User user = users.findById(userId).filter(User::isActive).orElseThrow(() -> invalid);
 
         policy.validate("newPassword", newPassword, user.getEmail());
         user.changePassword(encoder.encode(newPassword));
         users.saveAndFlush(user);
 
-        jdbc.sql("update password_reset_tokens set used_at = now() where user_id = ? and used_at is null")
-                .param(userId)
-                .update();
+        resetTokens.markAllUsed(userId);
         sessions.revokeAllForUser(userId, "PASSWORD_RESET", null);
         audit.recordGlobal(AuditAction.PASSWORD_RESET_COMPLETED, userId, "user", userId, Map.of());
     }

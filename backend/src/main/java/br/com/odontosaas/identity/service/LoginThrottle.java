@@ -3,11 +3,11 @@ package br.com.odontosaas.identity.service;
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.identity.config.SecurityProperties;
+import br.com.odontosaas.identity.repository.LoginAttemptRepository;
 import br.com.odontosaas.shared.ApiException;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,12 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class LoginThrottle {
 
-    private final JdbcClient jdbc;
+    private final LoginAttemptRepository attempts;
     private final SecurityProperties props;
     private final AuditService audit;
 
-    public LoginThrottle(JdbcClient jdbc, SecurityProperties props, AuditService audit) {
-        this.jdbc = jdbc;
+    public LoginThrottle(LoginAttemptRepository attempts, SecurityProperties props, AuditService audit) {
+        this.attempts = attempts;
         this.props = props;
         this.audit = audit;
     }
@@ -32,17 +32,8 @@ public class LoginThrottle {
     /** Lança 429 se o e-mail ou o IP excederam o limite de falhas na janela. */
     public void check(String email, String ip) {
         long windowSeconds = props.loginWindow().toSeconds();
-        long emailFailures =
-                jdbc.sql("""
-                        select count(*) from login_attempts
-                        where email = ? and not success and attempted_at > now() - make_interval(secs => ?)
-                        """).params(email, windowSeconds).query(Long.class).single();
-        long ipFailures = ip == null
-                ? 0
-                : jdbc.sql("""
-                                select count(*) from login_attempts
-                                where ip = ? and not success and attempted_at > now() - make_interval(secs => ?)
-                                """).params(ip, windowSeconds).query(Long.class).single();
+        long emailFailures = attempts.countEmailFailures(email, windowSeconds);
+        long ipFailures = ip == null ? 0 : attempts.countIpFailures(ip, windowSeconds);
         if (emailFailures >= props.loginMaxFailuresPerEmail() || ipFailures >= props.loginMaxFailuresPerIp()) {
             throw new ApiException(
                     HttpStatus.TOO_MANY_REQUESTS,
@@ -72,8 +63,6 @@ public class LoginThrottle {
     }
 
     private void insert(String email, String ip, boolean success) {
-        jdbc.sql("insert into login_attempts (email, ip, success) values (?, ?, ?)")
-                .params(email, ip, success)
-                .update();
+        attempts.insert(email, ip, success);
     }
 }

@@ -10,6 +10,7 @@ import br.com.odontosaas.identity.entity.Invitation;
 import br.com.odontosaas.identity.entity.Membership;
 import br.com.odontosaas.identity.entity.Role;
 import br.com.odontosaas.identity.entity.User;
+import br.com.odontosaas.identity.repository.AccessQueries;
 import br.com.odontosaas.identity.repository.InvitationRepository;
 import br.com.odontosaas.identity.repository.MembershipRepository;
 import br.com.odontosaas.identity.repository.RoleRepository;

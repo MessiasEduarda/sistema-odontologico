@@ -2,11 +2,11 @@ package br.com.odontosaas.identity.service;
 
 import br.com.odontosaas.audit.AuditAction;
 import br.com.odontosaas.audit.AuditService;
+import br.com.odontosaas.identity.repository.TermsRepository;
 import br.com.odontosaas.shared.ApiException;
 import br.com.odontosaas.shared.RequestInfo;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,20 +20,16 @@ public class TermsService {
     /** Versão vigente: data da última atualização dos textos. */
     public static final String CURRENT_VERSION = "2026-10-15";
 
-    private final JdbcClient jdbc;
+    private final TermsRepository terms;
     private final AuditService audit;
 
-    public TermsService(JdbcClient jdbc, AuditService audit) {
-        this.jdbc = jdbc;
+    public TermsService(TermsRepository terms, AuditService audit) {
+        this.terms = terms;
         this.audit = audit;
     }
 
     public boolean hasAcceptedCurrent(UUID userId) {
-        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM terms_acceptances WHERE user_id = :user AND version = :version)")
-                .param("user", userId)
-                .param("version", CURRENT_VERSION)
-                .query(Boolean.class)
-                .single();
+        return terms.hasAccepted(userId, CURRENT_VERSION);
     }
 
     /** Registra o aceite (idempotente). Recusa versão diferente da vigente: a tela estava com um texto antigo. */
@@ -43,16 +39,7 @@ public class TermsService {
             throw ApiException.conflict(
                     "TERMS_OUTDATED", "Os termos foram atualizados. Recarregue a página para ler a versão vigente.");
         }
-        int inserted = jdbc.sql("""
-                        INSERT INTO terms_acceptances (user_id, version, ip, user_agent)
-                        VALUES (:user, :version, :ip, :userAgent)
-                        ON CONFLICT (user_id, version) DO NOTHING
-                        """)
-                .param("user", userId)
-                .param("version", version)
-                .param("ip", RequestInfo.clientIp())
-                .param("userAgent", RequestInfo.userAgent())
-                .update();
+        int inserted = terms.insertIfAbsent(userId, version, RequestInfo.clientIp(), RequestInfo.userAgent());
         if (inserted > 0) {
             audit.recordGlobal(AuditAction.TERMS_ACCEPTED, userId, "terms", null, Map.of("version", version));
         }

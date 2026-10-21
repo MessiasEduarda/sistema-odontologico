@@ -9,19 +9,18 @@ import br.com.odontosaas.subscription.dto.request.SubscriptionRequest;
 import br.com.odontosaas.subscription.dto.response.Billing;
 import br.com.odontosaas.subscription.dto.response.PlanView;
 import br.com.odontosaas.subscription.dto.response.SubscriptionView;
+import br.com.odontosaas.subscription.repository.PlanRepository;
+import br.com.odontosaas.subscription.repository.PlanUsageRepository;
+import br.com.odontosaas.subscription.repository.SubscriptionRepository;
 import br.com.odontosaas.tenancy.TenantContext;
-import java.sql.Array;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,37 +67,25 @@ public class SubscriptionService {
         return new Billing(today.isBefore(blockedFrom) ? "DUE" : "BLOCKED", due, blockedFrom);
     }
 
-    private final JdbcClient jdbc;
+    private final PlanRepository planRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final PlanUsageRepository usage;
     private final AuditService audit;
 
-    public SubscriptionService(JdbcClient jdbc, AuditService audit) {
-        this.jdbc = jdbc;
+    public SubscriptionService(
+            PlanRepository planRepository,
+            SubscriptionRepository subscriptionRepository,
+            PlanUsageRepository usage,
+            AuditService audit) {
+        this.planRepository = planRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.usage = usage;
         this.audit = audit;
-    }
-
-    private static List<String> features(Array array) throws SQLException {
-        return array == null ? List.of() : Arrays.asList((String[]) array.getArray());
     }
 
     @Transactional(readOnly = true)
     public List<PlanView> plans() {
-        return jdbc.sql("""
-                        select p.id, p.code, p.name, p.price_monthly, p.max_professionals, p.max_patients, p.features,
-                               p.active, (select count(*) from subscriptions s where s.plan_id = p.id
-                                   and s.status <> 'CANCELLED') as tenants
-                        from plans p order by p.price_monthly, p.name
-                        """)
-                .query((rs, n) -> new PlanView(
-                        rs.getObject("id", UUID.class),
-                        rs.getString("code"),
-                        rs.getString("name"),
-                        rs.getBigDecimal("price_monthly"),
-                        (Integer) rs.getObject("max_professionals"),
-                        (Integer) rs.getObject("max_patients"),
-                        features(rs.getArray("features")),
-                        rs.getBoolean("active"),
-                        rs.getLong("tenants")))
-                .list();
+        return planRepository.list();
     }
 
     @Transactional
@@ -109,35 +96,9 @@ public class SubscriptionService {
         String[] features = r.features().toArray(String[]::new);
         if (id == null) {
             id = Ids.newId();
-            jdbc.sql("""
-                            insert into plans (id, code, name, price_monthly, max_professionals, max_patients, features,
-                                active) values (?, ?, ?, ?, ?, ?, ?, ?)
-                            """)
-                    .params(
-                            id,
-                            r.code(),
-                            r.name().strip(),
-                            r.priceMonthly(),
-                            r.maxProfessionals(),
-                            r.maxPatients(),
-                            features,
-                            r.active())
-                    .update();
+            planRepository.insert(id, r, features);
         } else {
-            int updated = jdbc.sql("""
-                            update plans set code = ?, name = ?, price_monthly = ?, max_professionals = ?,
-                                max_patients = ?, features = ?, active = ? where id = ?
-                            """)
-                    .params(
-                            r.code(),
-                            r.name().strip(),
-                            r.priceMonthly(),
-                            r.maxProfessionals(),
-                            r.maxPatients(),
-                            features,
-                            r.active(),
-                            id)
-                    .update();
+            int updated = planRepository.update(id, r, features);
             if (updated == 0) throw ApiException.notFound("Plano");
         }
         audit.recordGlobal(AuditAction.RECORD_UPDATED, TenantContext.userId().orElse(null), "plan", id, Map.of());
@@ -149,53 +110,37 @@ public class SubscriptionService {
     @Transactional
     public void startTrial(UUID tenantId, String planCode) {
         UUID planId = planId(planCode == null ? DEFAULT_PLAN : planCode);
-        jdbc.sql("""
-                        insert into subscriptions (tenant_id, plan_id, status, trial_ends_at)
-                        values (?, ?, 'TRIALING', current_date + 30) on conflict (tenant_id) do nothing
-                        """).params(tenantId, planId).update();
+        subscriptionRepository.insertTrial(tenantId, planId);
     }
 
     private UUID planId(String code) {
-        return jdbc.sql("select id from plans where code = ?")
-                .param(code)
-                .query(UUID.class)
-                .optional()
+        return planRepository
+                .findIdByCode(code)
                 .orElseThrow(() -> ApiException.invalidField("planCode", "Plano inexistente."));
     }
 
     @Transactional(readOnly = true)
     public Optional<SubscriptionView> subscription(UUID tenantId) {
-        return jdbc.sql("""
-                        select s.tenant_id, p.code as plan_code, p.name as plan_name, p.price_monthly, s.status,
-                               s.trial_ends_at, s.current_period_end, p.features, p.max_professionals, p.max_patients,
-                               s.notes, s.updated_at, s.payment_url
-                        from subscriptions s join plans p on p.id = s.plan_id where s.tenant_id = ?
-                        """)
-                .param(tenantId)
-                .query((rs, n) -> {
-                    String status = rs.getString("status");
-                    LocalDate trialEndsAt = rs.getObject("trial_ends_at", LocalDate.class);
-                    LocalDate periodEnd = rs.getObject("current_period_end", LocalDate.class);
-                    Instant updatedAt = rs.getTimestamp("updated_at").toInstant();
-                    return new SubscriptionView(
-                            rs.getObject("tenant_id", UUID.class),
-                            rs.getString("plan_code"),
-                            rs.getString("plan_name"),
-                            rs.getBigDecimal("price_monthly"),
-                            status,
-                            trialEndsAt,
-                            periodEnd,
-                            features(rs.getArray("features")),
-                            (Integer) rs.getObject("max_professionals"),
-                            (Integer) rs.getObject("max_patients"),
-                            0,
-                            0,
-                            rs.getString("notes"),
-                            updatedAt,
-                            rs.getString("payment_url"),
-                            billing(status, trialEndsAt, periodEnd, updatedAt, LocalDate.now(ZONE)));
-                })
-                .optional();
+        return subscriptionRepository.find(tenantId).map(row -> {
+            Instant updatedAt = row.updatedAt();
+            return new SubscriptionView(
+                    row.tenantId(),
+                    row.planCode(),
+                    row.planName(),
+                    row.priceMonthly(),
+                    row.status(),
+                    row.trialEndsAt(),
+                    row.currentPeriodEnd(),
+                    row.features(),
+                    row.maxProfessionals(),
+                    row.maxPatients(),
+                    0,
+                    0,
+                    row.notes(),
+                    updatedAt,
+                    row.paymentUrl(),
+                    billing(row.status(), row.trialEndsAt(), row.currentPeriodEnd(), updatedAt, LocalDate.now(ZONE)));
+        });
     }
 
     /** Assinatura da clínica ATIVA, com o uso atual dos limites. */
@@ -203,14 +148,8 @@ public class SubscriptionService {
     public Optional<SubscriptionView> currentClinic() {
         UUID tenantId = TenantContext.requireTenantId();
         return subscription(tenantId).map(s -> {
-            long professionals = jdbc.sql("select count(*) from professionals where tenant_id = ? and active")
-                    .param(tenantId)
-                    .query(Long.class)
-                    .single();
-            long patients = jdbc.sql("select count(*) from patients where tenant_id = ? and active")
-                    .param(tenantId)
-                    .query(Long.class)
-                    .single();
+            long professionals = usage.countActiveProfessionals(tenantId);
+            long patients = usage.countActivePatients(tenantId);
             return new SubscriptionView(
                     s.tenantId(),
                     s.planCode(),
@@ -234,25 +173,16 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionView update(UUID tenantId, SubscriptionRequest r) {
         UUID planId = planId(r.planCode());
-        jdbc.sql("""
-                        insert into subscriptions (tenant_id, plan_id, status, trial_ends_at, current_period_end, notes,
-                            payment_url)
-                        values (?, ?, ?, ?, ?, ?, ?)
-                        on conflict (tenant_id) do update set plan_id = excluded.plan_id, status = excluded.status,
-                            trial_ends_at = excluded.trial_ends_at, current_period_end = excluded.current_period_end,
-                            notes = excluded.notes, payment_url = excluded.payment_url, updated_at = now()
-                        """)
-                .params(
-                        tenantId,
-                        planId,
-                        r.status(),
-                        r.trialEndsAt(),
-                        r.currentPeriodEnd(),
-                        r.notes(),
-                        r.paymentUrl() == null || r.paymentUrl().isBlank()
-                                ? null
-                                : r.paymentUrl().strip())
-                .update();
+        subscriptionRepository.upsert(
+                tenantId,
+                planId,
+                r.status(),
+                r.trialEndsAt(),
+                r.currentPeriodEnd(),
+                r.notes(),
+                r.paymentUrl() == null || r.paymentUrl().isBlank()
+                        ? null
+                        : r.paymentUrl().strip());
         audit.recordGlobal(
                 AuditAction.SUBSCRIPTION_CHANGED,
                 TenantContext.userId().orElse(null),

@@ -7,6 +7,8 @@ import br.com.odontosaas.identity.dto.response.ClinicSummary;
 import br.com.odontosaas.identity.dto.response.MeResponse;
 import br.com.odontosaas.identity.dto.response.UserView;
 import br.com.odontosaas.identity.entity.User;
+import br.com.odontosaas.identity.repository.AccessQueries;
+import br.com.odontosaas.identity.repository.SessionStore;
 import br.com.odontosaas.identity.repository.UserRepository;
 import br.com.odontosaas.identity.security.AuthenticatedUser;
 import br.com.odontosaas.identity.security.Permission;

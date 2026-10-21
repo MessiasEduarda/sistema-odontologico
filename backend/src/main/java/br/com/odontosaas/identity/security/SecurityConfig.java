@@ -1,7 +1,7 @@
 package br.com.odontosaas.identity.security;
 
-import br.com.odontosaas.identity.service.AccessQueries;
-import br.com.odontosaas.identity.service.SessionStore;
+import br.com.odontosaas.identity.repository.AccessQueries;
+import br.com.odontosaas.identity.repository.SessionStore;
 import br.com.odontosaas.identity.support.SessionCookies;
 import br.com.odontosaas.shared.web.ProblemResponseWriter;
 import org.springframework.context.annotation.Bean;
