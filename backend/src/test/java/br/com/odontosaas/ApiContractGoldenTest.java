@@ -150,9 +150,7 @@ class ApiContractGoldenTest extends PostgresIntegrationTest {
 
     /** O pretty printer usa o separador do sistema (CRLF no Windows); o repositório guarda LF. */
     private static String normalize(String text) {
-        return text.replace("
-", "
-");
+        return text.replace("\r\n", "\n");
     }
 
     private static void assertGolden(String name, String actual) {
