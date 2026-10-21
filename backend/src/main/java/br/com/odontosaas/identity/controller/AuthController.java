@@ -1,7 +1,5 @@
 package br.com.odontosaas.identity.controller;
 
-import br.com.odontosaas.audit.AuditAction;
-import br.com.odontosaas.audit.AuditService;
 import br.com.odontosaas.identity.dto.request.AcceptTermsRequest;
 import br.com.odontosaas.identity.dto.request.ChangePasswordRequest;
 import br.com.odontosaas.identity.dto.request.ForgotPasswordRequest;
@@ -10,20 +8,18 @@ import br.com.odontosaas.identity.dto.request.ResetPasswordRequest;
 import br.com.odontosaas.identity.dto.request.SwitchClinicRequest;
 import br.com.odontosaas.identity.dto.response.MeResponse;
 import br.com.odontosaas.identity.dto.response.SessionView;
-import br.com.odontosaas.identity.repository.SessionStore;
 import br.com.odontosaas.identity.security.AuthenticatedUser;
 import br.com.odontosaas.identity.security.CurrentUser;
 import br.com.odontosaas.identity.service.AuthService;
 import br.com.odontosaas.identity.service.PasswordService;
+import br.com.odontosaas.identity.service.SessionService;
 import br.com.odontosaas.identity.service.TermsService;
-import br.com.odontosaas.shared.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -43,20 +39,13 @@ public class AuthController {
 
     private final AuthService auth;
     private final PasswordService passwords;
-    private final SessionStore sessions;
-    private final AuditService audit;
+    private final SessionService sessions;
     private final TermsService terms;
 
-    public AuthController(
-            AuthService auth,
-            PasswordService passwords,
-            SessionStore sessions,
-            AuditService audit,
-            TermsService terms) {
+    public AuthController(AuthService auth, PasswordService passwords, SessionService sessions, TermsService terms) {
         this.auth = auth;
         this.passwords = passwords;
         this.sessions = sessions;
-        this.audit = audit;
         this.terms = terms;
     }
 
@@ -110,31 +99,21 @@ public class AuthController {
     @GetMapping("/sessions")
     @Operation(summary = "Sessões ativas do próprio usuário")
     public List<SessionView> listSessions() {
-        AuthenticatedUser user = CurrentUser.require();
-        return sessions.listActive(user.userId()).stream()
-                .map(s -> new SessionView(
-                        s.id(), s.createdAt(), s.lastSeenAt(), s.ip(), s.userAgent(), s.id().equals(user.sessionId())))
-                .toList();
+        return sessions.list(CurrentUser.require());
     }
 
     @DeleteMapping("/sessions/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Encerra uma sessão do próprio usuário", description = "404 se não for do usuário.")
     public void revokeSession(@PathVariable UUID id) {
-        AuthenticatedUser user = CurrentUser.require();
-        if (!sessions.revokeOwned(user.userId(), id, "USER_REVOKED")) {
-            throw ApiException.notFound("Sessão");
-        }
-        audit.recordGlobal(AuditAction.SESSION_REVOKED, user.userId(), "session", id, Map.of());
+        sessions.revoke(CurrentUser.require(), id);
     }
 
     @PostMapping("/sessions/revoke-others")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Encerra todas as outras sessões do usuário")
     public void revokeOtherSessions() {
-        AuthenticatedUser user = CurrentUser.require();
-        int count = sessions.revokeAllForUser(user.userId(), "USER_REVOKED", user.sessionId());
-        audit.recordGlobal(AuditAction.SESSION_REVOKED, user.userId(), "session", null, Map.of("count", count));
+        sessions.revokeOthers(CurrentUser.require());
     }
 
     @PostMapping("/password/forgot")
