@@ -8,6 +8,7 @@ import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Badge, Card, CardTitle, ErrorState, KpiCard, KpiGrid, PageHeader, Stack } from "@/components/ui/display";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useMe } from "@/features/auth/hooks";
@@ -30,6 +31,7 @@ export function DashboardPage() {
     enabled: Boolean(me?.activeClinic),
     refetchInterval: 60_000,
   });
+  const search = useRowSearch(data?.today, (r) => [r.patientName, r.professionalName]);
 
   if (me?.platformAdmin && !me.activeClinic) {
     return (
@@ -127,9 +129,17 @@ export function DashboardPage() {
             <CardTitle as="h2">Agenda de hoje</CardTitle>
             <Link href="/agenda">Ver agenda completa</Link>
           </Header>
+          <SearchBox>
+            <SearchInput
+              label="Buscar por nome"
+              placeholder="Paciente ou profissional…"
+              value={search.query}
+              onChange={search.setQuery}
+            />
+          </SearchBox>
           <DataTable<TodayRow>
             caption="Atendimentos de hoje"
-            rows={data.today}
+            rows={search.rows}
             rowKey={(r) => r.id}
             onRowClick={(r) => router.push(`/pacientes/${r.patientId}`)}
             emptyTitle="Nenhum atendimento hoje"
@@ -181,6 +191,10 @@ function alertHref(type: string) {
       return "/pacientes";
   }
 }
+
+const SearchBox = styled.div`
+  padding: ${({ theme }) => `0 ${theme.space[6]} ${theme.space[4]}`};
+`;
 
 const Header = styled.div`
   display: flex;

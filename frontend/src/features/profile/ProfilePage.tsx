@@ -75,7 +75,7 @@ function PasswordCard() {
   return (
     <Card>
       <CardTitle>Trocar senha</CardTitle>
-      <Muted style={{ marginBottom: 16 }}>{PASSWORD_HINT}</Muted>
+      <Muted style={{ display: "block", marginBottom: 16 }}>{PASSWORD_HINT}</Muted>
       <PasswordFields>
         <TextField
           label="Senha atual"

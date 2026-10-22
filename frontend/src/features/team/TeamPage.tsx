@@ -7,7 +7,8 @@ import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
+import { Badge, FilterBar, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, SelectField } from "@/components/ui/fields";
 import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
@@ -64,6 +65,7 @@ function MembersTab() {
   const [editing, setEditing] = useState<Member | null>(null);
   const [deactivating, setDeactivating] = useState<Member | null>(null);
   const members = useQuery({ queryKey: ["members"], queryFn: api.clinic.members });
+  const search = useRowSearch(members.data, (m) => [m.name, m.email]);
   const deactivate = useAction(() => api.clinic.deactivateMember(deactivating?.membershipId ?? ""), {
     success: "Acesso desativado com sucesso!",
     invalidate: [["members"]],
@@ -73,16 +75,22 @@ function MembersTab() {
 
   return (
     <Stack $gap={4}>
-      {manage && (
-        <Row $justify="flex-end">
+      <Row $justify="space-between">
+        <SearchInput
+          label="Buscar por nome"
+          placeholder="Nome ou e-mail…"
+          value={search.query}
+          onChange={search.setQuery}
+        />
+        {manage && (
           <Button onClick={() => setInviting(true)}>
             <UserPlus size={16} aria-hidden /> Convidar pessoa
           </Button>
-        </Row>
-      )}
+        )}
+      </Row>
       <DataTable<Member>
         caption="Membros da equipe"
-        rows={members.data}
+        rows={search.rows}
         loading={members.isPending}
         error={members.error}
         onRetry={members.refetch}
@@ -355,9 +363,10 @@ function AuditTab() {
     queryKey: ["audit", from, to, action],
     queryFn: () => api.clinic.audit({ from, to, action: action || undefined }),
   });
+  const search = useRowSearch(events.data, (e) => [e.actorName, e.actorEmail]);
   return (
     <Stack $gap={4}>
-      <Row $gap={3}>
+      <FilterBar>
         <TextField label="De" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         <TextField label="Até" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         <ActionFilter>
@@ -369,10 +378,11 @@ function AuditTab() {
             options={Object.entries(ACTION_LABELS).map(([value, label]) => ({ value, label }))}
           />
         </ActionFilter>
-      </Row>
+        <SearchInput label="Buscar por nome" placeholder="Quem fez…" value={search.query} onChange={search.setQuery} />
+      </FilterBar>
       <DataTable<AuditEvent>
         caption="Eventos de auditoria"
-        rows={events.data}
+        rows={search.rows}
         loading={events.isPending}
         error={events.error}
         onRetry={events.refetch}

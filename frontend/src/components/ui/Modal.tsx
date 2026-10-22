@@ -163,6 +163,10 @@ const Head = styled.div`
   gap: ${({ theme }) => theme.space[3]};
   padding: ${({ theme }) => `${theme.space[5]} ${theme.space[6]}`};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}px) {
+    padding: ${({ theme }) => `${theme.space[4]} ${theme.space[4]}`};
+  }
 `;
 
 const Title = styled.h2`
@@ -174,6 +178,10 @@ const Title = styled.h2`
 const Body = styled.div`
   padding: ${({ theme }) => theme.space[6]};
   overflow-y: auto;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}px) {
+    padding: ${({ theme }) => `${theme.space[5]} ${theme.space[4]}`};
+  }
 `;
 
 const Foot = styled.div`
@@ -183,4 +191,12 @@ const Foot = styled.div`
   gap: ${({ theme }) => theme.space[3]};
   padding: ${({ theme }) => `${theme.space[4]} ${theme.space[6]}`};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
+
+  /* Celular: botões dividem a largura em vez de ficarem espremidos num canto. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.sm}px) {
+    padding: ${({ theme }) => `${theme.space[3]} ${theme.space[4]}`};
+    & > * {
+      flex: 1 1 auto;
+    }
+  }
 `;

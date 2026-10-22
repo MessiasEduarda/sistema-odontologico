@@ -8,7 +8,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { Badge, Card, EmptyState, ErrorState, Muted, Row, Stack } from "@/components/ui/display";
-import { FormGrid, SelectField } from "@/components/ui/fields";
+import { FileField, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { TextField } from "@/components/ui/TextField";
@@ -74,37 +74,39 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
     <Stack $gap={4}>
       {can(P.CLINICAL_WRITE) && (
         <Card>
-          <FormGrid $columns={3}>
-            <div>
-              <Label htmlFor="attachment-file">Arquivo (PDF, JPG, PNG, WEBP · até {MAX_MB} MB)</Label>
-              <input
-                id="attachment-file"
+          <Stack $gap={5}>
+            <FormGrid $columns={2}>
+              <FileField
                 ref={input}
-                type="file"
+                label="Arquivo"
+                hint={`PDF, JPG, PNG ou WEBP, até ${MAX_MB} MB`}
                 accept="application/pdf,image/jpeg,image/png,image/webp"
-                onChange={(e) => choose(e.target.files?.[0] ?? null)}
+                fileName={file?.name ?? null}
+                onChange={choose}
               />
-            </div>
-            <SelectField
-              label="Categoria"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              options={ATTACHMENT_CATEGORIES}
-            />
-            <TextField
-              label="Descrição"
-              maxLength={300}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </FormGrid>
-          {localError && <Alert tone="danger">{localError}</Alert>}
-          {upload.error && <Alert tone="danger">{upload.error.message}</Alert>}
-          <Row $justify="flex-end">
-            <Button onClick={() => upload.mutate(undefined)} loading={upload.isPending} disabled={!file}>
-              Enviar arquivo
-            </Button>
-          </Row>
+              <SelectField
+                label="Categoria"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                options={ATTACHMENT_CATEGORIES}
+              />
+              <FullRow>
+                <TextField
+                  label="Descrição"
+                  maxLength={300}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </FullRow>
+            </FormGrid>
+            {localError && <Alert tone="danger">{localError}</Alert>}
+            {upload.error && <Alert tone="danger">{upload.error.message}</Alert>}
+            <Row $justify="flex-end">
+              <Button onClick={() => upload.mutate(undefined)} loading={upload.isPending} disabled={!file}>
+                Enviar arquivo
+              </Button>
+            </Row>
+          </Stack>
         </Card>
       )}
 
@@ -162,12 +164,6 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
     </Stack>
   );
 }
-
-const Label = styled.label`
-  display: block;
-  font-weight: ${({ theme }) => theme.fontWeights.semibold};
-  margin-bottom: ${({ theme }) => theme.space[2]};
-`;
 
 const Grid = styled.ul`
   list-style: none;

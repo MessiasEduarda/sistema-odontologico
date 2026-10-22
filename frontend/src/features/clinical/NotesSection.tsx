@@ -8,6 +8,7 @@ import { ReasonDialog } from "@/components/domain/ReasonDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Badge, Card, EmptyState, ErrorState, Muted, Row, Stack } from "@/components/ui/display";
 import { FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
@@ -158,6 +159,7 @@ export function PerformedSection({ patientId }: { patientId: string }) {
   const [adding, setAdding] = useState(false);
   const [voiding, setVoiding] = useState<PerformedProcedure | null>(null);
   const performed = useQuery({ queryKey: ["performed", patientId], queryFn: () => api.clinical.performed(patientId) });
+  const search = useRowSearch(performed.data, (p) => [p.professionalName, p.description]);
   const voidIt = useAction((reason: string) => api.clinical.voidPerformed(patientId, voiding?.id ?? "", reason), {
     success: "Registro anulado com sucesso!",
     invalidate: [["performed", patientId], ["plans"]],
@@ -170,9 +172,15 @@ export function PerformedSection({ patientId }: { patientId: string }) {
         <Muted>Procedimentos executados no paciente.</Muted>
         {can(P.CLINICAL_WRITE) && <Button onClick={() => setAdding(true)}>Registrar procedimento</Button>}
       </Row>
+      <SearchInput
+        label="Buscar por nome"
+        placeholder="Profissional ou procedimento…"
+        value={search.query}
+        onChange={search.setQuery}
+      />
       <DataTable<PerformedProcedure>
         caption="Procedimentos realizados"
-        rows={performed.data}
+        rows={search.rows}
         loading={performed.isPending}
         error={performed.error}
         onRetry={() => performed.refetch()}

@@ -7,7 +7,8 @@ import { useState } from "react";
 import styled from "styled-components";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, PageHeader, Stack } from "@/components/ui/display";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
+import { Badge, FilterBar, PageHeader, Stack } from "@/components/ui/display";
 import { SelectField } from "@/components/ui/fields";
 import { api } from "@/lib/api/endpoints";
 import type { PlanSummary } from "@/lib/api/types";
@@ -24,6 +25,7 @@ export function PlansPage() {
     queryKey: ["plans", "list", status],
     queryFn: () => api.plans.list({ status: status || undefined }),
   });
+  const search = useRowSearch(data, (p) => [p.patientName, p.professionalName]);
 
   return (
     <Stack>
@@ -37,18 +39,26 @@ export function PlansPage() {
           )
         }
       />
-      <Filter>
-        <SelectField
-          label="Status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          placeholder="Todos"
-          options={Object.entries(PLAN_STATUS).map(([value, s]) => ({ value, label: s.label }))}
+      <FilterBar>
+        <Filter>
+          <SelectField
+            label="Status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            placeholder="Todos"
+            options={Object.entries(PLAN_STATUS).map(([value, s]) => ({ value, label: s.label }))}
+          />
+        </Filter>
+        <SearchInput
+          label="Buscar por nome"
+          placeholder="Paciente ou profissional…"
+          value={search.query}
+          onChange={search.setQuery}
         />
-      </Filter>
+      </FilterBar>
       <DataTable<PlanSummary>
         caption="Orçamentos"
-        rows={data}
+        rows={search.rows}
         loading={isPending}
         error={error}
         onRetry={refetch}

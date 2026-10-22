@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/Modal";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import {
   Badge,
   Card,
@@ -289,6 +290,7 @@ function RecordTab({
       {summary.data && !summary.data.lastAnamnesisAt && <Alert tone="warning">Paciente sem anamnese registrada.</Alert>}
       <Tabs
         label="Seções do prontuário"
+        variant="sub"
         active={section}
         onChange={setSection}
         items={[
@@ -322,28 +324,37 @@ function AppointmentsTab({ patientId }: { patientId: string }) {
     queryKey: ["appointments", "patient", patientId],
     queryFn: () => api.appointments.list({ patientId }),
   });
+  const search = useRowSearch(data, (a) => [a.professionalName, a.procedureName]);
   return (
-    <DataTable<Appointment>
-      caption="Consultas do paciente"
-      rows={data}
-      loading={isPending}
-      error={error}
-      onRetry={refetch}
-      rowKey={(a) => a.id}
-      emptyTitle="Nenhuma consulta"
-      columns={[
-        { key: "date", header: "Data", render: (a) => `${formatDate(a.startsAt)} ${formatTime(a.startsAt)}` },
-        { key: "prof", header: "Profissional", render: (a) => a.professionalName },
-        { key: "proc", header: "Procedimento", hideOnMobile: true, render: (a) => a.procedureName ?? "—" },
-        {
-          key: "status",
-          header: "Status",
-          render: (a) => (
-            <Badge $tone={APPOINTMENT_STATUS[a.status]?.tone}>{APPOINTMENT_STATUS[a.status]?.label}</Badge>
-          ),
-        },
-      ]}
-    />
+    <Stack $gap={4}>
+      <SearchInput
+        label="Buscar por nome"
+        placeholder="Profissional ou procedimento…"
+        value={search.query}
+        onChange={search.setQuery}
+      />
+      <DataTable<Appointment>
+        caption="Consultas do paciente"
+        rows={search.rows}
+        loading={isPending}
+        error={error}
+        onRetry={refetch}
+        rowKey={(a) => a.id}
+        emptyTitle="Nenhuma consulta"
+        columns={[
+          { key: "date", header: "Data", render: (a) => `${formatDate(a.startsAt)} ${formatTime(a.startsAt)}` },
+          { key: "prof", header: "Profissional", render: (a) => a.professionalName },
+          { key: "proc", header: "Procedimento", hideOnMobile: true, render: (a) => a.procedureName ?? "—" },
+          {
+            key: "status",
+            header: "Status",
+            render: (a) => (
+              <Badge $tone={APPOINTMENT_STATUS[a.status]?.tone}>{APPOINTMENT_STATUS[a.status]?.label}</Badge>
+            ),
+          },
+        ]}
+      />
+    </Stack>
   );
 }
 

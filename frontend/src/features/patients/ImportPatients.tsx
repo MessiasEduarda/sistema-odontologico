@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Badge, Muted, Stack } from "@/components/ui/display";
 import { Modal } from "@/components/ui/Modal";
 import { api } from "@/lib/api/endpoints";
@@ -110,6 +111,7 @@ export function ImportPatients({ onClose }: { onClose: () => void }) {
   const [unknown, setUnknown] = useState<string[]>([]);
   const [localError, setLocalError] = useState<string>();
   const [preview, setPreview] = useState<PatientImportResult>();
+  const search = useRowSearch(preview?.issues, (i) => [i.name]);
 
   const check = useAction((list: PatientImportRow[]) => api.patients.importRows(list, true), {
     onSuccess: (result) => setPreview(result),
@@ -202,9 +204,17 @@ export function ImportPatients({ onClose }: { onClose: () => void }) {
               <Muted>de {preview.total} linha(s) na planilha</Muted>
             </Summary>
             {preview.issues.length > 0 && (
+              <SearchInput
+                label="Buscar por nome"
+                placeholder="Nome do paciente…"
+                value={search.query}
+                onChange={search.setQuery}
+              />
+            )}
+            {preview.issues.length > 0 && (
               <DataTable
                 caption="Linhas com problema"
-                rows={preview.issues}
+                rows={search.rows}
                 rowKey={(i) => `${i.line}`}
                 columns={[
                   { key: "line", header: "Linha", render: (i) => i.line },

@@ -13,6 +13,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Badge, Card, PageHeader, Row, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { Modal } from "@/components/ui/Modal";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { useMe } from "@/features/auth/hooks";
@@ -219,37 +220,46 @@ function PrintDialog({
 function DeliveredTab() {
   const router = useRouter();
   const list = useQuery({ queryKey: ["issued-care"], queryFn: () => api.clinical.recentDocuments("INSTRUCTIONS") });
+  const search = useRowSearch(list.data, (d) => [d.patientName, d.professionalName]);
   return (
-    <DataTable<IssuedDocument>
-      caption="Orientações entregues"
-      rows={list.data}
-      loading={list.isPending}
-      error={list.error}
-      onRetry={list.refetch}
-      rowKey={(d) => d.id}
-      onRowClick={(d) => router.push(`/pacientes/${d.patientId}?aba=prontuario&secao=documentos`)}
-      emptyTitle="Nenhuma orientação entregue"
-      columns={[
-        { key: "date", header: "Data", render: (d) => formatDateTime(d.issuedAt) },
-        { key: "patient", header: "Paciente", render: (d) => <strong>{d.patientName}</strong> },
-        { key: "title", header: "Orientação", render: (d) => d.title },
-        { key: "prof", header: "Profissional", hideOnMobile: true, render: (d) => d.professionalName },
-        {
-          key: "pdf",
-          header: "",
-          render: (d) => (
-            <PdfButton
-              compact
-              load={async () => {
-                const data = (await api.clinical.documents(d.patientId)).find((x) => x.id === d.id);
-                if (!data) throw new Error("Documento não encontrado.");
-                return { kind: "document", patientId: d.patientId, data };
-              }}
-            />
-          ),
-        },
-      ]}
-    />
+    <Stack $gap={4}>
+      <SearchInput
+        label="Buscar por nome"
+        placeholder="Paciente ou profissional…"
+        value={search.query}
+        onChange={search.setQuery}
+      />
+      <DataTable<IssuedDocument>
+        caption="Orientações entregues"
+        rows={search.rows}
+        loading={list.isPending}
+        error={list.error}
+        onRetry={list.refetch}
+        rowKey={(d) => d.id}
+        onRowClick={(d) => router.push(`/pacientes/${d.patientId}?aba=prontuario&secao=documentos`)}
+        emptyTitle="Nenhuma orientação entregue"
+        columns={[
+          { key: "date", header: "Data", render: (d) => formatDateTime(d.issuedAt) },
+          { key: "patient", header: "Paciente", render: (d) => <strong>{d.patientName}</strong> },
+          { key: "title", header: "Orientação", render: (d) => d.title },
+          { key: "prof", header: "Profissional", hideOnMobile: true, render: (d) => d.professionalName },
+          {
+            key: "pdf",
+            header: "",
+            render: (d) => (
+              <PdfButton
+                compact
+                load={async () => {
+                  const data = (await api.clinical.documents(d.patientId)).find((x) => x.id === d.id);
+                  if (!data) throw new Error("Documento não encontrado.");
+                  return { kind: "document", patientId: d.patientId, data };
+                }}
+              />
+            ),
+          },
+        ]}
+      />
+    </Stack>
   );
 }
 

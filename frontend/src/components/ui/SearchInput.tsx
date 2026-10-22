@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useEffect, useState, type InputHTMLAttributes } from "react";
+import { useEffect, useMemo, useState, type InputHTMLAttributes } from "react";
 import styled from "styled-components";
 import { controlStyles } from "./fields";
 
@@ -11,6 +11,30 @@ interface SearchInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "
   /** Espera (ms) depois da última tecla antes de avisar a mudança. */
   debounceMs?: number;
   label: string;
+}
+
+/** Texto comparável: sem acentos e em minúsculas ("José" encontra "jose"). */
+const normalize = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+/**
+ * Busca por nome feita na própria tela, sobre a lista já carregada. `text` diz em quais campos procurar
+ * (paciente, profissional, fornecedor...). Devolve o termo, quem o altera e as linhas que combinam.
+ */
+export function useRowSearch<T>(rows: T[] | undefined, text: (row: T) => (string | null | undefined)[]) {
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = normalize(query);
+    if (!q || !rows) return rows;
+    return rows.filter((row) => text(row).some((value) => value && normalize(value).includes(q)));
+    // `text` costuma ser uma função criada a cada renderização; o resultado só depende das linhas e do termo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, query]);
+  return { query, setQuery, rows: filtered };
 }
 
 /** Campo de busca com atraso (evita uma consulta por tecla). */

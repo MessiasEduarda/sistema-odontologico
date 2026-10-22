@@ -14,7 +14,35 @@ export interface Column<T> {
   align?: "left" | "right" | "center";
   /** Oculta a coluna na visão em cartões do celular. */
   hideOnMobile?: boolean;
+  /**
+   * Permite quebrar o texto em várias linhas. Padrão: só colunas de texto longo (descrição, observações...);
+   * as demais (datas, valores, telefone, CPF) ficam numa linha só.
+   */
+  wrap?: boolean;
 }
+
+/** Colunas de texto livre, que podem quebrar linha. */
+const LONG_TEXT_HEADERS = new Set([
+  "Descrição",
+  "Observações",
+  "Observação",
+  "Obs.",
+  "Motivo",
+  "Preferência",
+  "Título",
+  "Orientação",
+  "Recursos",
+  "Procedimentos",
+  "Profissional / procedimento",
+  "Perguntas",
+  "Termo",
+  "Papéis",
+  "Resultado",
+  "Região",
+  "Ação",
+]);
+
+const wraps = <T,>(c: Column<T>) => c.wrap ?? LONG_TEXT_HEADERS.has(c.header);
 
 interface DataTableProps<T> {
   columns: Column<T>[];
@@ -78,84 +106,134 @@ export function DataTable<T>({
   return (
     <div>
       <Wrapper aria-busy={loading || undefined}>
-        <Table>
-          <caption className="sr-only">{caption}</caption>
-          <thead>
-            <tr>
-              {columns.map((c) => (
-                <Th key={c.key} scope="col" style={{ minWidth: c.minWidth, textAlign: c.align ?? "left" }}>
-                  {c.header}
-                </Th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading &&
-              Array.from({ length: 4 }, (_, i) => (
-                <tr key={`skeleton-${i}`}>
-                  {columns.map((c) => (
-                    <Td key={c.key} data-label={c.header}>
-                      <Skeleton />
-                    </Td>
-                  ))}
-                </tr>
-              ))}
-            {!loading &&
-              visible?.map((row, index) => (
-                <Tr
-                  key={rowKey(row)}
-                  ref={index === 0 ? measureRow : undefined}
-                  $clickable={Boolean(onRowClick)}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                >
-                  {columns.map((c) => (
-                    <Td
-                      key={c.key}
-                      data-label={c.header}
-                      $hideOnMobile={c.hideOnMobile}
-                      style={{ textAlign: c.align ?? "left" }}
-                    >
-                      {c.render(row)}
-                    </Td>
-                  ))}
-                </Tr>
-              ))}
-            {/* Espaço em branco (sem linhas) para a tabela ter sempre a altura de uma página cheia de dados. */}
-            {!loading && rowHeight > 0 && (visible?.length ?? 0) > 0 && (visible?.length ?? 0) < pageSize && (
-              <FillerRow aria-hidden="true">
-                <td colSpan={columns.length} style={{ height: (pageSize - (visible?.length ?? 0)) * rowHeight }} />
-              </FillerRow>
-            )}
-          </tbody>
-        </Table>
+        <Scroll>
+          <Table>
+            <caption className="sr-only">{caption}</caption>
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <Th key={c.key} scope="col" style={{ minWidth: c.minWidth, textAlign: c.align ?? "left" }}>
+                    {c.header}
+                  </Th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading &&
+                Array.from({ length: 4 }, (_, i) => (
+                  <tr key={`skeleton-${i}`}>
+                    {columns.map((c) => (
+                      <Td key={c.key} data-label={c.header}>
+                        <Skeleton />
+                      </Td>
+                    ))}
+                  </tr>
+                ))}
+              {!loading &&
+                visible?.map((row, index) => (
+                  <Tr
+                    key={rowKey(row)}
+                    ref={index === 0 ? measureRow : undefined}
+                    $clickable={Boolean(onRowClick)}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    // Linha clicável também abre pelo teclado (Tab até a linha, Enter ou Espaço).
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onKeyDown={
+                      onRowClick
+                        ? (e) => {
+                            if (e.target !== e.currentTarget) return;
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              onRowClick(row);
+                            }
+                          }
+                        : undefined
+                    }
+                  >
+                    {columns.map((c) => (
+                      <Td
+                        key={c.key}
+                        data-label={c.header}
+                        $hideOnMobile={c.hideOnMobile}
+                        $wrap={wraps(c)}
+                        style={{ textAlign: c.align ?? "left" }}
+                      >
+                        {c.render(row)}
+                      </Td>
+                    ))}
+                  </Tr>
+                ))}
+              {/* Espaço em branco (sem linhas) para a tabela ter sempre a altura de uma página cheia de dados. */}
+              {!loading && rowHeight > 0 && (visible?.length ?? 0) > 0 && (visible?.length ?? 0) < pageSize && (
+                <FillerRow aria-hidden="true">
+                  <td colSpan={columns.length} style={{ height: (pageSize - (visible?.length ?? 0)) * rowHeight }} />
+                </FillerRow>
+              )}
+            </tbody>
+          </Table>
+        </Scroll>
         {!loading && rows?.length === 0 && (
           <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
         )}
+        {!loading && (rows?.length ?? 0) > 0 && (
+          <Footer>
+            {serverPagination ? (
+              <Pagination {...serverPagination} shownItems={rows?.length ?? 0} />
+            ) : (
+              <Pagination
+                page={current}
+                totalPages={totalPages}
+                totalItems={total}
+                shownItems={visible?.length ?? 0}
+                onChange={setPage}
+              />
+            )}
+          </Footer>
+        )}
       </Wrapper>
-      {!loading &&
-        (serverPagination ? (
-          <Pagination {...serverPagination} shownItems={rows?.length ?? 0} />
-        ) : (
-          <Pagination
-            page={current}
-            totalPages={totalPages}
-            totalItems={total}
-            shownItems={visible?.length ?? 0}
-            onChange={setPage}
-          />
-        ))}
     </div>
   );
 }
 
+/**
+ * Cartão da tabela. Quando a tabela é mais larga que a tela, uma sombra suave aparece na borda que ainda tem
+ * colunas escondidas (técnica de "scroll shadow" só com CSS: as faixas claras rolam junto e cobrem a sombra).
+ */
+/** Cartão da tabela: cantos, sombra e rodapé com o paginador (o rodapé não rola de lado com a tabela). */
 const Wrapper = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: ${({ theme }) => theme.radii.lg};
   box-shadow: ${({ theme }) => theme.shadows.card};
   overflow: hidden;
+`;
 
+/**
+ * Área da tabela. Quando ela é mais larga que a tela, uma sombra suave aparece na borda que ainda tem colunas
+ * escondidas (técnica de "scroll shadow" só com CSS: as faixas claras rolam junto e cobrem a sombra).
+ */
+const Scroll = styled.div`
   @media (min-width: ${({ theme }) => theme.breakpoints.md}px) {
     overflow-x: auto;
+    background:
+      linear-gradient(to right, ${({ theme }) => theme.colors.surface} 30%, rgba(255, 255, 255, 0)) left center / 40px
+        100% no-repeat local,
+      linear-gradient(to left, ${({ theme }) => theme.colors.surface} 30%, rgba(255, 255, 255, 0)) right center / 40px
+        100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgba(30, 28, 26, 0.14), transparent) left center / 14px 100% no-repeat
+        scroll,
+      radial-gradient(farthest-side at 100% 50%, rgba(30, 28, 26, 0.14), transparent) right center / 14px 100% no-repeat
+        scroll,
+      ${({ theme }) => theme.colors.surface};
+  }
+`;
+
+/** Rodapé do cartão da tabela, com o paginador. */
+const Footer = styled.div`
+  padding: ${({ theme }) => `${theme.space[2]} ${theme.space[4]}`};
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+
+  & > nav {
+    margin-top: 0;
   }
 `;
 
@@ -206,6 +284,11 @@ const Th = styled.th`
   letter-spacing: 0.04em;
   padding: ${({ theme }) => `${theme.space[4]} ${theme.space[5]}`};
   white-space: nowrap;
+
+  /* Telas médias: colunas mais justas para caber sem rolar de lado. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.xl - 1}px) {
+    padding: ${({ theme }) => `${theme.space[4]} ${theme.space[3]}`};
+  }
 `;
 
 const Tr = styled.tr<{ $clickable: boolean }>`
@@ -214,6 +297,11 @@ const Tr = styled.tr<{ $clickable: boolean }>`
 
   &:hover {
     background: ${({ theme, $clickable }) => ($clickable ? theme.colors.surfaceMuted : "transparent")};
+  }
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
+    outline-offset: -2px;
+    background: ${({ theme }) => theme.colors.surfaceMuted};
   }
 `;
 
@@ -224,13 +312,21 @@ const FillerRow = styled.tr`
   }
 `;
 
-const Td = styled.td<{ $hideOnMobile?: boolean }>`
+const Td = styled.td<{ $hideOnMobile?: boolean; $wrap?: boolean }>`
   padding: ${({ theme }) => `${theme.space[4]} ${theme.space[5]}`};
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   vertical-align: middle;
+  @media (max-width: ${({ theme }) => theme.breakpoints.xl - 1}px) {
+    padding: ${({ theme }) => `${theme.space[4]} ${theme.space[3]}`};
+  }
+  /* Datas, valores, telefones e CPFs não se partem ao meio ("(11) 90000-" / "0021"): a tabela rola de lado. */
+  white-space: ${({ $wrap }) => ($wrap ? "normal" : "nowrap")};
+  min-width: ${({ $wrap }) => ($wrap ? "180px" : "0")};
 
   @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
     display: ${({ $hideOnMobile }) => ($hideOnMobile ? "none !important" : "flex")};
+    white-space: normal;
+    min-width: 0;
   }
 `;
 

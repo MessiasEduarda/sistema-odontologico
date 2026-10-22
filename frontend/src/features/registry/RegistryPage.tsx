@@ -7,8 +7,9 @@ import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Badge, Card, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
-import { CheckboxField, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
+import { CheckboxField, ColorField, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Modal } from "@/components/ui/Modal";
@@ -48,16 +49,23 @@ function ProfessionalsTab() {
   const [editing, setEditing] = useState<Professional | "new" | null>(null);
   const [scheduling, setScheduling] = useState<Professional | null>(null);
   const list = useQuery({ queryKey: ["professionals", "all"], queryFn: () => api.clinic.professionals() });
+  const search = useRowSearch(list.data, (p) => [p.name]);
   return (
     <Stack $gap={4}>
-      <Row $justify="flex-end">
+      <Row $justify="space-between">
+        <SearchInput
+          label="Buscar por nome"
+          placeholder="Nome do profissional…"
+          value={search.query}
+          onChange={search.setQuery}
+        />
         <Button onClick={() => setEditing("new")}>
           <Plus size={16} aria-hidden /> Novo profissional
         </Button>
       </Row>
       <DataTable<Professional>
         caption="Profissionais"
-        rows={list.data}
+        rows={search.rows}
         loading={list.isPending}
         error={list.error}
         onRetry={list.refetch}
@@ -203,10 +211,7 @@ function ProfessionalForm({ professional, onClose }: { professional: Professiona
           value={v.commissionPercent ?? ""}
           onChange={(e) => setV({ ...v, commissionPercent: e.target.value })}
         />
-        <div>
-          <ColorLabel htmlFor="prof-color">Cor na agenda</ColorLabel>
-          <input id="prof-color" type="color" value={v.color} onChange={(e) => setV({ ...v, color: e.target.value })} />
-        </div>
+        <ColorField label="Cor na agenda" value={v.color} onChange={(color) => setV({ ...v, color })} />
         <FullRow>
           <SelectField
             label="Usuário do sistema (opcional)"
@@ -521,12 +526,6 @@ const Dot = styled.span`
   width: 12px;
   height: 12px;
   border-radius: 50%;
-`;
-
-const ColorLabel = styled.label`
-  display: block;
-  font-weight: ${({ theme }) => theme.fontWeights.semibold};
-  margin-bottom: ${({ theme }) => theme.space[2]};
 `;
 
 const SlotRow = styled.div`

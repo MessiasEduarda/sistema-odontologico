@@ -53,7 +53,7 @@ export function ChartSection({ patientId }: { patientId: string }) {
       <Card>
         <Row $justify="space-between">
           <Muted>Clique em um dente para ver o histórico e registrar condições.</Muted>
-          <Row $gap={2} role="group" aria-label="Dentição">
+          <DentitionSwitch role="group" aria-label="Dentição">
             <Button
               variant={dentition === "permanent" ? "primary" : "outline"}
               onClick={() => setDentition("permanent")}
@@ -66,7 +66,7 @@ export function ChartSection({ patientId }: { patientId: string }) {
             >
               Decídua
             </Button>
-          </Row>
+          </DentitionSwitch>
         </Row>
         <div style={{ marginTop: 16 }}>
           <Odontogram entries={entries} dentition={dentition} selectedTooth={tooth} onSelectTooth={setTooth} />
@@ -250,4 +250,18 @@ const Swatch = styled.span`
   width: 12px;
   height: 12px;
   border-radius: 3px;
+`;
+
+/* No celular, a escolha de dentição ocupa a largura do cartão, com os dois botões do mesmo tamanho. */
+const DentitionSwitch = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.space[2]};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
+    width: 100%;
+
+    & > button {
+      flex: 1 1 0;
+    }
+  }
 `;

@@ -2,8 +2,8 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
+import { CheckboxField } from "@/components/ui/fields";
 import { ApiError } from "@/lib/api/client";
 import { authApi } from "./api";
 import { ME_KEY, useMe } from "./hooks";
@@ -53,10 +53,11 @@ function TermsDialog({ version }: { version: string }) {
                 : "Não foi possível registrar o aceite. Tente novamente."}
             </Alert>
           )}
-          <Check>
-            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-            <span>Li e aceito os Termos de Uso e a Política de Privacidade</span>
-          </Check>
+          <CheckboxField
+            label="Li e aceito os Termos de Uso e a Política de Privacidade"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+          />
           <DialogButton
             type="button"
             disabled={!agreed || accept.isPending}
@@ -70,19 +71,3 @@ function TermsDialog({ version }: { version: string }) {
     />
   );
 }
-
-const Check = styled.label`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space[2]};
-  font-size: ${({ theme }) => theme.fontSizes.md};
-  cursor: pointer;
-
-  input {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    accent-color: ${({ theme }) => theme.colors.primary};
-    cursor: pointer;
-  }
-`;

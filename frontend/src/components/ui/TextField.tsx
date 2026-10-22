@@ -43,6 +43,8 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
 const Field = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.space[2]};
+  align-content: start;
+  min-width: 0;
 `;
 
 const Label = styled.label`

@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
@@ -41,7 +42,7 @@ export function ClinicPicker() {
         </List>
       )}
       <Button variant="ghost" onClick={() => logout.mutate()} loading={logout.isPending}>
-        Sair da conta
+        <LogOut size={18} aria-hidden /> Sair da conta
       </Button>
     </AuthLayout>
   );
@@ -65,6 +66,8 @@ const ClinicButton = styled.button`
   border-radius: ${({ theme }) => theme.radii.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ theme }) => theme.colors.surface};
+  /* Cor explícita: o cartão do login usa texto branco, que sumiria sobre o fundo claro do botão. */
+  color: ${({ theme }) => theme.colors.text};
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   text-align: left;
   cursor: pointer;

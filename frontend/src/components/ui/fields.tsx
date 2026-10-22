@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Paperclip } from "lucide-react";
 import {
   forwardRef,
   useCallback,
@@ -312,6 +312,7 @@ export interface CheckboxFieldProps extends Omit<InputHTMLAttributes<HTMLInputEl
   label: ReactNode;
 }
 
+/** Caixa de marcar no visual do sistema: o input nativo fica invisível (mas acessível) e a caixa é desenhada. */
 export const CheckboxField = forwardRef<HTMLInputElement, CheckboxFieldProps>(function CheckboxField(
   { label, id, ...rest },
   ref,
@@ -320,11 +321,83 @@ export const CheckboxField = forwardRef<HTMLInputElement, CheckboxFieldProps>(fu
   const boxId = id ?? generated;
   return (
     <CheckLabel htmlFor={boxId}>
-      <input ref={ref} id={boxId} type="checkbox" {...rest} />
+      <NativeCheck ref={ref} id={boxId} type="checkbox" {...rest} />
+      <CheckBox aria-hidden="true">
+        <Check size={14} strokeWidth={3} />
+      </CheckBox>
       <span>{label}</span>
     </CheckLabel>
   );
 });
+
+export interface FileFieldProps {
+  label: string;
+  accept?: string;
+  hint?: ReactNode;
+  error?: string;
+  /** Nome do arquivo escolhido (ou null). */
+  fileName: string | null;
+  onChange: (file: File | null) => void;
+  buttonLabel?: string;
+}
+
+/**
+ * Escolha de arquivo no visual do sistema: botão em pílula + nome do arquivo, no lugar do controle nativo
+ * ("Choose File"), que muda de navegador para navegador e não segue o idioma da tela.
+ */
+export const FileField = forwardRef<HTMLInputElement, FileFieldProps>(function FileField(
+  { label, accept, hint, error, fileName, onChange, buttonLabel = "Escolher arquivo" },
+  ref,
+) {
+  const id = useId();
+  const inner = useRef<HTMLInputElement | null>(null);
+  const setRefs = (el: HTMLInputElement | null) => {
+    inner.current = el;
+    if (typeof ref === "function") ref(el);
+    else if (ref) ref.current = el;
+  };
+  return (
+    <FieldWrapper id={id} label={label} hint={hint} error={error}>
+      <FilePicker $invalid={Boolean(error)}>
+        <input
+          ref={setRefs}
+          id={id}
+          type="file"
+          accept={accept}
+          className="sr-only"
+          aria-describedby={describedBy(id, error, hint)}
+          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        />
+        <FileButton type="button" onClick={() => inner.current?.click()}>
+          <Paperclip size={16} aria-hidden /> {buttonLabel}
+        </FileButton>
+        <FileName $empty={!fileName} title={fileName ?? undefined}>
+          {fileName ?? "Nenhum arquivo escolhido"}
+        </FileName>
+      </FilePicker>
+    </FieldWrapper>
+  );
+});
+
+export interface ColorFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+/** Escolha de cor no visual do sistema: amostra redonda + código da cor; o seletor do navegador abre ao clicar. */
+export function ColorField({ label, value, onChange }: ColorFieldProps) {
+  const id = useId();
+  return (
+    <FieldWrapper id={id} label={label}>
+      <ColorPicker htmlFor={id}>
+        <input id={id} type="color" className="sr-only" value={value} onChange={(e) => onChange(e.target.value)} />
+        <Swatch aria-hidden="true" style={{ background: value }} />
+        <span>{value.toUpperCase()}</span>
+      </ColorPicker>
+    </FieldWrapper>
+  );
+}
 
 const Field = styled.div`
   display: grid;
@@ -399,19 +472,134 @@ const TextArea = styled.textarea<{ $invalid?: boolean }>`
 `;
 
 const CheckLabel = styled.label`
+  position: relative;
   display: inline-flex;
   align-items: flex-start;
-  gap: ${({ theme }) => theme.space[2]};
+  gap: ${({ theme }) => theme.space[3]};
   cursor: pointer;
   font-size: ${({ theme }) => theme.fontSizes.md};
+  line-height: 1.4;
+`;
 
-  input {
-    width: 18px;
-    height: 18px;
-    margin-top: 2px;
-    accent-color: ${({ theme }) => theme.colors.primary};
-    flex-shrink: 0;
+/** Input nativo: invisível, mas continua recebendo foco, teclado (Espaço) e leitor de tela. */
+const NativeCheck = styled.input`
+  position: absolute;
+  opacity: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+`;
+
+const CheckBox = styled.span`
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid ${({ theme }) => theme.colors.borderStrong};
+  border-radius: 6px;
+  background: ${({ theme }) => theme.colors.surface};
+  color: transparent;
+  transition:
+    background ${({ theme }) => theme.transitions.fast},
+    border-color ${({ theme }) => theme.transitions.fast};
+
+  ${CheckLabel}:hover & {
+    border-color: ${({ theme }) => theme.colors.primary};
   }
+  ${NativeCheck}:checked + & {
+    background: ${({ theme }) => theme.colors.primary};
+    border-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.onPrimary};
+  }
+  ${NativeCheck}:focus-visible + & {
+    box-shadow: ${({ theme }) => theme.shadows.focus};
+  }
+  ${NativeCheck}:disabled + & {
+    opacity: 0.5;
+  }
+`;
+
+const FilePicker = styled.div<{ $invalid?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[3]};
+  min-height: 44px;
+  padding: 4px ${({ theme }) => theme.space[4]} 4px 4px;
+  border: 1px solid ${({ theme, $invalid }) => ($invalid ? theme.colors.danger : theme.colors.border)};
+  border-radius: ${({ theme }) => theme.radii.pill};
+  background: ${({ theme }) => theme.colors.surface};
+  min-width: 0;
+
+  &:focus-within {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: ${({ theme }) => theme.shadows.focus};
+  }
+`;
+
+const FileButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[2]};
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 ${({ theme }) => theme.space[4]};
+  border: 0;
+  border-radius: ${({ theme }) => theme.radii.pill};
+  background: ${({ theme }) => theme.colors.primarySoft};
+  color: ${({ theme }) => theme.colors.primaryText};
+  font-size: ${({ theme }) => theme.fontSizes.sm};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.transitions.fast};
+
+  &:hover {
+    filter: brightness(0.96);
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: ${({ theme }) => theme.shadows.focus};
+  }
+`;
+
+const FileName = styled.span<{ $empty: boolean }>`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  color: ${({ theme, $empty }) => ($empty ? theme.colors.textSubtle : theme.colors.text)};
+`;
+
+const ColorPicker = styled.label`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[3]};
+  min-height: 44px;
+  padding: 4px ${({ theme }) => theme.space[5]} 4px 6px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radii.pill};
+  background: ${({ theme }) => theme.colors.surface};
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+  &:focus-within {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: ${({ theme }) => theme.shadows.focus};
+  }
+`;
+
+const Swatch = styled.span`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
 `;
 
 /** Grade de formulário responsiva (1 coluna no celular, N a partir do tablet). */

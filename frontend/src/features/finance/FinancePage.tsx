@@ -10,11 +10,22 @@ import { ReasonDialog } from "@/components/domain/ReasonDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Card, CardTitle, KpiCard, KpiGrid, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
+import {
+  Badge,
+  Card,
+  CardTitle,
+  FilterBar,
+  KpiCard,
+  KpiGrid,
+  Muted,
+  PageHeader,
+  Row,
+  Stack,
+} from "@/components/ui/display";
 import { CheckboxField, FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Modal } from "@/components/ui/Modal";
-import { SearchInput } from "@/components/ui/SearchInput";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { api } from "@/lib/api/endpoints";
@@ -169,28 +180,37 @@ function InstallmentsTab({ initialFilter, onOpen }: { initialFilter: string; onO
     queryKey: ["installments", filter],
     queryFn: () => api.finance.installments({ status: filter }),
   });
-  const total = (data ?? []).reduce((s, i) => s + Number(i.balance), 0);
+  const search = useRowSearch(data, (i) => [i.patientName]);
+  const total = (search.rows ?? []).reduce((s, i) => s + Number(i.balance), 0);
   return (
     <Stack $gap={4}>
       <Row $justify="space-between">
-        <Filter>
-          <SelectField
-            label="Mostrar"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            options={[
-              { value: "OPEN", label: "Em aberto" },
-              { value: "OVERDUE", label: "Em atraso" },
-              { value: "PAID", label: "Pagas" },
-              { value: "ALL", label: "Todas" },
-            ]}
+        <FilterBar>
+          <Filter>
+            <SelectField
+              label="Mostrar"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              options={[
+                { value: "OPEN", label: "Em aberto" },
+                { value: "OVERDUE", label: "Em atraso" },
+                { value: "PAID", label: "Pagas" },
+                { value: "ALL", label: "Todas" },
+              ]}
+            />
+          </Filter>
+          <SearchInput
+            label="Buscar por nome"
+            placeholder="Nome do paciente…"
+            value={search.query}
+            onChange={search.setQuery}
           />
-        </Filter>
+        </FilterBar>
         {filter !== "PAID" && <Muted>Saldo listado: {formatMoney(total)}</Muted>}
       </Row>
       <DataTable<InstallmentRow>
         caption="Parcelas"
-        rows={data}
+        rows={search.rows}
         loading={isPending}
         error={error}
         onRetry={refetch}
@@ -412,6 +432,7 @@ function PayablesTab() {
     queryKey: ["payables", status],
     queryFn: () => api.finance.payables({ status: status || undefined }),
   });
+  const search = useRowSearch(data, (p) => [p.supplierName, p.description]);
   const cancel = useAction((reason: string) => api.finance.cancelPayable(cancelling?.id ?? "", reason), {
     success: "Conta cancelada com sucesso!",
     invalidate: INV,
@@ -421,15 +442,23 @@ function PayablesTab() {
   return (
     <Stack $gap={4}>
       <Bar2>
-        <Filter>
-          <SelectField
-            label="Situação"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            placeholder="Todas"
-            options={Object.entries(FINANCE_STATUS).map(([value, s]) => ({ value, label: s.label }))}
+        <FilterBar>
+          <Filter>
+            <SelectField
+              label="Situação"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              placeholder="Todas"
+              options={Object.entries(FINANCE_STATUS).map(([value, s]) => ({ value, label: s.label }))}
+            />
+          </Filter>
+          <SearchInput
+            label="Buscar por nome"
+            placeholder="Fornecedor ou descrição…"
+            value={search.query}
+            onChange={search.setQuery}
           />
-        </Filter>
+        </FilterBar>
         {writable && (
           <Button onClick={() => setEditing("new")}>
             <Plus size={16} aria-hidden /> Nova conta a pagar
@@ -438,7 +467,7 @@ function PayablesTab() {
       </Bar2>
       <DataTable<Payable>
         caption="Contas a pagar"
-        rows={data}
+        rows={search.rows}
         loading={isPending}
         error={error}
         onRetry={refetch}
@@ -637,18 +666,25 @@ export function SuppliersTab() {
   const can = useCan();
   const [editing, setEditing] = useState<Supplier | "new" | null>(null);
   const { data, isPending, error, refetch } = useQuery({ queryKey: ["suppliers"], queryFn: api.finance.suppliers });
+  const search = useRowSearch(data, (s) => [s.name]);
   return (
     <Stack $gap={4}>
-      {can(P.FINANCE_WRITE, P.INVENTORY_WRITE) && (
-        <Row $justify="flex-end">
+      <Row $justify="space-between">
+        <SearchInput
+          label="Buscar por nome"
+          placeholder="Nome do fornecedor…"
+          value={search.query}
+          onChange={search.setQuery}
+        />
+        {can(P.FINANCE_WRITE, P.INVENTORY_WRITE) && (
           <Button onClick={() => setEditing("new")}>
             <Plus size={16} aria-hidden /> Novo fornecedor
           </Button>
-        </Row>
-      )}
+        )}
+      </Row>
       <DataTable<Supplier>
         caption="Fornecedores"
-        rows={data}
+        rows={search.rows}
         loading={isPending}
         error={error}
         onRetry={refetch}

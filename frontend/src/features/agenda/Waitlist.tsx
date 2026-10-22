@@ -8,10 +8,11 @@ import { PatientSelect } from "@/components/domain/PatientSelect";
 import { WhatsAppButton } from "@/components/domain/WhatsAppButton";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Muted, Stack } from "@/components/ui/display";
+import { Badge, FilterBar, Muted, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { ConfirmDialog, Modal } from "@/components/ui/Modal";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { TextField } from "@/components/ui/TextField";
 import { api } from "@/lib/api/endpoints";
 import type { WaitlistEntry, WaitlistStatus } from "@/lib/api/types";
@@ -67,6 +68,7 @@ export function WaitlistPanel({
   const [removing, setRemoving] = useState<WaitlistEntry | null>(null);
   const list = useQuery({ queryKey: [...WAITLIST_KEY, status], queryFn: () => api.waitlist.list(status) });
   const clinic = useQuery({ queryKey: ["clinic-settings"], queryFn: api.clinic.settings, staleTime: 60_000 });
+  const search = useRowSearch(list.data, (e) => [e.patientName, e.professionalName]);
 
   const remove = useAction((e: WaitlistEntry) => api.waitlist.resolve(e.id, "REMOVED"), {
     success: "Paciente removido da lista de espera.",
@@ -85,14 +87,22 @@ export function WaitlistPanel({
             de chegada.
           </Muted>
           <Bar>
-            <StatusField>
-              <SelectField
-                label="Mostrar"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as WaitlistStatus)}
-                options={STATUS_OPTIONS}
+            <FilterBar>
+              <StatusField>
+                <SelectField
+                  label="Mostrar"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as WaitlistStatus)}
+                  options={STATUS_OPTIONS}
+                />
+              </StatusField>
+              <SearchInput
+                label="Buscar por nome"
+                placeholder="Paciente ou profissional…"
+                value={search.query}
+                onChange={search.setQuery}
               />
-            </StatusField>
+            </FilterBar>
             {writable && (
               <Button onClick={() => setEditing("new")}>
                 <Plus size={18} aria-hidden /> Adicionar paciente
@@ -101,7 +111,7 @@ export function WaitlistPanel({
           </Bar>
           <DataTable
             caption="Lista de espera"
-            rows={list.data}
+            rows={search.rows}
             loading={list.isPending}
             error={list.error}
             onRetry={() => void list.refetch()}

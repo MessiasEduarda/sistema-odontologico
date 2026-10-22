@@ -177,6 +177,8 @@ const Actions = styled.div`
 /** Pilha vertical padrão do conteúdo de uma página. */
 export const Stack = styled.div<{ $gap?: keyof DefaultTheme["space"] }>`
   display: grid;
+  /* Coluna presa à largura disponível: conteúdo largo (abas, tabelas) rola dentro dele, sem empurrar a página. */
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme, $gap = 6 }) => theme.space[$gap]};
   min-width: 0;
 `;
@@ -187,6 +189,28 @@ export const Row = styled.div<{ $gap?: keyof DefaultTheme["space"]; $wrap?: bool
   flex-wrap: ${({ $wrap = true }) => ($wrap ? "wrap" : "nowrap")};
   justify-content: ${({ $justify = "flex-start" }) => $justify};
   gap: ${({ theme, $gap = 3 }) => theme.space[$gap]};
+
+  /* No celular, uma barra de botões alinhada à direita quebraria em degraus: alinha à esquerda, como o título. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
+    ${({ $justify, $wrap = true }) => ($justify === "flex-end" && $wrap ? "justify-content: flex-start;" : "")}
+  }
+`;
+
+/**
+ * Barra de filtros: busca, seleções e botões alinhados pela base. Campos com rótulo em cima (Situação, Categoria)
+ * e campos sem rótulo (busca) ficam na mesma linha; caixas de marcar se centram na altura dos campos.
+ */
+export const FilterBar = styled.div<{ $justify?: string }>`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: ${({ $justify = "flex-start" }) => $justify};
+  gap: ${({ theme }) => theme.space[3]};
+
+  & > label {
+    min-height: 44px;
+    align-items: center;
+  }
 `;
 
 export const Muted = styled.span`

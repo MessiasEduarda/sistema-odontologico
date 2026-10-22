@@ -7,7 +7,7 @@ import { PdfButton } from "@/components/domain/PdfButton";
 import { PatientSelect } from "@/components/domain/PatientSelect";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, KpiCard, KpiGrid, PageHeader, Row, Stack } from "@/components/ui/display";
+import { Badge, FilterBar, KpiCard, KpiGrid, PageHeader, Stack } from "@/components/ui/display";
 import { SelectField } from "@/components/ui/fields";
 import { Modal } from "@/components/ui/Modal";
 import { SearchInput } from "@/components/ui/SearchInput";
@@ -65,8 +65,8 @@ function IssuedTab() {
         <KpiCard icon={FileSignature} label="Assinados" value={count("SIGNED")} tone="success" />
         <KpiCard icon={FileSignature} label="Revogados" value={count("REVOKED")} />
       </KpiGrid>
-      <Row $justify="space-between">
-        <Row $gap={4}>
+      <FilterBar $justify="space-between">
+        <FilterBar>
           <SearchInput label="Paciente" placeholder="Nome do paciente…" value={q} onChange={setQ} />
           <div style={{ width: 200 }}>
             <SelectField
@@ -86,9 +86,9 @@ function IssuedTab() {
               options={CATEGORY_OPTIONS}
             />
           </div>
-        </Row>
+        </FilterBar>
         {writable && <Button onClick={() => setChoosing(true)}>Emitir termo</Button>}
-      </Row>
+      </FilterBar>
       <DataTable<ConsentListItem>
         caption="Termos dos pacientes"
         rows={list.data}

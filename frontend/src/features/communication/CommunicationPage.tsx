@@ -7,7 +7,8 @@ import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Card, CardTitle, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
+import { Badge, Card, CardTitle, FilterBar, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
 import { CheckboxField, SelectField, TextAreaField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -47,24 +48,33 @@ function MessagesTab() {
     queryFn: () => api.communication.messages(status || undefined),
     refetchInterval: 30_000,
   });
+  const search = useRowSearch(data, (m) => [m.patientName, m.toAddress]);
   const retry = useAction(api.communication.retry, {
     success: "Mensagem reenfileirada com sucesso!",
     invalidate: [["messages"]],
   });
   return (
     <Stack $gap={4}>
-      <Filter>
-        <SelectField
-          label="Situação"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          placeholder="Todas"
-          options={Object.entries(MESSAGE_STATUS).map(([value, s]) => ({ value, label: s.label }))}
+      <FilterBar>
+        <Filter>
+          <SelectField
+            label="Situação"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            placeholder="Todas"
+            options={Object.entries(MESSAGE_STATUS).map(([value, s]) => ({ value, label: s.label }))}
+          />
+        </Filter>
+        <SearchInput
+          label="Buscar por nome"
+          placeholder="Paciente ou destinatário…"
+          value={search.query}
+          onChange={search.setQuery}
         />
-      </Filter>
+      </FilterBar>
       <DataTable<OutboundMessage>
         caption="Mensagens enviadas"
-        rows={data}
+        rows={search.rows}
         loading={isPending}
         error={error}
         onRetry={refetch}

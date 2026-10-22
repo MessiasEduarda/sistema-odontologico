@@ -18,7 +18,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { CalendarOff, CalendarPlus, ChevronLeft, ChevronRight, Hourglass } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState, type MouseEvent } from "react";
+import { useMemo, useState, useSyncExternalStore, type MouseEvent } from "react";
 import styled from "styled-components";
 import { Button } from "@/components/ui/Button";
 import { Badge, Card, ErrorState, PageHeader, Stack } from "@/components/ui/display";
@@ -48,12 +48,26 @@ const VIEWS: { id: View; label: string }[] = [
   { id: "list", label: "Lista" },
 ];
 
+const NARROW_QUERY = "(max-width: 767px)";
+
+function subscribeNarrow(onChange: () => void) {
+  const query = window.matchMedia(NARROW_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function isNarrowScreen() {
+  return window.matchMedia(NARROW_QUERY).matches;
+}
+
 export function AgendaPage() {
   const params = useSearchParams();
   const can = useCan();
-  const [view, setView] = useState<View>(() =>
-    typeof window !== "undefined" && window.innerWidth < 768 ? "list" : "day",
-  );
+  // Sem escolha da pessoa, a visão segue a tela (lista no celular). Decidido após a hidratação, para o HTML do
+  // servidor e o do navegador serem iguais.
+  const [chosenView, setView] = useState<View | null>(null);
+  const isNarrow = useSyncExternalStore(subscribeNarrow, isNarrowScreen, () => false);
+  const view: View = chosenView ?? (isNarrow ? "list" : "day");
   const [date, setDate] = useState(() => (params.get("dia") === "amanha" ? addDays(new Date(), 1) : new Date()));
   const [professionalId, setProfessionalId] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -640,10 +654,18 @@ const Filters = styled.div`
   flex-wrap: wrap;
   align-items: flex-end;
   gap: ${({ theme }) => theme.space[3]};
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
+    width: 100%;
+  }
 `;
 
 const ProfessionalFilter = styled.div`
   min-width: 220px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
+    width: 100%;
+  }
 `;
 
 const ViewSwitch = styled.div`
@@ -653,6 +675,17 @@ const ViewSwitch = styled.div`
   border-radius: ${({ theme }) => theme.radii.pill};
   padding: 3px;
   height: 44px;
+
+  /* No celular, a troca de visualização ocupa a largura do conteúdo, com as opções repartindo o espaço. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
+    display: flex;
+    width: 100%;
+
+    & > button {
+      flex: 1 1 0;
+      padding: 0 ${({ theme }) => theme.space[2]};
+    }
+  }
 `;
 
 const ViewButton = styled.button`

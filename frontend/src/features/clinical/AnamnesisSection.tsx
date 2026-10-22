@@ -257,7 +257,7 @@ export function AnamnesisForm({
                               checked={answers[q.id]?.answer === opt}
                               onChange={() => set(q.id, { answer: opt })}
                             />
-                            {opt === "YES" ? "Sim" : "Não"}
+                            <span>{opt === "YES" ? "Sim" : "Não"}</span>
                           </label>
                         ))}
                       </YesNo>
@@ -359,20 +359,49 @@ const AlertMark = styled.span`
   color: ${({ theme }) => theme.colors.danger};
 `;
 
+/** Sim/Não em pílulas: o rádio nativo fica invisível (teclado e leitor de tela continuam funcionando). */
 const YesNo = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.space[5]};
+  display: inline-flex;
+  gap: ${({ theme }) => theme.space[2]};
 
   label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    position: relative;
     cursor: pointer;
   }
   input {
-    width: 18px;
-    height: 18px;
-    accent-color: ${({ theme }) => theme.colors.primary};
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    min-height: 34px;
+    padding: 0 ${({ theme }) => theme.space[4]};
+    border: 1px solid ${({ theme }) => theme.colors.borderStrong};
+    border-radius: ${({ theme }) => theme.radii.pill};
+    background: ${({ theme }) => theme.colors.surface};
+    color: ${({ theme }) => theme.colors.textMuted};
+    font-size: ${({ theme }) => theme.fontSizes.sm};
+    font-weight: ${({ theme }) => theme.fontWeights.semibold};
+    transition:
+      background ${({ theme }) => theme.transitions.fast},
+      border-color ${({ theme }) => theme.transitions.fast};
+  }
+  label:hover span {
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+  input:checked + span {
+    background: ${({ theme }) => theme.colors.primary};
+    border-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.onPrimary};
+  }
+  input:focus-visible + span {
+    box-shadow: ${({ theme }) => theme.shadows.focus};
   }
 `;
 
@@ -404,5 +433,13 @@ const FormSwitch = styled.div`
   button[aria-selected="true"] {
     border-color: ${({ theme }) => theme.colors.primary};
     box-shadow: inset 0 0 0 1px ${({ theme }) => theme.colors.primary};
+  }
+
+  /* No celular, cada ficha ocupa a largura do conteúdo, alinhadas entre si. */
+  @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
+    button {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
   }
 `;

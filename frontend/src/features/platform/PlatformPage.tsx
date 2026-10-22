@@ -7,11 +7,11 @@ import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, KpiCard, KpiGrid, PageHeader, PermissionDenied, Row, Stack } from "@/components/ui/display";
+import { Badge, FilterBar, KpiCard, KpiGrid, PageHeader, PermissionDenied, Row, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ConfirmDialog, Modal } from "@/components/ui/Modal";
-import { SearchInput } from "@/components/ui/SearchInput";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { useMe } from "@/features/auth/hooks";
@@ -597,20 +597,29 @@ function AuditTab() {
     queryKey: ["platform-audit", action],
     queryFn: () => api.platform.audit(action || undefined),
   });
+  const search = useRowSearch(events.data, (e) => [e.actorEmail]);
   return (
     <Stack $gap={4}>
-      <div style={{ width: 260 }}>
-        <SelectField
-          label="Ação"
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          placeholder="Todas"
-          options={Object.entries(PLATFORM_ACTIONS).map(([value, label]) => ({ value, label }))}
+      <FilterBar>
+        <div style={{ width: 260 }}>
+          <SelectField
+            label="Ação"
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+            placeholder="Todas"
+            options={Object.entries(PLATFORM_ACTIONS).map(([value, label]) => ({ value, label }))}
+          />
+        </div>
+        <SearchInput
+          label="Buscar por usuário"
+          placeholder="E-mail do usuário…"
+          value={search.query}
+          onChange={search.setQuery}
         />
-      </div>
+      </FilterBar>
       <DataTable<PlatformEvent>
         caption="Auditoria da plataforma"
-        rows={events.data}
+        rows={search.rows}
         loading={events.isPending}
         rowKey={(e) => e.id}
         emptyTitle="Nenhum evento"

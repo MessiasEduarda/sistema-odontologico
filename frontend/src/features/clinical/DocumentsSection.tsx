@@ -12,6 +12,7 @@ import { Badge, Muted, Row, Stack } from "@/components/ui/display";
 import { FormGrid, FullRow, SelectField, TextAreaField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { Modal } from "@/components/ui/Modal";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { TextField } from "@/components/ui/TextField";
 import { useMe } from "@/features/auth/hooks";
 import { api } from "@/lib/api/endpoints";
@@ -49,6 +50,7 @@ export function DocumentsSection({ patientId, patientName }: { patientId: string
   const [creating, setCreating] = useState(false);
   const [printing, setPrinting] = useState<ClinicalDocument | null>(null);
   const docs = useQuery({ queryKey: ["documents", patientId], queryFn: () => api.clinical.documents(patientId) });
+  const search = useRowSearch(docs.data, (d) => [d.professionalName, d.title]);
 
   return (
     <Stack $gap={4}>
@@ -56,9 +58,15 @@ export function DocumentsSection({ patientId, patientName }: { patientId: string
         <Muted>Receituários, atestados e encaminhamentos emitidos (não podem ser alterados depois de emitidos).</Muted>
         {can(P.CLINICAL_WRITE) && <Button onClick={() => setCreating(true)}>Emitir documento</Button>}
       </Row>
+      <SearchInput
+        label="Buscar por nome"
+        placeholder="Profissional ou título…"
+        value={search.query}
+        onChange={search.setQuery}
+      />
       <DataTable<ClinicalDocument>
         caption="Documentos emitidos"
-        rows={docs.data}
+        rows={search.rows}
         loading={docs.isPending}
         error={docs.error}
         onRetry={() => docs.refetch()}

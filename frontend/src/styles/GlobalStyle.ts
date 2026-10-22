@@ -23,7 +23,39 @@ export const GlobalStyle = createGlobalStyle`
   /* Títulos sempre com a fonte de destaque (Comfortaa). */
   h1, h2, h3, h4 { font-family: ${({ theme }) => theme.fonts.display}; }
 
-  button, input, select, textarea { font: inherit; color: inherit; }
+  button, input, select, textarea { font: inherit; font-family: ${({ theme }) => theme.fonts.body}; color: inherit; }
+
+  /* Controles nativos no visual do sistema: ícones de data e hora na cor da marca, números sem setinhas. */
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    color: transparent;
+    background: center / 18px no-repeat;
+    cursor: pointer;
+    opacity: 0.85;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A5C41' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+  }
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A5C41' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E");
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+  /* Barras de rolagem finas, na paleta do sistema. */
+  * { scrollbar-width: thin; scrollbar-color: ${({ theme }) => theme.colors.borderStrong} transparent; }
 
   .sr-only {
     position: absolute;

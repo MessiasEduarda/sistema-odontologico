@@ -8,7 +8,7 @@ import { PatientSelect } from "@/components/domain/PatientSelect";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Card, CardTitle, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
+import { Badge, Card, CardTitle, FilterBar, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, SelectField } from "@/components/ui/fields";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Tabs } from "@/components/ui/Tabs";
@@ -116,7 +116,7 @@ function RecentTab() {
   });
   return (
     <Stack $gap={4}>
-      <Row $gap={4}>
+      <FilterBar>
         <SearchInput label="Paciente" placeholder="Nome do paciente…" value={q} onChange={setQ} />
         <div style={{ width: 200 }}>
           <SelectField
@@ -132,7 +132,7 @@ function RecentTab() {
           checked={alertsOnly}
           onChange={(e) => setAlertsOnly(e.target.checked)}
         />
-      </Row>
+      </FilterBar>
       <DataTable<RecentAnamnesis>
         caption="Anamneses preenchidas"
         rows={list.data}

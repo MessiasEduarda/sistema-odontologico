@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import {
   Badge,
   Card,
@@ -71,6 +72,7 @@ function AgendaReportView({ from, to }: { from: string; to: string }) {
     queryKey: ["report-agenda", from, to],
     queryFn: () => api.reports.agenda(from, to),
   });
+  const occupancy = useRowSearch(data?.byProfessional, (p) => [p.professionalName]);
   if (isPending) return <LoadingState />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
   return (
@@ -92,9 +94,15 @@ function AgendaReportView({ from, to }: { from: string; to: string }) {
           </Badge>
         ))}
       </Row>
+      <SearchInput
+        label="Buscar por nome"
+        placeholder="Nome do profissional…"
+        value={occupancy.query}
+        onChange={occupancy.setQuery}
+      />
       <DataTable
         caption="Ocupação por profissional"
-        rows={data.byProfessional}
+        rows={occupancy.rows}
         rowKey={(p) => p.professionalId}
         emptyTitle="Sem dados no período"
         columns={[
@@ -130,6 +138,7 @@ function ProductionView({ from, to }: { from: string; to: string }) {
     queryKey: ["report-production", from, to],
     queryFn: () => api.reports.production(from, to),
   });
+  const search = useRowSearch(data?.byProfessional, (p) => [p.professionalName]);
   if (isPending) return <LoadingState />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
   return (
@@ -137,10 +146,16 @@ function ProductionView({ from, to }: { from: string; to: string }) {
       <KpiGrid>
         <KpiCard icon={BarChart3} label="Produção no período" value={formatMoney(data.totalValue)} tone="success" />
       </KpiGrid>
+      <SearchInput
+        label="Buscar por nome"
+        placeholder="Nome do profissional…"
+        value={search.query}
+        onChange={search.setQuery}
+      />
       <Card $padding={false}>
         <DataTable
           caption="Produção por profissional"
-          rows={data.byProfessional}
+          rows={search.rows}
           rowKey={(p) => p.professionalId}
           emptyTitle="Nenhum procedimento realizado no período"
           columns={[
@@ -217,6 +232,7 @@ function PatientsView() {
     queryKey: ["report-patients"],
     queryFn: api.reports.patients,
   });
+  const search = useRowSearch(data?.birthdaysThisMonth, (b) => [b.fullName]);
   if (isPending) return <LoadingState />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
   return (
@@ -236,9 +252,15 @@ function PatientsView() {
         ]}
       />
       <CardTitle>Aniversariantes do mês</CardTitle>
+      <SearchInput
+        label="Buscar por nome"
+        placeholder="Nome do paciente…"
+        value={search.query}
+        onChange={search.setQuery}
+      />
       <DataTable
         caption="Aniversariantes do mês"
-        rows={data.birthdaysThisMonth}
+        rows={search.rows}
         rowKey={(b) => b.id}
         emptyTitle="Nenhum aniversariante"
         columns={[

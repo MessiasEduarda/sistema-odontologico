@@ -12,7 +12,7 @@ import { Badge, Muted, PageHeader, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { Modal } from "@/components/ui/Modal";
-import { SearchInput } from "@/components/ui/SearchInput";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { SuppliersTab } from "@/features/finance/FinancePage";
@@ -347,57 +347,75 @@ function MovementsHistory({ product, onClose }: { product: Product; onClose: () 
     queryKey: ["movements", product.id],
     queryFn: () => api.inventory.movements(product.id),
   });
+  const search = useRowSearch(data, (m) => [m.createdByName]);
   return (
     <Modal open onClose={onClose} title={`Movimentações: ${product.name}`} size="lg">
-      <DataTable<StockMovement>
-        caption="Movimentações"
-        rows={data}
-        loading={isPending}
-        rowKey={(m) => m.id}
-        emptyTitle="Nenhuma movimentação"
-        columns={[
-          { key: "date", header: "Data", render: (m) => formatDateTime(m.createdAt) },
-          {
-            key: "type",
-            header: "Tipo",
-            render: (m) => <Badge $tone={TYPE_LABEL[m.type]?.tone}>{TYPE_LABEL[m.type]?.label}</Badge>,
-          },
-          {
-            key: "qty",
-            header: "Qtd.",
-            align: "right",
-            render: (m) => (Number(m.quantity) > 0 ? "+" : "") + qty(m.quantity),
-          },
-          { key: "balance", header: "Saldo", align: "right", render: (m) => qty(m.balanceAfter) },
-          {
-            key: "lot",
-            header: "Lote / validade",
-            hideOnMobile: true,
-            render: (m) => [m.lotNumber, m.expiryDate && formatDate(m.expiryDate)].filter(Boolean).join(" · ") || "—",
-          },
-          {
-            key: "cost",
-            header: "Custo",
-            hideOnMobile: true,
-            render: (m) => (m.unitCost ? formatMoney(m.unitCost) : "—"),
-          },
-          { key: "reason", header: "Motivo", hideOnMobile: true, render: (m) => m.reason ?? "—" },
-          { key: "who", header: "Por", hideOnMobile: true, render: (m) => m.createdByName ?? "—" },
-        ]}
-      />
+      <Stack $gap={4}>
+        <SearchInput
+          label="Buscar por nome"
+          placeholder="Quem registrou…"
+          value={search.query}
+          onChange={search.setQuery}
+        />
+        <DataTable<StockMovement>
+          caption="Movimentações"
+          rows={search.rows}
+          loading={isPending}
+          rowKey={(m) => m.id}
+          emptyTitle="Nenhuma movimentação"
+          columns={[
+            { key: "date", header: "Data", render: (m) => formatDateTime(m.createdAt) },
+            {
+              key: "type",
+              header: "Tipo",
+              render: (m) => <Badge $tone={TYPE_LABEL[m.type]?.tone}>{TYPE_LABEL[m.type]?.label}</Badge>,
+            },
+            {
+              key: "qty",
+              header: "Qtd.",
+              align: "right",
+              render: (m) => (Number(m.quantity) > 0 ? "+" : "") + qty(m.quantity),
+            },
+            { key: "balance", header: "Saldo", align: "right", render: (m) => qty(m.balanceAfter) },
+            {
+              key: "lot",
+              header: "Lote / validade",
+              hideOnMobile: true,
+              render: (m) => [m.lotNumber, m.expiryDate && formatDate(m.expiryDate)].filter(Boolean).join(" · ") || "—",
+            },
+            {
+              key: "cost",
+              header: "Custo",
+              hideOnMobile: true,
+              render: (m) => (m.unitCost ? formatMoney(m.unitCost) : "—"),
+            },
+            { key: "reason", header: "Motivo", hideOnMobile: true, render: (m) => m.reason ?? "—" },
+            { key: "who", header: "Por", hideOnMobile: true, render: (m) => m.createdByName ?? "—" },
+          ]}
+        />
+      </Stack>
     </Modal>
   );
 }
 
 function AlertsTab() {
   const { data, isPending } = useQuery({ queryKey: ["inventory-alerts"], queryFn: api.inventory.alerts });
+  const search = useRowSearch(data?.lowStock, (p) => [p.name, p.supplierName]);
   return (
     <Stack $gap={5}>
       <section>
         <h3 style={{ marginBottom: 12 }}>Estoque abaixo do mínimo</h3>
+        <div style={{ marginBottom: 12 }}>
+          <SearchInput
+            label="Buscar por nome"
+            placeholder="Produto ou fornecedor…"
+            value={search.query}
+            onChange={search.setQuery}
+          />
+        </div>
         <DataTable<Product>
           caption="Produtos com estoque baixo"
-          rows={data?.lowStock}
+          rows={search.rows}
           loading={isPending}
           rowKey={(p) => p.id}
           emptyTitle="Nenhum produto abaixo do mínimo"

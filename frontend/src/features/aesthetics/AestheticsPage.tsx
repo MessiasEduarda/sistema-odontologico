@@ -9,9 +9,9 @@ import { ReasonDialog } from "@/components/domain/ReasonDialog";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, DetailList, EmptyState, PageHeader, Row, Stack } from "@/components/ui/display";
+import { Badge, DetailList, EmptyState, FilterBar, PageHeader, Row, Stack } from "@/components/ui/display";
 import { Modal } from "@/components/ui/Modal";
-import { SearchInput } from "@/components/ui/SearchInput";
+import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { api } from "@/lib/api/endpoints";
@@ -109,15 +109,24 @@ function ReturnsTab() {
     queryKey: ["aesthetics-search", "returns", until],
     queryFn: () => api.clinical.searchAesthetics({ returnsUntil: until }),
   });
+  const search = useRowSearch(list.data, (r) => [r.patientName, r.professionalName]);
   const today = toDateInput(new Date());
   return (
     <Stack $gap={4}>
-      <div style={{ width: 220 }}>
-        <TextField label="Retornos até" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
-      </div>
+      <FilterBar>
+        <div style={{ width: 220 }}>
+          <TextField label="Retornos até" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
+        </div>
+        <SearchInput
+          label="Buscar por nome"
+          placeholder="Paciente ou profissional…"
+          value={search.query}
+          onChange={search.setQuery}
+        />
+      </FilterBar>
       <DataTable<AestheticRecord>
         caption="Retornos previstos"
-        rows={list.data}
+        rows={search.rows}
         loading={list.isPending}
         rowKey={(r) => r.id}
         emptyTitle="Nenhum retorno no período"
@@ -151,6 +160,7 @@ function BatchTab() {
     queryFn: () => api.clinical.searchAesthetics({ batch: search }),
     enabled: search.length > 0,
   });
+  const byName = useRowSearch(list.data, (r) => [r.patientName, r.professionalName]);
   return (
     <Stack $gap={4}>
       <Alert tone="info">
@@ -165,7 +175,17 @@ function BatchTab() {
           Buscar
         </Button>
       </Row>
-      {search && <AestheticTable rows={list.data} loading={list.isPending} showPatient />}
+      {search && (
+        <>
+          <SearchInput
+            label="Buscar por nome"
+            placeholder="Paciente ou profissional…"
+            value={byName.query}
+            onChange={byName.setQuery}
+          />
+          <AestheticTable rows={byName.rows} loading={list.isPending} showPatient />
+        </>
+      )}
     </Stack>
   );
 }
