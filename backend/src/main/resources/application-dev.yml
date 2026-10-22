@@ -2,15 +2,31 @@
 # e coincidem com o .env.example — nunca use em outro ambiente.
 spring:
   datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/odonto}
     password: ${APP_DB_PASSWORD:odonto_app_dev}
   flyway:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/odonto}
     password: ${MIGRATOR_DB_PASSWORD:odonto_migrator_dev}
+  # E-mail local: o Mailpit captura tudo, sem senha nem criptografia.
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.smtp.starttls.required: ${SMTP_STARTTLS:false}
+      mail.smtp.ssl.enable: ${SMTP_SSL:false}
 
 logging:
   level:
     br.com.odontosaas: DEBUG
 
 app:
+  public-url: ${APP_PUBLIC_URL:http://localhost:3000}
+  mail:
+    from: ${MAIL_FROM:nao-responda@odontosaas.example}
   # Massa de dados FICTÍCIA para desenvolvimento (usuários e senha documentados em docs/guias/ambiente-local.md).
   seed:
     enabled: ${DEV_SEED_ENABLED:true}

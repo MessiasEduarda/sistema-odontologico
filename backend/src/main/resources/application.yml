@@ -1,5 +1,6 @@
-# Configuração base. Valores sensíveis vêm SEMPRE de variáveis de ambiente.
-# Perfis: dev (local), test (testes automatizados), prod (produção).
+# Configuração comum a todos os perfis. O que depende do ambiente (banco, e-mail, URLs, seed) fica no arquivo do
+# perfil: application-dev.yml (local), application-prod.yml (produção) e application-test.yml (testes).
+# Defina o perfil com SPRING_PROFILES_ACTIVE (ou --spring.profiles.active=...).
 spring:
   application:
     name: odonto-api
@@ -8,17 +9,13 @@ spring:
       enabled: true
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/odonto}
     username: ${APP_DB_USER:odonto_app}
-    password: ${APP_DB_PASSWORD:}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
       pool-name: odonto-app
 
   flyway:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/odonto}
     user: ${MIGRATOR_DB_USER:odonto_migrator}
-    password: ${MIGRATOR_DB_PASSWORD:}
     schemas: ${APP_DB_SCHEMA:odonto}
     default-schema: ${APP_DB_SCHEMA:odonto}
     create-schemas: false
@@ -50,20 +47,10 @@ spring:
       # Jackson 3 rejeita por padrão campos primitivos ausentes; aqui um booleano omitido vale false.
       fail-on-null-for-primitives: false
 
-  # E-mail (SMTP). Em desenvolvimento, o Mailpit captura tudo sem senha nem criptografia; em produção
-  # (application-prod.yml) autenticação e STARTTLS ficam ligados por padrão, como exigem os provedores.
+  # E-mail (SMTP): servidor e autenticação são definidos no perfil (dev: Mailpit local; prod: provedor real).
   mail:
-    host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}
-    username: ${SMTP_USERNAME:}
-    password: ${SMTP_PASSWORD:}
     default-encoding: UTF-8
     properties:
-      mail.smtp.auth: ${SMTP_AUTH:false}
-      # Porta 587: STARTTLS (padrão dos provedores). Porta 465: use SMTP_SSL=true e SMTP_STARTTLS=false.
-      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
-      mail.smtp.starttls.required: ${SMTP_STARTTLS:false}
-      mail.smtp.ssl.enable: ${SMTP_SSL:false}
       mail.smtp.connectiontimeout: 10000
       mail.smtp.timeout: 10000
       mail.smtp.writetimeout: 10000
@@ -107,9 +94,6 @@ logging:
 
 # --- Configurações da aplicação ---
 app:
-  public-url: ${APP_PUBLIC_URL:http://localhost:3000}
-  mail:
-    from: ${MAIL_FROM:nao-responda@odontosaas.example}
   security:
     session-cookie-name: odonto_session
     cookie-secure: ${COOKIE_SECURE:true}

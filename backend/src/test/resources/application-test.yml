@@ -10,6 +10,8 @@ app:
   storage:
     path: ${java.io.tmpdir}/odonto-test-uploads
   public-url: http://localhost:3000
+  mail:
+    from: nao-responda@odontosaas.example
   security:
     # Todos os testes usam o mesmo IP (MockMvc); o limite por IP é testado com valor próprio.
     login-max-failures-per-ip: 1000

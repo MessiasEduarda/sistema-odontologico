@@ -55,13 +55,14 @@ class ProductionMailConfigTest {
         }
     }
 
-    /** Contexto só com o envio de e-mail, lendo os arquivos de configuração reais (perfil de produção por cima). */
+    /** Contexto só com o envio de e-mail, lendo os arquivos de configuração reais (perfil prod ou dev por cima). */
     private static ApplicationContextRunner mailContext(boolean production) {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(MailSenderAutoConfiguration.class))
                 .withInitializer(context -> {
                     var sources = context.getEnvironment().getPropertySources();
-                    if (production) yaml("application-prod.yml").forEach(sources::addLast);
+                    yaml(production ? "application-prod.yml" : "application-dev.yml")
+                            .forEach(sources::addLast);
                     yaml("application.yml").forEach(sources::addLast);
                 })
                 .withPropertyValues(
