@@ -14,10 +14,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-/**
- * Dados de DEMONSTRAÇÃO 100% fictícios para o ambiente de desenvolvimento (perfil dev). Nomes, CPFs e contatos são
- * inventados; e-mails usam o domínio reservado example.
- */
 @Component
 class DevDemoData {
 
@@ -27,7 +23,6 @@ class DevDemoData {
         this.jdbc = jdbc;
     }
 
-    /** Preenche a clínica se ela ainda não tiver profissionais cadastrados. */
     void fill(UUID tenantId, UUID dentistUserId, UUID ownerUserId) {
         TenantContext.runAs(tenantId, ownerUserId, () -> {
             Long existing = jdbc.sql("select count(*) from professionals where tenant_id = ?")

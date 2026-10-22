@@ -9,10 +9,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * IN/OUT: quantity é a quantidade movimentada (positiva). ADJUST: quantity é o saldo contado no inventário (o
- * sistema registra a diferença).
- */
 public record MovementRequest(
         @NotBlank @Pattern(regexp = "IN|OUT|ADJUST") String type,
         @NotNull @DecimalMin("0") @DecimalMax("9999999") BigDecimal quantity,

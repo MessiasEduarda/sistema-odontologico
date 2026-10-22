@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos produtos de estoque (tabela products). Participa da transação do service. */
 @Repository
 public class ProductRepository {
 
@@ -25,7 +24,6 @@ public class ProductRepository {
         this.jdbc = jdbc;
     }
 
-    /** Lista produtos filtrando por texto (já em formato like, ou nulo) e, opcionalmente, só os ativos em estoque baixo. */
     public List<ProductView> list(UUID tenantId, String like, boolean onlyLowStock) {
         return jdbc.sql(SELECT
                         + " where pr.tenant_id = ? and (cast(? as text) is null or lower(pr.name) like ?"
@@ -61,7 +59,6 @@ public class ProductRepository {
                 .update();
     }
 
-    /** Atualiza o produto; devolve o número de linhas afetadas. */
     public int update(
             String name,
             String category,
@@ -79,7 +76,6 @@ public class ProductRepository {
                 .update();
     }
 
-    /** Lê o saldo atual travando a linha do produto (for update). */
     public Optional<BigDecimal> findStockForUpdate(UUID tenantId, UUID productId) {
         return jdbc.sql("select current_stock from products where tenant_id = ? and id = ? for update")
                 .params(tenantId, productId)

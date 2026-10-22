@@ -1,9 +1,5 @@
 package br.com.odontosaas.patients.dto.request;
 
-/**
- * Linha da planilha de importação, com os valores como vieram (texto). {@code line} é o número da linha no
- * arquivo, para o relatório apontar onde corrigir.
- */
 public record ImportRow(
         int line,
         String fullName,

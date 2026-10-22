@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/** Cabeçalho de um plano de tratamento (sem itens), como lido do banco. */
 public record TreatmentPlanHeadRow(
         UUID id,
         UUID patientId,

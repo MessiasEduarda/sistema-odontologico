@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das movimentações de estoque (tabela stock_movements). Participa da transação do service. */
 @Repository
 public class StockMovementRepository {
 
@@ -63,7 +62,6 @@ public class StockMovementRepository {
                 .update();
     }
 
-    /** Lotes de entrada com validade nos próximos 60 dias, de produtos ativos e com saldo. */
     public List<ExpiringLot> findExpiringLots(UUID tenantId) {
         return jdbc.sql("""
                         select distinct m.product_id, p.name as product_name, m.lot_number, m.expiry_date

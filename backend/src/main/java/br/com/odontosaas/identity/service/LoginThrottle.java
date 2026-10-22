@@ -12,10 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Limita tentativas de autenticação por conta (e-mail) e por IP numa janela deslizante. Registros ficam em
- * {@code login_attempts}, funcionando com várias instâncias da API.
- */
 @Component
 public class LoginThrottle {
 
@@ -29,7 +25,6 @@ public class LoginThrottle {
         this.audit = audit;
     }
 
-    /** Lança 429 se o e-mail ou o IP excederam o limite de falhas na janela. */
     public void check(String email, String ip) {
         long windowSeconds = props.loginWindow().toSeconds();
         long emailFailures = attempts.countEmailFailures(email, windowSeconds);
@@ -45,10 +40,6 @@ public class LoginThrottle {
         }
     }
 
-    /**
-     * Registra falha + auditoria em transação PRÓPRIA: precisam ficar gravadas mesmo que a requisição termine em erro.
-     * Tentativas bloqueadas não contam como nova falha (não prolongam o bloqueio indefinidamente).
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordFailure(String email, String ip, UUID userId, AuditAction action) {
         if (action != AuditAction.LOGIN_BLOCKED) {

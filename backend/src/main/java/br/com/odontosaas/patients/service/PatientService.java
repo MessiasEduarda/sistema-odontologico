@@ -35,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PatientService {
 
-    /** Máximo de linhas por importação (planilhas maiores: dividir em partes). */
     public static final int IMPORT_MAX_ROWS = 2000;
 
     private final PatientRepository patients;
@@ -50,7 +49,6 @@ public class PatientService {
         this.planLimits = planLimits;
     }
 
-    /** Busca por nome (parcial), CPF, telefone ou e-mail, com paginação. */
     @Transactional(readOnly = true)
     public PageResponse<PatientSummary> search(String query, Boolean active, int page, int size) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -80,11 +78,6 @@ public class PatientService {
         return get(id);
     }
 
-    /**
-     * Importação de planilha. Cada linha passa pelas mesmas regras do cadastro manual; linhas inválidas e CPFs já
-     * cadastrados (ou repetidos na planilha) são listados e não entram. Com {@code dryRun}, só valida. Linhas além das
-     * vagas de pacientes ativos do plano também não entram e são listadas como erro.
-     */
     @Transactional
     public ImportResult importRows(List<ImportRow> rows, boolean dryRun) {
         if (rows.size() > IMPORT_MAX_ROWS) {
@@ -229,7 +222,6 @@ public class PatientService {
             try {
                 return LocalDate.parse(value.strip(), format);
             } catch (DateTimeParseException ignored) {
-                // tenta o próximo formato
             }
         }
         throw ApiException.invalidField("birthDate", "data inválida (use DD/MM/AAAA).");

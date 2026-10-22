@@ -11,10 +11,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/**
- * Acesso a dados dos agendamentos: consulta e gravação, histórico (eventos), horários de atendimento e ocupação do
- * profissional, além do token do link de confirmação enviado ao paciente.
- */
 @Repository
 public class AppointmentRepository {
 
@@ -31,16 +27,12 @@ public class AppointmentRepository {
             left join procedures pc on pc.tenant_id = a.tenant_id and pc.id = a.procedure_id
             """;
 
-    /** Evento do histórico do agendamento; {@code details} é o JSON em texto. */
     public record EventRow(String action, String details, String actorName, Instant occurredAt) {}
 
-    /** Faixa de atendimento do profissional num dia da semana. */
     public record ScheduleWindowRow(LocalTime startTime, LocalTime endTime) {}
 
-    /** Período já ocupado por um agendamento. */
     public record BusyRow(Instant startsAt, Instant endsAt) {}
 
-    /** Clínica e agendamento resolvidos a partir do hash do token de confirmação. */
     public record TokenTarget(UUID tenantId, UUID appointmentId) {}
 
     private final JdbcClient jdbc;
@@ -49,10 +41,6 @@ public class AppointmentRepository {
         this.jdbc = jdbc;
     }
 
-    /**
-     * Lista com filtros opcionais. Sem {@code from} e com paciente, ordena do mais recente para o mais antigo e limita
-     * a 200 registros.
-     */
     public List<AppointmentView> list(
             UUID tenantId, Instant from, Instant to, UUID professionalId, UUID patientId, String status) {
         StringBuilder sql = new StringBuilder(SELECT).append(" where a.tenant_id = ?");
@@ -127,7 +115,6 @@ public class AppointmentRepository {
                 .update();
     }
 
-    /** Edita/remarca com controle otimista de versão; devolve as linhas afetadas. */
     public int update(UUID tenantId, UUID id, AppointmentRequest r, String notes, boolean rescheduled) {
         return jdbc.sql("""
                         update appointments set patient_id = ?, professional_id = ?, room_id = ?, procedure_id = ?,
@@ -155,7 +142,6 @@ public class AppointmentRepository {
                 .update();
     }
 
-    /** Muda o status exigindo a versão lida; devolve as linhas afetadas. */
     public int updateStatus(UUID tenantId, UUID id, long version, String status, String reason) {
         return jdbc.sql("""
                         update appointments set status = ?, updated_at = now(), version = version + 1,
@@ -176,7 +162,6 @@ public class AppointmentRepository {
                 .update();
     }
 
-    /** Fuso horário da clínica. */
     public String clinicTimeZone(UUID tenantId) {
         return jdbc.sql("select time_zone from tenants where id = ?")
                 .param(tenantId)
@@ -184,7 +169,6 @@ public class AppointmentRepository {
                 .single();
     }
 
-    /** Nome da clínica. */
     public String clinicName(UUID tenantId) {
         return jdbc.sql("select name from tenants where id = ?")
                 .param(tenantId)
@@ -192,7 +176,6 @@ public class AppointmentRepository {
                 .single();
     }
 
-    /** Faixas semanais de atendimento do profissional num dia da semana (1 = segunda ... 7 = domingo). */
     public List<ScheduleWindowRow> scheduleWindows(UUID tenantId, UUID professionalId, int weekday) {
         return jdbc.sql("""
                         select start_time, end_time from professional_schedules
@@ -203,7 +186,6 @@ public class AppointmentRepository {
                 .list();
     }
 
-    /** Agendamentos ativos do profissional que encostam no intervalo informado. */
     public List<BusyRow> busyPeriods(UUID tenantId, UUID professionalId, Instant dayStart, Instant dayEnd) {
         return jdbc.sql("""
                         select starts_at, ends_at from appointments
@@ -217,7 +199,6 @@ public class AppointmentRepository {
                 .list();
     }
 
-    /** Grava o hash do token do link de confirmação do agendamento. */
     public void updateConfirmationTokenHash(UUID tenantId, UUID appointmentId, String tokenHash) {
         jdbc.sql("update appointments set confirmation_token_hash = ? where tenant_id = ? and id = ?")
                 .params(tokenHash, tenantId, appointmentId)
@@ -230,7 +211,6 @@ public class AppointmentRepository {
                 .update();
     }
 
-    /** Resolve clínica e agendamento pelo hash do token (o RLS libera somente o agendamento com aquele hash). */
     public Optional<TokenTarget> findByTokenHash(String tokenHash) {
         return jdbc.sql("select tenant_id, id as appointment_id from appointments where confirmation_token_hash = ?")
                 .param(tokenHash)

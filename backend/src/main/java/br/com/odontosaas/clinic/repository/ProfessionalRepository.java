@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos profissionais da clínica e da grade semanal de atendimento deles. */
 @Repository
 public class ProfessionalRepository {
 
@@ -60,7 +59,6 @@ public class ProfessionalRepository {
                 .update();
     }
 
-    /** Atualiza com controle otimista de versão; devolve as linhas afetadas. */
     public int update(UUID tenantId, UUID id, String name, ProfessionalRequest r) {
         return jdbc.sql("""
                         update professionals set user_id = ?, name = ?, cro = ?, cro_state = ?, specialty = ?,
@@ -105,7 +103,6 @@ public class ProfessionalRepository {
                 .single();
     }
 
-    /** O usuário tem vínculo (membership) com a clínica? */
     public boolean isMemberUser(UUID tenantId, UUID userId) {
         return jdbc.sql("select exists(select 1 from memberships where tenant_id = ? and user_id = ?)")
                 .params(tenantId, userId)
@@ -113,7 +110,6 @@ public class ProfessionalRepository {
                 .single();
     }
 
-    /** O cadastro do profissional está vinculado a esse usuário? */
     public boolean isLinkedToUser(UUID tenantId, UUID professionalId, UUID userId) {
         return jdbc.sql("select exists(select 1 from professionals where tenant_id = ? and id = ? and user_id = ?)")
                 .params(tenantId, professionalId, userId)

@@ -25,6 +25,5 @@ public record ProfessionalRequest(
         @Size(max = 20) String phone,
         @Email @Size(max = 254) String email,
         @DecimalMin("0") @DecimalMax("100") BigDecimal commissionPercent,
-        /** Omitido: cadastro novo nasce ativo; em edição mantém o valor atual. */
         Boolean active,
         Long version) {}

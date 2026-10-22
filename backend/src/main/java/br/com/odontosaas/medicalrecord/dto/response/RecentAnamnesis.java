@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Item da lista geral de anamneses da clínica (página Anamneses). */
 public record RecentAnamnesis(
         UUID id,
         UUID patientId,

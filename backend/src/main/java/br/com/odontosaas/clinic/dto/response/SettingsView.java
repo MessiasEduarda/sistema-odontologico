@@ -17,5 +17,4 @@ public record SettingsView(
         int reminderHoursBefore,
         String timeZone,
         boolean aestheticsEnabled,
-        /** Quando a logo foi enviada (nulo = sem logo). Serve também para renovar o cache da imagem. */
         Instant logoUpdatedAt) {}

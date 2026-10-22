@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos planos de tratamento (tabela treatment_plans). Participa da transação do service. */
 @Repository
 public class TreatmentPlanRepository {
 
@@ -90,7 +89,6 @@ public class TreatmentPlanRepository {
                 .update();
     }
 
-    /** Atualiza o plano com controle otimista opcional (versão nula não confere); devolve as linhas afetadas. */
     public int update(
             UUID professionalId,
             String title,
@@ -121,7 +119,6 @@ public class TreatmentPlanRepository {
                 .update();
     }
 
-    /** Marca o plano como aprovado conferindo a versão; devolve as linhas afetadas. */
     public int approve(String approvedByName, UUID tenantId, UUID id, long version) {
         return jdbc.sql("""
                         update treatment_plans set status = 'APPROVED', approved_at = now(), approved_by_name = ?,
@@ -130,10 +127,6 @@ public class TreatmentPlanRepository {
                         """).params(approvedByName, tenantId, id, version).update();
     }
 
-    /**
-     * Plano aprovado com todos os itens realizados (ou cancelados) passa a "concluído", e volta a "aprovado" se algum
-     * item for reaberto.
-     */
     public void refreshCompletion(UUID tenantId, UUID planId) {
         jdbc.sql("""
                         update treatment_plans t set status = case
@@ -144,7 +137,6 @@ public class TreatmentPlanRepository {
                         """).params(tenantId, planId).update();
     }
 
-    /** Muda o status e anexa o motivo (se houver) às observações. */
     public void transition(String to, String reason, String reasonNote, UUID tenantId, UUID id) {
         jdbc.sql("""
                         update treatment_plans set status = ?, updated_at = now(), version = version + 1,

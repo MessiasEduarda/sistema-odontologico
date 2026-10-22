@@ -3,7 +3,6 @@ package br.com.odontosaas.identity.config;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** Parâmetros de autenticação e sessão ({@code app.security.*}). */
 @ConfigurationProperties(prefix = "app.security")
 public record SecurityProperties(
         String sessionCookieName,

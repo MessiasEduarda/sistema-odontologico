@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/** Vínculo de um usuário com uma clínica (tenant). Os papéis ficam em {@code membership_roles}. */
 @Entity
 @Table(name = "memberships")
 public class Membership extends BaseEntity {

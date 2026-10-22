@@ -14,10 +14,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Visão da administração da plataforma. Usa apenas tabelas globais (clínicas, assinaturas, planos, usuários,
- * sessões) e a auditoria de plataforma — nunca dados de pacientes.
- */
 @Service
 public class PlatformAdminService {
 
@@ -53,7 +49,6 @@ public class PlatformAdminService {
         return platform.metrics();
     }
 
-    /** Histórico de ações de plataforma e autenticação (RLS: apenas eventos sem clínica). */
     @Transactional(readOnly = true)
     public List<PlatformEvent> events(String action) {
         return platform.events(action);

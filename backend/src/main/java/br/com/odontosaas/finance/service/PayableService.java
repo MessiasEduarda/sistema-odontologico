@@ -23,7 +23,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Contas a pagar e fornecedores. */
 @Service
 public class PayableService {
 
@@ -109,8 +108,6 @@ public class PayableService {
             throw ApiException.businessRule("PAYABLE_NOT_OPEN", "Esta conta não está em aberto.");
         }
     }
-
-    // ------------------------------------------------------------------ Fornecedores
 
     @Transactional(readOnly = true)
     public List<SupplierView> suppliers() {

@@ -11,11 +11,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-/**
- * Sessões opacas no servidor (ADR-0005). O token bruto vai apenas no cookie; o banco guarda o SHA-256. Uma sessão é
- * válida se não foi revogada, não passou da expiração absoluta, foi usada dentro do limite de inatividade e o usuário
- * está ativo.
- */
 @Component
 public class SessionStore {
 
@@ -84,7 +79,6 @@ public class SessionStore {
                 .optional();
     }
 
-    /** Atualiza o "último uso" no máximo uma vez por minuto (evita escrita a cada requisição). */
     public void touch(UUID sessionId) {
         jdbc.sql("update sessions set last_seen_at = now() where id = ? and last_seen_at < now() - interval '1 minute'")
                 .param(sessionId)
@@ -97,7 +91,6 @@ public class SessionStore {
                 .update();
     }
 
-    /** Revoga uma sessão do próprio usuário. Retorna falso se ela não existir ou for de outra pessoa. */
     public boolean revokeOwned(UUID userId, UUID sessionId, String reason) {
         return jdbc.sql("""
                                 update sessions set revoked_at = now(), revoke_reason = ?
@@ -114,7 +107,6 @@ public class SessionStore {
                 .update();
     }
 
-    /** Usado ao desativar um vínculo: derruba as sessões do usuário que estão com essa clínica ativa. */
     public int revokeForUserInTenant(UUID userId, UUID tenantId, String reason) {
         return jdbc.sql("""
                         update sessions set revoked_at = now(), revoke_reason = ?

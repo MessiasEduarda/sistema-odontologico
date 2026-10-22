@@ -20,11 +20,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Orientações e cuidados ao paciente (pré e pós-procedimento). Os modelos são escritos pela própria clínica — o
- * sistema não traz textos clínicos prontos. Ao entregar, o texto vira documento do prontuário (tipo INSTRUCTIONS) e
- * pode ser enviado por e-mail.
- */
 @Service
 public class CareService {
 
@@ -86,7 +81,6 @@ public class CareService {
         return template(tenantId, id);
     }
 
-    /** Entrega ao paciente: registra no prontuário e, se pedido, envia por e-mail (respeitando o consentimento). */
     @Transactional
     public DocumentView issue(UUID patientId, CareIssueRequest r) {
         DocumentView doc = clinical.addDocument(

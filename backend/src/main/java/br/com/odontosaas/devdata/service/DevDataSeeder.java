@@ -16,11 +16,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Massa de dados 100% FICTÍCIA para desenvolvimento e demonstração (duas clínicas, usuários, agenda, financeiro).
- * Existe SOMENTE no perfil {@code dev} e só roda com {@code app.seed.enabled=true}. A recusa de subir com o seed
- * ligado fora do dev fica em {@code PlatformAdminBootstrap}, que roda antes ({@code @Order(10)}).
- */
 @Component
 @Profile("dev")
 @Order(20)

@@ -11,7 +11,6 @@ import java.time.Instant;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/** Clínica (organização) da plataforma. Tabela global: não pertence a outro tenant. */
 @Entity
 @Table(name = "tenants")
 public class Tenant extends BaseEntity {

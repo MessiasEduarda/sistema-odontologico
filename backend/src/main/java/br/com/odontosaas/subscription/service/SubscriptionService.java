@@ -24,10 +24,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Planos comerciais, assinaturas e funcionalidades por plano. Módulos essenciais (agenda, pacientes, prontuário,
- * tratamentos, financeiro) existem em todos os planos; os demais dependem do plano.
- */
 @Service
 public class SubscriptionService {
 
@@ -44,21 +40,15 @@ public class SubscriptionService {
 
     public static final String DEFAULT_PLAN = "PROFISSIONAL";
 
-    /** Dias de tolerância depois do vencimento: a clínica é avisada e, passado esse prazo, o acesso é bloqueado. */
     public static final int GRACE_DAYS = 5;
 
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
 
-    /**
-     * Vencimento: inadimplente (marcado pela plataforma), período pago encerrado ou avaliação terminada sem
-     * pagamento. Cancelada é tratada à parte (bloqueio definitivo).
-     */
     public static Billing billing(
             String status, LocalDate trialEndsAt, LocalDate currentPeriodEnd, Instant updatedAt, LocalDate today) {
         LocalDate due = switch (status) {
             case "PAST_DUE" -> currentPeriodEnd != null ? currentPeriodEnd : LocalDate.ofInstant(updatedAt, ZONE);
             case "ACTIVE" -> currentPeriodEnd;
-            // Com período pago informado, vale ele (a avaliação já virou cobrança); senão, o fim da avaliação.
             case "TRIALING" -> currentPeriodEnd != null ? currentPeriodEnd : trialEndsAt;
             default -> null;
         };
@@ -106,7 +96,6 @@ public class SubscriptionService {
         return plans().stream().filter(p -> p.id().equals(saved)).findFirst().orElseThrow();
     }
 
-    /** Assinatura inicial (avaliação de 30 dias) de uma clínica nova. */
     @Transactional
     public void startTrial(UUID tenantId, String planCode) {
         UUID planId = planId(planCode == null ? DEFAULT_PLAN : planCode);
@@ -143,7 +132,6 @@ public class SubscriptionService {
         });
     }
 
-    /** Assinatura da clínica ATIVA, com o uso atual dos limites. */
     @Transactional(readOnly = true)
     public Optional<SubscriptionView> currentClinic() {
         UUID tenantId = TenantContext.requireTenantId();

@@ -16,7 +16,6 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Acesso a dados dos registros de harmonização orofacial (tabela aesthetic_procedures). */
 @Repository
 public class AestheticRepository {
 
@@ -35,7 +34,6 @@ public class AestheticRepository {
             left join users u on u.id = a.created_by
             """;
 
-    /** Dados já normalizados de uma nova aplicação. */
     public record NewAesthetic(
             UUID id,
             UUID tenantId,
@@ -102,7 +100,6 @@ public class AestheticRepository {
                 .list();
     }
 
-    /** Busca por lote/produto/paciente e retornos vencendo até a data; filtros nulos são ignorados. */
     public List<AestheticView> search(UUID tenantId, String batch, String query, LocalDate returnsUntil) {
         return jdbc.sql(SELECT + """
                          where a.tenant_id = :tenant
@@ -171,7 +168,6 @@ public class AestheticRepository {
                 .update();
     }
 
-    /** Anula o registro (exclusão lógica); devolve as linhas afetadas. */
     public int voidRecord(UUID tenantId, UUID patientId, UUID id, UUID voidedBy, String reason) {
         return jdbc.sql("""
                         update aesthetic_procedures set voided_at = now(), voided_by = ?, void_reason = ?

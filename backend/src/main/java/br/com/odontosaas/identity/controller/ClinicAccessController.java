@@ -25,10 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Equipe e convites da CLÍNICA ATIVA. A clínica vem sempre da sessão (servidor); nenhum endpoint aceita tenantId.
- * Recursos de outra clínica respondem 404.
- */
 @RestController
 @RequestMapping("/api/v1/clinic")
 @Tag(name = "Equipe da clínica", description = "Membros, papéis e convites da clínica ativa")

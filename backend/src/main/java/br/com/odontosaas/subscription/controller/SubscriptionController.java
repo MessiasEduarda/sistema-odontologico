@@ -22,10 +22,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Planos e assinaturas. Administração da plataforma ({@code PLATFORM_ADMIN}) altera planos e a assinatura de cada
- * clínica; a equipe da clínica consulta o próprio plano em {@code GET /api/v1/clinic/subscription}.
- */
 @RestController
 @Tag(name = "Plataforma: administração", description = "Planos, assinaturas, indicadores e auditoria")
 public class SubscriptionController {

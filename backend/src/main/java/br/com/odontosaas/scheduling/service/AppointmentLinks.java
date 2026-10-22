@@ -11,10 +11,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Link de confirmação/cancelamento enviado ao paciente. O token é a única autorização: o RLS libera somente o
- * agendamento com aquele hash, e a resposta pública não contém dados clínicos.
- */
 @Service
 public class AppointmentLinks {
 
@@ -26,7 +22,6 @@ public class AppointmentLinks {
         this.appointments = appointments;
     }
 
-    /** Gera (ou renova) o token do agendamento. Exige o contexto da clínica dona do agendamento. */
     @Transactional
     public String issueToken(UUID appointmentId) {
         UUID tenantId = TenantContext.requireTenantId();

@@ -8,10 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Papéis criados automaticamente em toda clínica nova. Fonte da matriz documentada em
- * docs/seguranca/matriz-permissoes.md — alterações aqui exigem atualizar a documentação e os testes.
- */
 public final class RoleTemplates {
 
     public static final String OWNER = "OWNER";

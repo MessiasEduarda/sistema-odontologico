@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 import java.util.Map;
 import java.util.UUID;
 
-/** formId nulo = ficha odontológica padrão da clínica. */
 public record AnamnesisRequest(
         UUID formId,
         @NotNull Map<String, @Valid Answer> answers,

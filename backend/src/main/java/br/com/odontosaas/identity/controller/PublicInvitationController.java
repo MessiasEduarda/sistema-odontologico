@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Aceite de convite (público; o token do e-mail é a autorização). Token sempre no corpo, nunca na URL. */
 @RestController
 @RequestMapping("/api/v1/public/invitations")
 @Tag(name = "Convites (público)")

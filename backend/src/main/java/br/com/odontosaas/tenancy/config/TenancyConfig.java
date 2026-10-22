@@ -9,10 +9,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 class TenancyConfig {
 
-    /**
-     * Envolve o DataSource principal da aplicação. O Flyway usa um DataSource próprio (papel de migração), criado
-     * a partir de {@code spring.flyway.url}, e não passa por aqui.
-     */
     @Bean
     static BeanPostProcessor tenantAwareDataSourcePostProcessor() {
         return new BeanPostProcessor() {

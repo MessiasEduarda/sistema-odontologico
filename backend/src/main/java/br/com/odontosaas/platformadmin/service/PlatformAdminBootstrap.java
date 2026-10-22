@@ -17,14 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
-/**
- * Inicialização que roda em QUALQUER ambiente: cria o primeiro administrador da plataforma a partir de
- * {@code PLATFORM_ADMIN_EMAIL}/{@code PLATFORM_ADMIN_PASSWORD}, apenas se ainda não existir nenhum.
- *
- * <p>Também recusa subir se o seed de desenvolvimento ({@code app.seed.enabled}) estiver ligado fora do perfil
- * {@code dev}: ele cria usuários, inclusive administrador da plataforma, com senha conhecida. Por isso este runner não
- * tem {@code @Profile}. Roda antes ({@code @Order(10)}) do seed de dev ({@code devdata}, {@code @Order(20)}).
- */
 @Component
 @Order(10)
 class PlatformAdminBootstrap implements ApplicationRunner {

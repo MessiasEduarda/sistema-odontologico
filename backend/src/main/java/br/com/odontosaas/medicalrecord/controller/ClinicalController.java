@@ -35,11 +35,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Prontuário odontológico: resumo, anamnese, odontograma, evoluções, procedimentos realizados e documentos. Leitura:
- * clinical_records:read (toda abertura do prontuário é auditada). Registro: clinical_records:write. Fichas de anamnese:
- * clinic:settings:manage. Orientações, anexos, termos e harmonização têm controllers próprios.
- */
 @RestController
 @Tag(name = "Prontuário")
 public class ClinicalController {
@@ -61,8 +56,6 @@ public class ClinicalController {
     public RecordSummary summary(@PathVariable UUID patientId) {
         return clinical.summary(patientId);
     }
-
-    // ------------------------------------------------------------------ Anamnese
 
     @GetMapping("/api/v1/clinic/anamnesis-forms")
     @PreAuthorize(Access.MEMBER)
@@ -118,8 +111,6 @@ public class ClinicalController {
         return clinical.fillAnamnesis(patientId, request);
     }
 
-    // ------------------------------------------------------------------ Odontograma
-
     @GetMapping(BASE + "/dental-chart")
     @PreAuthorize(READ)
     public List<ChartEntryView> chart(@PathVariable UUID patientId) {
@@ -142,8 +133,6 @@ public class ClinicalController {
             @PathVariable UUID patientId, @PathVariable UUID entryId, @Valid @RequestBody VoidRequest request) {
         clinical.voidChartEntry(patientId, entryId, request.reason());
     }
-
-    // ------------------------------------------------------------------ Evoluções e procedimentos
 
     @GetMapping(BASE + "/notes")
     @PreAuthorize(READ)
@@ -180,8 +169,6 @@ public class ClinicalController {
             @PathVariable UUID patientId, @PathVariable UUID performedId, @Valid @RequestBody VoidRequest request) {
         clinical.voidPerformed(patientId, performedId, request.reason());
     }
-
-    // ------------------------------------------------------------------ Documentos
 
     @GetMapping(BASE + "/documents")
     @PreAuthorize(READ)

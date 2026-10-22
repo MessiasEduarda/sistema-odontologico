@@ -2,12 +2,6 @@ package br.com.odontosaas.consent.support;
 
 import java.util.List;
 
-/**
- * Modelos de termo de EXEMPLO que a clínica pode adicionar com um clique e depois editar. Trazem só a estrutura usual
- * de um termo (identificação, declaração de esclarecimento, autorização e assinatura); os riscos, cuidados e
- * alternativas de cada procedimento são preenchidos pela clínica. Devem ser revisados por assessoria jurídica e pelo
- * responsável técnico antes do uso.
- */
 public final class ConsentExamples {
 
     private ConsentExamples() {}

@@ -5,11 +5,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-/**
- * Verifica se um registro relacionado existe NA CLÍNICA ATIVA antes de usá-lo (ex.: paciente de um agendamento).
- * Responde 404 com mensagem clara em vez de erro de chave estrangeira. As tabelas são uma lista fechada (não há
- * montagem de SQL com entrada do usuário) e a consulta ainda passa pelo RLS.
- */
 @Component
 public class TenantRefs {
 
@@ -42,7 +37,6 @@ public class TenantRefs {
                 .single();
     }
 
-    /** Lança 404 ("{label} não encontrado(a)") se o ID não for nulo e não existir na clínica. */
     public void require(String table, UUID tenantId, UUID id, String label) {
         if (id != null && !exists(table, tenantId, id)) throw ApiException.notFound(label);
     }

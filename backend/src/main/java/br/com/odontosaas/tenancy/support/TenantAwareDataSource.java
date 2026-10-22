@@ -14,21 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 
-/**
- * Envolve o DataSource da aplicação: antes de cada comando SQL, garante que a conexão carrega o
- * {@link TenantContext} atual nas variáveis {@code app.tenant_id}, {@code app.user_id} e
- * {@code app.invitation_token_hash}/{@code app.access_token_hash}, usadas pelas políticas de RLS.
- *
- * <p>Garantias:
- * <ul>
- *   <li>Toda conexão retirada do pool aplica o contexto completo antes do primeiro comando (inclusive valores vazios),
- *       então nada "vaza" de um uso anterior da conexão.
- *   <li>Se o contexto mudar no meio de uma transação ({@link TenantContext#runAs}), o próximo comando reaplica.
- *   <li>Após rollback (que desfaz {@code set_config}), o contexto é reaplicado no próximo comando.
- *   <li>Ao devolver a conexão ao pool, as variáveis são limpas.
- * </ul>
- * Sem contexto, as funções SQL retornam NULL e as políticas não liberam nenhuma linha (falha fechada).
- */
 public class TenantAwareDataSource extends DelegatingDataSource {
 
     private static final Logger log = LoggerFactory.getLogger(TenantAwareDataSource.class);
@@ -100,7 +85,7 @@ public class TenantAwareDataSource extends DelegatingDataSource {
             try {
                 Object result = method.invoke(target, args);
                 if (name.equals("rollback")) {
-                    appliedKey = null; // rollback desfaz set_config: reaplicar no próximo comando
+                    appliedKey = null;
                 }
                 return result;
             } catch (InvocationTargetException e) {
@@ -131,11 +116,10 @@ public class TenantAwareDataSource extends DelegatingDataSource {
                     }
                     apply("", "", "", "");
                     if (manualCommit) {
-                        target.commit(); // sem commit, o pool desfaria a limpeza com rollback
+                        target.commit();
                     }
                 }
             } catch (SQLException e) {
-                // A próxima retirada do pool reaplica o contexto completo antes de qualquer comando.
                 log.warn("Falha ao limpar contexto de tenant da conexão", e);
             }
             appliedKey = null;

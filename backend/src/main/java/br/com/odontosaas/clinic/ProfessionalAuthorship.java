@@ -9,12 +9,6 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-/**
- * Impede que um registro clínico (evolução, procedimento, receituário, atestado, harmonização) seja emitido em nome
- * de outro profissional. O {@code professionalId} vem do corpo da requisição, então precisa ser conferido com o
- * usuário logado: só o administrador da clínica pode registrar em nome de qualquer profissional; os demais, apenas no
- * cadastro de profissional vinculado ao próprio usuário.
- */
 @Component
 public class ProfessionalAuthorship {
 
@@ -24,7 +18,6 @@ public class ProfessionalAuthorship {
         this.professionals = professionals;
     }
 
-    /** Sem {@code professionalId} (campo opcional) não há autoria a conferir. */
     public void require(UUID tenantId, UUID professionalId) {
         if (professionalId == null) return;
         AuthenticatedUser user = CurrentUser.require();

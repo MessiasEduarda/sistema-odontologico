@@ -11,7 +11,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-/** Cookie de sessão: httpOnly (inacessível a JavaScript), SameSite=Lax e Secure (configurável só para testes). */
 @Component
 public class SessionCookies {
 

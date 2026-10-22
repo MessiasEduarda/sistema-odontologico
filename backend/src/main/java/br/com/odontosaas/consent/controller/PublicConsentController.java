@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Rotas públicas (sem login, por token do link do paciente) para visualizar e assinar o termo. */
 @RestController
 @Tag(name = "Prontuário")
 public class PublicConsentController {

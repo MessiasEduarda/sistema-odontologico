@@ -8,13 +8,6 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
-/**
- * E-mails transacionais de acesso. Envio síncrono e tolerante a falhas: um erro de SMTP é registrado (sem o token)
- * mas não interrompe o fluxo. Fila com reenvio (outbox) virá no módulo de Comunicação.
- *
- * <p>Os links levam o token no fragmento ({@code #token=}), que o navegador não envia ao servidor nem registra em
- * logs de acesso.
- */
 @Component
 public class IdentityMailer {
 

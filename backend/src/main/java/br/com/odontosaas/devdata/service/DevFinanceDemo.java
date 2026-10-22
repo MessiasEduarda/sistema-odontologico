@@ -14,12 +14,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-/**
- * Financeiro de DEMONSTRAÇÃO (perfil dev), 100% fictício, gravado no banco como se tivesse sido lançado pela tela:
- * contas a receber quitadas, parceladas, vencidas, com pagamento parcial e cancelada; fornecedores e contas a pagar
- * pagas, em aberto e vencidas. Serve para testar o financeiro de ponta a ponta (receber, estornar, emitir recibo,
- * pagar conta, relatórios). Só roda se a clínica ainda não tiver nenhum lançamento financeiro.
- */
 @Component
 class DevFinanceDemo {
 
@@ -51,14 +45,12 @@ class DevFinanceDemo {
             List<UUID> patients = patients(tenantId);
             LocalDate today = LocalDate.now(ZONE);
 
-            // Quitada em 3x (uma por mês).
             UUID r1 = receivable(tenantId, ownerUserId, patients.get(0), "Clareamento em consultório", "900.00");
             List<UUID> i1 = installments(tenantId, r1, "900.00", 3, today.minusMonths(2));
             pay(tenantId, ownerUserId, i1.get(0), "300.00", "PIX", today.minusMonths(2));
             pay(tenantId, ownerUserId, i1.get(1), "300.00", "PIX", today.minusMonths(1));
             pay(tenantId, ownerUserId, i1.get(2), "300.00", "CREDIT_CARD", today.minusDays(2));
 
-            // Parcelada em 4x: 2 pagas, 1 vencida, 1 a vencer.
             UUID r2 =
                     receivable(tenantId, ownerUserId, patients.get(1), "Tratamento restaurador (4 dentes)", "1000.00");
             List<UUID> i2 = installments(
@@ -78,25 +70,20 @@ class DevFinanceDemo {
                     "CASH",
                     today.minusMonths(1).minusDays(9));
 
-            // À vista, vencida há 20 dias (inadimplência).
             UUID r3 = receivable(tenantId, ownerUserId, patients.get(2), "Extração simples", "300.00");
             installments(tenantId, r3, "300.00", 1, today.minusDays(20));
 
-            // Pagamento parcial: 100 de 250, saldo vence em 5 dias.
             UUID r4 = receivable(tenantId, ownerUserId, patients.get(3), "Restauração em resina", "250.00");
             List<UUID> i4 = installments(tenantId, r4, "250.00", 1, today.plusDays(5));
             pay(tenantId, ownerUserId, i4.get(0), "100.00", "PIX", today.minusDays(1));
 
-            // Quitada hoje, à vista.
             UUID r5 = receivable(tenantId, ownerUserId, patients.get(0), "Consulta / avaliação", "120.00");
             List<UUID> i5 = installments(tenantId, r5, "120.00", 1, today);
             pay(tenantId, ownerUserId, i5.get(0), "120.00", "CASH", today);
 
-            // Em aberto, 2x a vencer.
             UUID r6 = receivable(tenantId, ownerUserId, patients.get(1), "Limpeza (profilaxia) e flúor", "260.00");
             installments(tenantId, r6, "260.00", 2, today.plusDays(10));
 
-            // Cancelada (lançada por engano).
             UUID r7 = receivable(tenantId, ownerUserId, patients.get(2), "Radiografia periapical", "40.00");
             installments(tenantId, r7, "40.00", 1, today.plusDays(3));
             jdbc.sql("update installments set status = 'CANCELLED' where tenant_id = ? and receivable_id = ?")
@@ -174,7 +161,6 @@ class DevFinanceDemo {
         });
     }
 
-    /** Pacientes ativos da clínica; cria alguns fictícios se houver menos de 4. */
     private List<UUID> patients(UUID tenantId) {
         List<UUID> ids = new ArrayList<>(
                 jdbc.sql("select id from patients where tenant_id = ? and active order by created_at limit 4")
@@ -212,7 +198,6 @@ class DevFinanceDemo {
         return id;
     }
 
-    /** Parcelas mensais iguais (a última absorve o arredondamento). */
     private List<UUID> installments(UUID tenantId, UUID receivableId, String total, int count, LocalDate firstDue) {
         BigDecimal sum = new BigDecimal(total);
         BigDecimal each = sum.divide(BigDecimal.valueOf(count), 2, RoundingMode.DOWN);
@@ -231,7 +216,6 @@ class DevFinanceDemo {
         return ids;
     }
 
-    /** Recebimento com os mesmos efeitos da tela: atualiza a parcela e quita a conta quando tudo foi pago. */
     private void pay(UUID tenantId, UUID userId, UUID installmentId, String amount, String method, LocalDate day) {
         BigDecimal value = new BigDecimal(amount);
         jdbc.sql("""

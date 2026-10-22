@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos documentos clínicos emitidos (tabela clinical_documents). */
 @Repository
 public class ClinicalDocumentRepository {
 
@@ -49,7 +48,6 @@ public class ClinicalDocumentRepository {
                 .update();
     }
 
-    /** Documentos emitidos na clínica (todos os pacientes); filtro de tipo nulo é ignorado. */
     public List<IssuedDocument> findRecent(UUID tenantId, String type) {
         return jdbc.sql("""
                         select d.id, d.patient_id, pa.full_name as patient_name, p.name as professional_name, d.type,

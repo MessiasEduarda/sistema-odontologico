@@ -5,7 +5,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos tokens de redefinição de senha ({@code password_reset_tokens}). */
 @Repository
 public class PasswordResetRepository {
 
@@ -15,7 +14,6 @@ public class PasswordResetRepository {
         this.jdbc = jdbc;
     }
 
-    /** Quantidade de tokens criados para o usuário na última hora. */
     public long countCreatedLastHour(UUID userId) {
         return jdbc.sql("""
                         select count(*) from password_reset_tokens
@@ -30,7 +28,6 @@ public class PasswordResetRepository {
                         """).params(id, userId, tokenHash, ttlSeconds).update();
     }
 
-    /** Usuário dono de um token ainda válido (não usado, não expirado), travando a linha ({@code for update}). */
     public Optional<UUID> lockValidUserId(String tokenHash) {
         return jdbc.sql("""
                         select user_id from password_reset_tokens
@@ -39,7 +36,6 @@ public class PasswordResetRepository {
                         """).param(tokenHash).query(UUID.class).optional();
     }
 
-    /** Marca como usados todos os tokens pendentes do usuário. */
     public void markAllUsed(UUID userId) {
         jdbc.sql("update password_reset_tokens set used_at = now() where user_id = ? and used_at is null")
                 .param(userId)

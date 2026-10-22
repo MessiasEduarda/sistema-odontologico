@@ -15,11 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Portabilidade (LGPD, art. 18, V): todos os dados do paciente na clínica, em JSON estruturado. Campos internos de
- * segurança (hashes de tokens, chave de armazenamento) e a clínica (tenant_id) ficam de fora; arquivos anexos vão
- * como lista (nome, tipo, data) — o arquivo em si é baixado pelo prontuário.
- */
 @Service
 public class PatientExportService {
 
@@ -33,7 +28,6 @@ public class PatientExportService {
         this.json = json;
     }
 
-    /** Não é somente leitura: a exportação fica registrada na auditoria. */
     @Transactional
     public Map<String, Object> export(UUID patientId) {
         UUID tenantId = TenantContext.requireTenantId();

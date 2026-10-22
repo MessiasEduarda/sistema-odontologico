@@ -25,12 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Anexos do prontuário (radiografias, fotos, exames, documentos). Arquivos ficam em disco fora da pasta pública,
- * organizados por clínica, com nome aleatório; o download só acontece pela API, com permissão e auditoria.
- *
- * <p>O tipo é conferido pelo CONTEÚDO do arquivo (assinatura binária), não pela extensão enviada.
- */
 @Service
 public class AttachmentService {
 
@@ -123,7 +117,6 @@ public class AttachmentService {
         return new StoredFile(row.filename(), row.contentType(), path);
     }
 
-    /** Exclusão lógica: o arquivo é mantido (retenção legal do prontuário) e some das listagens. */
     @Transactional
     public void delete(UUID patientId, UUID attachmentId) {
         int updated = attachments.softDelete(
@@ -135,7 +128,6 @@ public class AttachmentService {
         audit.record(AuditAction.RECORD_VOIDED, "attachment", attachmentId, Map.of());
     }
 
-    /** Impede path traversal: a chave sempre resolve para dentro da pasta raiz. */
     private Path resolve(String key) {
         Path path = root.resolve(key).normalize();
         if (!path.startsWith(root)) throw new IllegalStateException("Chave de armazenamento inválida");
@@ -175,7 +167,6 @@ public class AttachmentService {
         }
     }
 
-    /** Para testes/diagnóstico. */
     Path root() {
         return root;
     }

@@ -5,11 +5,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso aos modelos de mensagem personalizados de cada clínica. */
 @Repository
 public class MessageTemplateRepository {
 
-    /** Modelo personalizado gravado pela clínica. */
     public record TemplateRow(String type, String subject, String body, boolean active, boolean custom) {}
 
     private final JdbcClient jdbc;

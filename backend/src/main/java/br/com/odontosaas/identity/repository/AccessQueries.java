@@ -15,10 +15,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
-/**
- * Consultas de acesso em SQL direto (tabelas de associação). Todas recebem o {@code tenantId} explicitamente e,
- * além disso, rodam sob RLS.
- */
 @Component
 public class AccessQueries {
 
@@ -28,10 +24,6 @@ public class AccessQueries {
         this.jdbc = jdbc;
     }
 
-    /**
-     * Permissões do usuário na clínica, ou vazio se ele não tiver vínculo ativo com uma clínica ativa. Exige contexto
-     * com {@code tenantId} = clínica consultada.
-     */
     public Optional<Set<Permission>> permissionsIn(UUID tenantId, UUID userId) {
         Optional<UUID> membership =
                 jdbc.sql("""
@@ -53,7 +45,6 @@ public class AccessQueries {
         return Optional.of(permissions);
     }
 
-    /** Clínicas ativas em que o usuário tem vínculo ativo. Exige contexto com {@code userId}. */
     public List<ClinicSummary> activeClinicsOf(UUID userId) {
         return jdbc.sql("""
                         select t.id, t.name, t.slug from memberships m join tenants t on t.id = m.tenant_id
@@ -118,7 +109,6 @@ public class AccessQueries {
         }
     }
 
-    /** Vínculos ativos que possuem o papel de administrador da clínica. */
     public long countActiveOwners(UUID tenantId) {
         return jdbc.sql("""
                         select count(distinct m.id) from memberships m

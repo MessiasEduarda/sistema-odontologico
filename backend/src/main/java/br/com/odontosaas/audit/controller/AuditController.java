@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Trilha de auditoria da clínica ativa (somente leitura). */
 @RestController
 @Tag(name = "Auditoria")
 public class AuditController {

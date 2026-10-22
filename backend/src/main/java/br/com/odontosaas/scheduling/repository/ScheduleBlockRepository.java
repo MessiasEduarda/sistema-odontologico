@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos bloqueios de agenda (de um profissional ou da clínica inteira). */
 @Repository
 public class ScheduleBlockRepository {
 
@@ -29,7 +28,6 @@ public class ScheduleBlockRepository {
         this.jdbc = jdbc;
     }
 
-    /** Bloqueios que encostam no período informado, em ordem de início. */
     public List<ScheduleBlockView> list(UUID tenantId, Instant from, Instant to) {
         return jdbc.sql(SELECT + " where b.tenant_id = ? and b.ends_at > ? and b.starts_at < ? order by b.starts_at")
                 .params(tenantId, Timestamp.from(from), Timestamp.from(to))
@@ -60,14 +58,12 @@ public class ScheduleBlockRepository {
                 .update();
     }
 
-    /** Remove o bloqueio; devolve as linhas afetadas. */
     public int delete(UUID tenantId, UUID id) {
         return jdbc.sql("delete from schedule_blocks where tenant_id = ? and id = ?")
                 .params(tenantId, id)
                 .update();
     }
 
-    /** Motivo do primeiro bloqueio que cobre o período para o profissional (ou para a clínica inteira), se houver. */
     public Optional<String> blockingReason(UUID tenantId, UUID professionalId, Instant startsAt, Instant endsAt) {
         return jdbc.sql("""
                         select reason from schedule_blocks
@@ -80,7 +76,6 @@ public class ScheduleBlockRepository {
                 .optional();
     }
 
-    /** Períodos bloqueados de um profissional num intervalo (inclui os da clínica inteira), como pares início/fim. */
     public List<Instant[]> blockedPeriods(UUID tenantId, UUID professionalId, Instant from, Instant to) {
         return jdbc.sql("""
                         select starts_at, ends_at from schedule_blocks

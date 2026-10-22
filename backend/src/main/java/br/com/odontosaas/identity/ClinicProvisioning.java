@@ -15,10 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * API do módulo de identidade para preparar clínicas novas (usada pela administração da plataforma e pelo seed de
- * desenvolvimento). Cada operação define internamente o contexto da clínica alvo, já validada pelo chamador.
- */
 @Service
 public class ClinicProvisioning {
 
@@ -44,7 +40,6 @@ public class ClinicProvisioning {
         this.encoder = encoder;
     }
 
-    /** Cria os papéis padrão (RoleTemplates) na clínica. */
     @Transactional
     public void createDefaultRoles(UUID tenantId, UUID actorUserId) {
         TenantContext.runAs(tenantId, actorUserId, () -> {
@@ -56,13 +51,11 @@ public class ClinicProvisioning {
         });
     }
 
-    /** Convida o responsável pela clínica com o papel de administrador. */
     @Transactional
     public void inviteOwner(UUID tenantId, String email, UUID actorUserId) {
         TenantContext.runAs(tenantId, actorUserId, () -> invitations.invite(email, RoleTemplates.OWNER, actorUserId));
     }
 
-    /** Cria usuário diretamente (seed de desenvolvimento e bootstrap do administrador da plataforma). */
     @Transactional
     public UUID createUser(String email, String name, String rawPassword, boolean platformAdmin) {
         User user = new User(email, name, encoder.encode(rawPassword));
@@ -70,7 +63,6 @@ public class ClinicProvisioning {
         return users.saveAndFlush(user).getId();
     }
 
-    /** Vincula um usuário existente à clínica com um papel (seed de desenvolvimento). */
     @Transactional
     public void addMember(UUID tenantId, UUID userId, String roleCode) {
         TenantContext.runAs(tenantId, userId, () -> {

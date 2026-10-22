@@ -9,11 +9,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos procedimentos realizados (tabela performed_procedures). */
 @Repository
 public class PerformedProcedureRepository {
 
-    /** Resultado da anulação: item do plano de tratamento vinculado (pode ser nulo). */
     public record VoidedRow(UUID treatmentItemId) {}
 
     private final JdbcClient jdbc;
@@ -36,7 +34,6 @@ public class PerformedProcedureRepository {
                 .list();
     }
 
-    /** Indica se o item do plano pertence ao paciente, está planejado e o plano está aprovado. */
     public boolean isApprovedPlannedItem(UUID tenantId, UUID treatmentItemId, UUID patientId) {
         return jdbc.sql("""
                         select exists(select 1 from treatment_plan_items i
@@ -83,7 +80,6 @@ public class PerformedProcedureRepository {
                 .update();
     }
 
-    /** Anula o procedimento (exclusão lógica); vazio se não existe ou já estava anulado. */
     public Optional<VoidedRow> voidReturningItem(
             UUID tenantId, UUID patientId, UUID performedId, UUID voidedBy, String reason) {
         return jdbc.sql("""

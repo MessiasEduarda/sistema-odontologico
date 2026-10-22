@@ -20,10 +20,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Rotinas agendadas: geração de lembretes e envio da fila. Rodam clínica por clínica, cada uma em seu próprio
- * contexto de tenant (o RLS continua valendo para os jobs).
- */
 @Component
 public class CommunicationJobs {
 
@@ -59,7 +55,6 @@ public class CommunicationJobs {
         return messages.activeTenantIds();
     }
 
-    /** Cria lembretes para consultas dentro da antecedência configurada pela clínica (padrão 24h). */
     public int generateReminders() {
         int total = 0;
         for (UUID tenantId : activeTenants()) {
@@ -80,7 +75,6 @@ public class CommunicationJobs {
         return total;
     }
 
-    /** Envia as mensagens pendentes. Falhas são registradas; após 5 tentativas a mensagem fica como FAILED. */
     public int dispatch() {
         int sent = 0;
         for (UUID tenantId : activeTenants()) {
@@ -118,7 +112,6 @@ public class CommunicationJobs {
         return sent;
     }
 
-    /** Agendamento automático (desligado nos testes por app.jobs.enabled=false). */
     @Component
     @ConditionalOnProperty(name = "app.jobs.enabled", havingValue = "true", matchIfMissing = true)
     static class Schedule {

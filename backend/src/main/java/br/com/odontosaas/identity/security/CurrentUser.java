@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-/** Acesso ao usuário autenticado da requisição atual. */
 public final class CurrentUser {
 
     private CurrentUser() {}

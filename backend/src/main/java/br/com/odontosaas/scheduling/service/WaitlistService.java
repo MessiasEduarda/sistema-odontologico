@@ -17,7 +17,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Lista de espera (encaixe): quem aguarda vaga, com preferência de horário, para chamar quando abrir um horário. */
 @Service
 public class WaitlistService {
 
@@ -33,7 +32,6 @@ public class WaitlistService {
         this.audit = audit;
     }
 
-    /** Aguardando: urgentes primeiro, depois por ordem de chegada. Resolvidas: as mais recentes primeiro. */
     @Transactional(readOnly = true)
     public List<WaitlistView> list(String status) {
         String s = status == null || status.isBlank() ? "WAITING" : status;
@@ -78,7 +76,6 @@ public class WaitlistService {
         return get(tenantId, id);
     }
 
-    /** Tira da lista: encaixado (com o atendimento já marcado para o mesmo paciente) ou desistência. */
     @Transactional
     public WaitlistView resolve(UUID id, WaitlistResolveRequest r) {
         UUID tenantId = TenantContext.requireTenantId();

@@ -18,7 +18,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Bloqueios de agenda: períodos em que não se marca atendimento (de um profissional ou da clínica inteira). */
 @Service
 public class ScheduleBlockService {
 
@@ -73,12 +72,10 @@ public class ScheduleBlockService {
         audit.record(AuditAction.RECORD_DEACTIVATED, "schedule-block", id, Map.of());
     }
 
-    /** Primeiro bloqueio que cobre o período para o profissional (ou para a clínica inteira), se houver. */
     Optional<String> blockingReason(UUID tenantId, UUID professionalId, Instant startsAt, Instant endsAt) {
         return blocks.blockingReason(tenantId, professionalId, startsAt, endsAt);
     }
 
-    /** Períodos bloqueados de um profissional num intervalo (inclui os da clínica inteira). */
     List<Instant[]> blockedPeriods(UUID tenantId, UUID professionalId, Instant from, Instant to) {
         return blocks.blockedPeriods(tenantId, professionalId, from, to);
     }

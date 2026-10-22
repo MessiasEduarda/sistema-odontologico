@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-/** Anexos do prontuário (exames, radiografias, fotos e documentos do paciente). */
 @RestController
 @Tag(name = "Prontuário")
 public class AttachmentController {

@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos recebimentos e estornos (tabelas payments e refunds). Participa da transação do service. */
 @Repository
 public class PaymentRepository {
 
@@ -22,7 +21,6 @@ public class PaymentRepository {
         this.jdbc = jdbc;
     }
 
-    /** Recebimentos de uma conta, agrupados pelo id da parcela e em ordem de data de pagamento. */
     public Map<UUID, List<PaymentView>> findByReceivable(UUID tenantId, UUID receivableId) {
         Map<UUID, List<PaymentView>> payments = new LinkedHashMap<>();
         jdbc.sql("""
@@ -67,7 +65,6 @@ public class PaymentRepository {
                 .update();
     }
 
-    /** Trava o recebimento (for update of pa) para estornar sem corrida. */
     public Optional<PaymentLockRow> findForRefund(UUID tenantId, UUID paymentId) {
         return jdbc.sql("""
                         select pa.installment_id, pa.amount, pa.refunded_amount, i.receivable_id

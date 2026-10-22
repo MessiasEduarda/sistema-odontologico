@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
-/** Sessões ativas do próprio usuário: listar, encerrar uma e encerrar todas as outras (com auditoria). */
 @Service
 public class SessionService {
 
@@ -32,7 +31,6 @@ public class SessionService {
                 .toList();
     }
 
-    /** 404 se a sessão não for do usuário. */
     public void revoke(AuthenticatedUser user, UUID sessionId) {
         if (!sessions.revokeOwned(user.userId(), sessionId, REASON)) {
             throw ApiException.notFound("Sessão");

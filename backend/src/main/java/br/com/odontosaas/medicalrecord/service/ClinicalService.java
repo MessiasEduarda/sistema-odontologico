@@ -48,14 +48,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Prontuário: anamnese, odontograma, evoluções, procedimentos realizados e documentos. Registros não são editados
- * nem apagados (ver V4); toda leitura do prontuário completo é auditada.
- */
 @Service
 public class ClinicalService {
 
-    /** Condições aceitas no odontograma. */
     static final Set<String> CONDITIONS = Set.of(
             "CARIES",
             "RESTORATION",
@@ -117,8 +112,6 @@ public class ClinicalService {
         return TenantContext.userId().orElse(null);
     }
 
-    // ------------------------------------------------------------------ Resumo (abertura do prontuário)
-
     @Transactional
     public RecordSummary summary(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
@@ -139,12 +132,6 @@ public class ClinicalService {
                 attachments);
     }
 
-    // ------------------------------------------------------------------ Fichas de anamnese
-
-    /**
-     * Fichas da clínica. Na primeira consulta cria a ficha odontológica padrão e, se a clínica realiza harmonização
-     * orofacial, também a ficha de harmonização (ambas editáveis).
-     */
     @Transactional
     public List<FormView> forms(boolean includeInactive) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -185,7 +172,6 @@ public class ClinicalService {
         return form(tenantId, id);
     }
 
-    /** Alterar a ficha não afeta anamneses já preenchidas (cada uma guarda a cópia das perguntas). */
     @Transactional
     public FormView updateForm(UUID formId, FormRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -209,7 +195,6 @@ public class ClinicalService {
         return form(tenantId, formId);
     }
 
-    /** Ficha usada quando nenhuma é informada: a primeira odontológica ativa (ou a primeira ativa). */
     private FormView defaultForm() {
         List<FormView> active = forms(false);
         return active.stream()
@@ -218,8 +203,6 @@ public class ClinicalService {
                 .or(() -> active.stream().findFirst())
                 .orElseThrow(() -> ApiException.businessRule("NO_ANAMNESIS_FORM", "Nenhuma ficha de anamnese ativa."));
     }
-
-    // ------------------------------------------------------------------ Anamnese (preenchimentos)
 
     @Transactional
     public AnamnesisView fillAnamnesis(UUID patientId, AnamnesisRequest r) {
@@ -266,7 +249,6 @@ public class ClinicalService {
         return anamnesisRecords.findByPatient(tenantId, patientId);
     }
 
-    /** Preenchimentos recentes da clínica (todas as fichas), com filtros por tipo de ficha, alertas e paciente. */
     @Transactional(readOnly = true)
     public List<RecentAnamnesis> recentAnamneses(String kind, boolean alertsOnly, String query) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -274,12 +256,6 @@ public class ClinicalService {
         return anamnesisRecords.findRecent(tenantId, kind == null || kind.isBlank() ? null : kind, alertsOnly, q);
     }
 
-    /**
-     * Alertas vigentes de cada ficha (odontológica, harmonização...), por pergunta: vale a resposta mais recente que
-     * foi de fato dada ("SIM" ou "NÃO"). Pergunta deixada em branco numa ficha nova NÃO apaga o alerta anterior; só um
-     * "NÃO" explícito o resolve. As fichas são agrupadas pelo id (renomear a ficha não separa o histórico) e só contam
-     * as perguntas da versão mais recente dela. {@code all} vem do mais novo para o mais antigo.
-     */
     private static List<Alert> currentAlerts(List<AnamnesisView> all) {
         Map<Object, List<AnamnesisView>> byForm = new LinkedHashMap<>();
         for (AnamnesisView a : all) {
@@ -300,8 +276,6 @@ public class ClinicalService {
         }
         return alerts;
     }
-
-    // ------------------------------------------------------------------ Odontograma
 
     @Transactional(readOnly = true)
     public List<ChartEntryView> chart(UUID patientId) {
@@ -347,8 +321,6 @@ public class ClinicalService {
                 || (quadrant >= 5 && quadrant <= 8 && tooth >= 1 && tooth <= 5);
     }
 
-    // ------------------------------------------------------------------ Evoluções
-
     @Transactional(readOnly = true)
     public List<NoteView> notes(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
@@ -381,8 +353,6 @@ public class ClinicalService {
                 .findFirst()
                 .orElseThrow();
     }
-
-    // ------------------------------------------------------------------ Procedimentos realizados
 
     @Transactional(readOnly = true)
     public List<PerformedView> performed(UUID patientId) {
@@ -444,8 +414,6 @@ public class ClinicalService {
         if (itemId != null) events.publishEvent(new ProcedurePerformed(tenantId, itemId, true));
     }
 
-    // ------------------------------------------------------------------ Documentos
-
     @Transactional(readOnly = true)
     public List<DocumentView> documents(UUID patientId) {
         UUID tenantId = tenantFor(patientId);
@@ -474,7 +442,6 @@ public class ClinicalService {
                 .orElseThrow();
     }
 
-    /** Documentos emitidos na clínica (todas as fichas), com filtro de tipo. */
     @Transactional(readOnly = true)
     public List<IssuedDocument> recentDocuments(String type) {
         UUID tenantId = TenantContext.requireTenantId();

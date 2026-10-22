@@ -13,10 +13,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Atribui um identificador a cada requisição, disponível nos logs (MDC {@code traceId}), no header de resposta
- * {@code X-Request-Id} e nos corpos de erro. Um ID enviado pelo cliente só é aceito se tiver formato seguro.
- */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestIdFilter extends OncePerRequestFilter {

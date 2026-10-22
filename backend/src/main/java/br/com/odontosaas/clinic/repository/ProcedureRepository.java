@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados do catálogo de procedimentos da clínica. */
 @Repository
 public class ProcedureRepository {
 
@@ -21,7 +20,6 @@ public class ProcedureRepository {
         this.jdbc = jdbc;
     }
 
-    /** {@code like} já vem no formato {@code %texto%} em minúsculas (ou nulo, sem filtro de texto). */
     public List<ProcedureView> list(UUID tenantId, String like, Boolean active) {
         return jdbc.sql("select " + PROCEDURE_COLUMNS + " from procedures where tenant_id = ?"
                         + " and (cast(? as text) is null or lower(name) like ? or lower(coalesce(code, '')) like ?)"
@@ -48,7 +46,6 @@ public class ProcedureRepository {
                 .update();
     }
 
-    /** Atualiza o procedimento; devolve as linhas afetadas. */
     public int update(UUID tenantId, UUID id, String code, String name, String category, ProcedureRequest r) {
         return jdbc.sql("""
                         update procedures set code = ?, name = ?, category = ?, default_price = ?,

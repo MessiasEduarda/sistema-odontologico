@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Relatórios gerenciais (somente leitura, sempre na clínica ativa, datas no fuso da clínica). */
 @Service
 public class ReportService {
 
@@ -98,7 +97,6 @@ public class ReportService {
         return new PatientsReport(counts.active(), counts.inactive(), newByMonth, birthdays);
     }
 
-    /** Exportação CSV (separador ";" e BOM para abrir corretamente no Excel). Auditada. */
     public String exportCsv(String type, LocalDate from, LocalDate to) {
         StringBuilder csv = new StringBuilder("﻿");
         switch (type) {
@@ -152,7 +150,6 @@ public class ReportService {
         return csv.toString();
     }
 
-    /** Neutraliza fórmulas (CSV injection) e escapa aspas/separador. */
     static String cell(String value) {
         if (value == null) return "";
         String v = value;

@@ -4,7 +4,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
-/** Entrada na lista de espera. Profissional e procedimento são opcionais (qualquer um serve). */
 public record WaitlistRequest(
         @NotNull UUID patientId,
         UUID professionalId,

@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das evoluções clínicas (tabela clinical_notes). */
 @Repository
 public class ClinicalNoteRepository {
 
@@ -27,7 +26,6 @@ public class ClinicalNoteRepository {
                         """).params(tenantId, patientId).query(NoteView.class).list();
     }
 
-    /** Indica se a evolução existe e pertence ao paciente. */
     public boolean belongsToPatient(UUID tenantId, UUID noteId, UUID patientId) {
         return jdbc.sql("select exists(select 1 from clinical_notes where tenant_id = ? and id = ? and patient_id = ?)")
                 .params(tenantId, noteId, patientId)

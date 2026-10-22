@@ -15,7 +15,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Painel inicial: só inclui indicadores que a pessoa tem permissão de ver. */
 @Service
 public class DashboardService {
 

@@ -22,15 +22,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * Autentica a requisição pelo cookie de sessão e monta o contexto de isolamento:
- * <ol>
- *   <li>valida a sessão (não revogada, não expirada, dentro do limite de inatividade, usuário ativo);
- *   <li>se há clínica ativa, confirma o vínculo ativo e carrega as permissões NELA (sob RLS);
- *   <li>define {@link TenantContext} e o {@code SecurityContext}; ambos são limpos ao fim da requisição.
- * </ol>
- * Sessão inválida = requisição anônima (as regras de autorização decidem o 401). O cookie inválido é apagado.
- */
 public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
     private final SessionStore sessions;

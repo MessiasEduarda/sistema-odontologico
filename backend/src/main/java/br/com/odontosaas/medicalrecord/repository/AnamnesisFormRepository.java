@@ -12,7 +12,6 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Acesso a dados das fichas de anamnese da clínica (tabela anamnesis_forms). */
 @Repository
 public class AnamnesisFormRepository {
 
@@ -21,7 +20,6 @@ public class AnamnesisFormRepository {
     private static final String FORM_SELECT =
             "select id, name, kind, questions::text as questions, active, updated_at from anamnesis_forms";
 
-    /** Quais fichas padrão a clínica já possui e se a harmonização orofacial está habilitada. */
     public record FormKindsRow(boolean dental, boolean aesthetic, boolean aestheticsEnabled) {}
 
     private final JdbcClient jdbc;
@@ -70,7 +68,6 @@ public class AnamnesisFormRepository {
                 .single();
     }
 
-    /** Insere a ficha padrão; ignora se já existir uma com o mesmo nome na clínica. */
     public void insertIfAbsent(
             UUID id, UUID tenantId, String name, String kind, List<Question> questions, UUID updatedBy) {
         jdbc.sql("""

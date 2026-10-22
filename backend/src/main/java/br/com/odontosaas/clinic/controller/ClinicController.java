@@ -35,10 +35,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Cadastros da clínica ativa. Leitura: qualquer membro (necessária para agenda, prontuário e orçamentos).
- * Escrita: {@code clinic:settings:manage}.
- */
 @RestController
 @RequestMapping("/api/v1/clinic")
 @Tag(name = "Cadastros da clínica", description = "Configurações, profissionais, horários, salas e procedimentos")

@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos modelos de termo de consentimento (tabela consent_templates). */
 @Repository
 public class ConsentTemplateRepository {
 
@@ -35,7 +34,6 @@ public class ConsentTemplateRepository {
                 .optional();
     }
 
-    /** Insere um modelo novo (versão 1) cuja família é o próprio id. */
     public void insertFirstVersion(UUID id, UUID tenantId, String title, String category, String body, UUID createdBy) {
         jdbc.sql("""
                         insert into consent_templates (id, tenant_id, family_id, title, category, body, version,
@@ -43,7 +41,6 @@ public class ConsentTemplateRepository {
                         """).params(id, tenantId, id, title, category, body, createdBy).update();
     }
 
-    /** Insere uma nova versão de um modelo já existente (mesma família). */
     public void insertVersion(
             UUID id,
             UUID tenantId,
@@ -61,7 +58,6 @@ public class ConsentTemplateRepository {
                 .update();
     }
 
-    /** Inativa todas as versões da família. */
     public void deactivateFamily(UUID tenantId, UUID familyId) {
         jdbc.sql("update consent_templates set active = false where tenant_id = ? and family_id = ?")
                 .params(tenantId, familyId)

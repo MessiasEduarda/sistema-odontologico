@@ -7,14 +7,11 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados do portal do paciente: tokens de acesso, dados da clínica, contato do paciente e consultas. */
 @Repository
 public class PortalRepository {
 
-    /** Token de acesso válido: identifica o acesso, a clínica e o paciente. */
     public record AccessRow(UUID id, UUID tenantId, UUID patientId) {}
 
-    /** Nome e telefone da clínica exibidos no portal. */
     public record ClinicRow(String name, String phone) {}
 
     private final JdbcClient jdbc;
@@ -71,7 +68,6 @@ public class PortalRepository {
                 .single();
     }
 
-    /** Paciente dono da consulta, ou vazio quando a consulta não existe na clínica. */
     public Optional<UUID> appointmentPatientId(UUID tenantId, UUID appointmentId) {
         return jdbc.sql("select patient_id from appointments where tenant_id = ? and id = ?")
                 .params(tenantId, appointmentId)
@@ -88,7 +84,6 @@ public class PortalRepository {
             Boolean allowEmail,
             Boolean allowSms,
             Boolean allowWhatsapp) {
-        // null = campo omitido: preserva o valor atual. Texto vazio apaga (nullif).
         jdbc.sql("""
                         update patients set email = nullif(coalesce(?, email), ''),
                             mobile = nullif(coalesce(?, mobile), ''), phone = nullif(coalesce(?, phone), ''),

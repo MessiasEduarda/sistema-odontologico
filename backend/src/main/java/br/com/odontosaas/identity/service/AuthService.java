@@ -58,14 +58,9 @@ public class AuthService {
         this.access = access;
         this.audit = audit;
         this.terms = terms;
-        // Usado quando o e-mail não existe, para o tempo de resposta não revelar quais contas existem.
         this.dummyHash = encoder.encode("senha-ficticia-para-igualar-tempo");
     }
 
-    /**
-     * Login. Respostas de erro são idênticas para e-mail inexistente, senha errada e conta desativada. Se o usuário
-     * tiver exatamente uma clínica, ela já fica ativa.
-     */
     public MeResponse login(LoginRequest request, HttpServletResponse response) {
         String email = User.normalizeEmail(request.email());
         String ip = RequestInfo.clientIp();
@@ -117,10 +112,6 @@ public class AuthService {
         cookies.clear(response);
     }
 
-    /**
-     * Troca a clínica ativa. O ID recebido é apenas uma ESCOLHA: só é aceito se o servidor confirmar vínculo ativo do
-     * usuário com uma clínica ativa. A sessão é rotacionada (novo token).
-     */
     @Transactional
     public MeResponse switchClinic(AuthenticatedUser current, UUID clinicId, HttpServletResponse response) {
         boolean allowed = TenantContext.runAs(

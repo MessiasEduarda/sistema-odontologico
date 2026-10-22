@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das contas a receber (tabela receivables). Participa da transação do service. */
 @Repository
 public class ReceivableRepository {
 
@@ -69,7 +68,6 @@ public class ReceivableRepository {
                         """).params(reason, tenantId, id).update();
     }
 
-    /** Recalcula o status (aberta/paga) da conta a partir das parcelas em aberto; contas canceladas não mudam. */
     public void refreshStatus(UUID tenantId, UUID receivableId) {
         jdbc.sql("""
                         update receivables r set status = case

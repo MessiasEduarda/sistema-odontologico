@@ -3,11 +3,6 @@ package br.com.odontosaas.medicalrecord.support;
 import br.com.odontosaas.medicalrecord.dto.request.Question;
 import java.util.List;
 
-/**
- * Fichas de anamnese iniciais (perguntas usuais de triagem): odontológica e de harmonização orofacial. São apenas um
- * ponto de partida: cada clínica edita as suas, e o conteúdo deve ser revisado pelo profissional responsável. O
- * sistema não faz diagnóstico — apenas destaca respostas que pedem atenção.
- */
 public final class DefaultAnamnesis {
 
     private DefaultAnamnesis() {}

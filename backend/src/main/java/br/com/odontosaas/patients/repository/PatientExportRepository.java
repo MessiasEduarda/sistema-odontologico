@@ -7,18 +7,12 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/**
- * Leituras da exportação de dados do paciente (LGPD). Cada consulta devolve o JSON (texto) montado pelo banco, sem os
- * campos internos de segurança; a conversão para objetos fica com o serviço.
- */
 @Repository
 public class PatientExportRepository {
 
-    /** Colunas que nunca saem na exportação. */
     private static final String HIDDEN =
             " - 'tenant_id' - 'confirmation_token_hash' - 'sign_token_hash' - 'token_hash' - 'storage_key'";
 
-    /** Seções diretas do paciente: rótulo → tabela. */
     private static final Map<String, String> SECTIONS = sections();
 
     private static Map<String, String> sections() {
@@ -45,7 +39,6 @@ public class PatientExportRepository {
         this.jdbc = jdbc;
     }
 
-    /** JSON do cadastro do paciente, se existir na clínica. */
     public Optional<String> findPatientJson(UUID tenantId, UUID patientId) {
         return jdbc.sql("select (to_jsonb(p)" + HIDDEN + ")::text from patients p where tenant_id = ? and id = ?")
                 .params(tenantId, patientId)
@@ -60,7 +53,6 @@ public class PatientExportRepository {
                 .single();
     }
 
-    /** Seções ligadas direto ao paciente (rótulo → JSON de uma lista), na ordem de exportação. */
     public Map<String, String> directSections(UUID tenantId, UUID patientId) {
         Map<String, String> result = new LinkedHashMap<>();
         SECTIONS.forEach((label, table) -> result.put(label, rows(table, "patient_id = ?", tenantId, patientId)));
@@ -96,8 +88,6 @@ public class PatientExportRepository {
     }
 
     private String rows(String table, String condition, Object... params) {
-        // O corpo das mensagens guarda links de acesso do paciente (#token=...): sai mascarado, senão a exportação
-        // entregaria links ainda válidos do portal, de termo ou de consulta.
         String row = "outbound_messages".equals(table)
                 ? "(to_jsonb(t) || jsonb_build_object('body', regexp_replace(t.body, '#token=[A-Za-z0-9_-]+',"
                         + " '#token=[removido]', 'g')))"

@@ -9,11 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Limpeza periódica de dados temporários de acesso: sessões encerradas/expiradas, tentativas de login e códigos de
- * redefinição de senha. Mantém 30 dias de histórico (útil para investigar incidentes); a trilha de auditoria não é
- * afetada.
- */
 @Service
 public class SessionMaintenance {
 
@@ -37,7 +32,6 @@ public class SessionMaintenance {
         return result;
     }
 
-    /** Uma vez por dia (desligado nos testes por app.jobs.enabled=false). */
     @Component
     @ConditionalOnProperty(name = "app.jobs.enabled", havingValue = "true", matchIfMissing = true)
     static class Schedule {

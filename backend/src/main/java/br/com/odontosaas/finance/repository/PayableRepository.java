@@ -10,7 +10,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das contas a pagar (tabela payables). Participa da transação do service. */
 @Repository
 public class PayableRepository {
 

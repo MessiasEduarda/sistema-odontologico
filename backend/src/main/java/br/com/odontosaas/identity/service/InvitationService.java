@@ -75,7 +75,6 @@ public class InvitationService {
         this.props = props;
     }
 
-    /** Cria convite na clínica do contexto atual. Um convite pendente anterior para o mesmo e-mail é substituído. */
     @Transactional
     public InvitationView invite(String rawEmail, String roleCode, UUID invitedBy) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -136,7 +135,6 @@ public class InvitationService {
         audit.record(AuditAction.INVITATION_REVOKED, "invitation", invitationId, Map.of());
     }
 
-    /** Pré-visualização pública do convite (tela de aceite). Só funciona com o token correto. */
     @Transactional(readOnly = true)
     public InvitationPreview preview(String rawToken) {
         Invitation invitation = findUsable(rawToken);
@@ -151,10 +149,6 @@ public class InvitationService {
         });
     }
 
-    /**
-     * Aceita o convite. Conta nova: cria usuário com nome e senha (validada pela política). Conta existente: exige a
-     * senha atual (sujeita ao limite de tentativas). Depois cria/reativa o vínculo com o papel do convite.
-     */
     @Transactional
     public void accept(AcceptInvitationRequest request) {
         Invitation invitation = findUsable(request.token());
@@ -186,8 +180,6 @@ public class InvitationService {
         UUID userId = user.getId();
         TenantContext.runAs(tenantId, userId, () -> {
             Optional<Membership> current = memberships.findByTenantIdAndUserId(tenantId, userId);
-            // Vínculo novo ou desativado recomeça só com o papel do convite: os papéis antigos (ex.: OWNER) não podem
-            // voltar junto. Quem já é membro ativo apenas ganha o papel convidado.
             boolean restart = current.map(m -> !m.isActive()).orElse(true);
             Membership membership = current.orElseGet(() -> new Membership(tenantId, userId));
             membership.activate();
@@ -205,7 +197,6 @@ public class InvitationService {
         });
     }
 
-    /** Localiza o convite pelo hash do token, com o contexto restrito a ESSE convite (política RLS de convites). */
     private Invitation findUsable(String rawToken) {
         ApiException invalid =
                 ApiException.badRequest("INVALID_TOKEN", "Este convite é inválido, expirou ou já foi utilizado.");

@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Bloqueio de agenda. {@code professionalId} nulo = clínica inteira. */
 public record ScheduleBlockRequest(
         UUID professionalId,
         @NotNull Instant startsAt,

@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das configurações da clínica (nome em {@code tenants} e preferências em {@code clinic_settings}). */
 @Repository
 public class ClinicSettingsRepository {
 

@@ -9,11 +9,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das assinaturas das clínicas ({@code subscriptions}), junto com os dados do plano. */
 @Repository
 public class SubscriptionRepository {
 
-    /** Assinatura com os dados do plano, sem o cálculo de cobrança (feito pelo serviço). */
     public record SubscriptionRow(
             UUID tenantId,
             String planCode,
@@ -35,7 +33,6 @@ public class SubscriptionRepository {
         this.jdbc = jdbc;
     }
 
-    /** Cria a assinatura de avaliação (30 dias) se a clínica ainda não tiver uma. */
     public void insertTrial(UUID tenantId, UUID planId) {
         jdbc.sql("""
                         insert into subscriptions (tenant_id, plan_id, status, trial_ends_at)
@@ -68,7 +65,6 @@ public class SubscriptionRepository {
                 .optional();
     }
 
-    /** Cria ou substitui a assinatura da clínica. */
     public void upsert(
             UUID tenantId,
             UUID planId,

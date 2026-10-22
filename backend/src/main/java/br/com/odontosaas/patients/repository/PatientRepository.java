@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos pacientes da clínica (busca paginada, leitura, gravação e verificações de existência). */
 @Repository
 public class PatientRepository {
 
@@ -20,7 +19,6 @@ public class PatientRepository {
             created_at, updated_at, version
             """;
 
-    /** Página de resultados da busca: itens da página e total de registros que atendem aos filtros. */
     public record SearchResult(List<PatientSummary> items, long total) {}
 
     private final JdbcClient jdbc;
@@ -29,7 +27,6 @@ public class PatientRepository {
         this.jdbc = jdbc;
     }
 
-    /** Busca por nome (parcial), CPF, telefone ou e-mail, com filtros opcionais e paginação já normalizada. */
     public SearchResult search(UUID tenantId, String query, Boolean active, int pageSize, int pageIndex) {
         StringBuilder where = new StringBuilder(" where p.tenant_id = ?");
         List<Object> params = new ArrayList<>();
@@ -86,10 +83,6 @@ public class PatientRepository {
                 .optional();
     }
 
-    /**
-     * Insere o paciente. {@code values} segue a ordem das colunas do insert: id, tenant_id, 24 campos cadastrais
-     * (nome até observações) e as três permissões de contato (e-mail, SMS, WhatsApp).
-     */
     public void insert(List<Object> values) {
         jdbc.sql("""
                         insert into patients (id, tenant_id, full_name, social_name, birth_date, cpf, rg, sex, phone,
@@ -102,10 +95,6 @@ public class PatientRepository {
                         """).params(values).update();
     }
 
-    /**
-     * Atualiza com controle otimista de versão. {@code params} segue a ordem do update: 27 campos cadastrais, tenant_id,
-     * id e a versão (duas vezes). Devolve as linhas afetadas.
-     */
     public int update(List<Object> params) {
         return jdbc.sql("""
                         update patients set full_name = ?, social_name = ?, birth_date = ?, cpf = ?, rg = ?, sex = ?,
@@ -120,7 +109,6 @@ public class PatientRepository {
                         """).params(params).update();
     }
 
-    /** Ativa ou inativa o paciente; devolve as linhas afetadas. */
     public int setActive(UUID tenantId, UUID id, boolean active) {
         return jdbc.sql("update patients set active = ?, updated_at = now(), version = version + 1"
                         + " where tenant_id = ? and id = ?")
@@ -149,7 +137,6 @@ public class PatientRepository {
                 .single();
     }
 
-    /** Já existe outro paciente (diferente de {@code exceptId}, se informado) com esse CPF? */
     public boolean cpfTakenByAnother(UUID tenantId, String cpf, UUID exceptId) {
         return jdbc.sql("select exists(select 1 from patients where tenant_id = ? and cpf = ?"
                         + " and (cast(? as uuid) is null or id <> ?))")

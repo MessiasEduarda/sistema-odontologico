@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 
-/** Papel de uma clínica (conjunto de permissões em {@code role_permissions}). */
 @Entity
 @Table(name = "roles")
 public class Role extends BaseEntity {

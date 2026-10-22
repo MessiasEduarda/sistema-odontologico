@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos modelos de orientação ao paciente (tabela care_instruction_templates). */
 @Repository
 public class CareTemplateRepository {
 

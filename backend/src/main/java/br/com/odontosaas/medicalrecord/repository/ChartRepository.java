@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados do odontograma (tabela dental_chart_entries). */
 @Repository
 public class ChartRepository {
 
@@ -46,7 +45,6 @@ public class ChartRepository {
                 .update();
     }
 
-    /** Anula o registro (exclusão lógica); devolve as linhas afetadas. */
     public int voidEntry(UUID tenantId, UUID patientId, UUID entryId, UUID voidedBy, String reason) {
         return jdbc.sql("""
                         update dental_chart_entries set voided_at = now(), voided_by = ?, void_reason = ?

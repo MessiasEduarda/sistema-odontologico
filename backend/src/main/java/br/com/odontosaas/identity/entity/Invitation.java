@@ -13,7 +13,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-/** Convite para um e-mail entrar em uma clínica com um papel. O banco guarda só o hash do token. */
 @Entity
 @Table(name = "invitations")
 public class Invitation extends BaseEntity {

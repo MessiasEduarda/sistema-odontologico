@@ -11,7 +11,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos planos comerciais ({@code plans}). */
 @Repository
 public class PlanRepository {
 
@@ -21,12 +20,10 @@ public class PlanRepository {
         this.jdbc = jdbc;
     }
 
-    /** Converte a coluna {@code features} (array SQL) em lista; nulo vira lista vazia. */
     static List<String> features(Array array) throws SQLException {
         return array == null ? List.of() : Arrays.asList((String[]) array.getArray());
     }
 
-    /** Todos os planos, com a quantidade de clínicas não canceladas em cada um. */
     public List<PlanView> list() {
         return jdbc.sql("""
                         select p.id, p.code, p.name, p.price_monthly, p.max_professionals, p.max_patients, p.features,
@@ -64,7 +61,6 @@ public class PlanRepository {
                 .update();
     }
 
-    /** Atualiza o plano; devolve quantas linhas foram alteradas (0 se não existe). */
     public int update(UUID id, PlanRequest r, String[] features) {
         return jdbc.sql("""
                         update plans set code = ?, name = ?, price_monthly = ?, max_professionals = ?,

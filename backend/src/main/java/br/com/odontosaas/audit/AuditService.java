@@ -16,12 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Registra eventos de auditoria na mesma transação da operação auditada (se a operação falhar, o evento também não é
- * gravado). A tabela é somente-inclusão para o papel da aplicação.
- *
- * <p>Nunca inclua em {@code metadata} senhas, tokens, dados clínicos ou documentos pessoais.
- */
 @Service
 public class AuditService {
 
@@ -33,19 +27,16 @@ public class AuditService {
         this.json = json;
     }
 
-    /** Evento no contexto atual (clínica ativa e usuário do {@link TenantContext}). */
     public void record(AuditAction action, String resourceType, Object resourceId, Map<String, ?> metadata) {
         TenantContext.State state = TenantContext.current();
         insert(state.tenantId(), state.userId(), action, resourceType, resourceId, metadata);
     }
 
-    /** Evento sem clínica (autenticação, plataforma), com ator explícito (pode ser nulo). */
     public void recordGlobal(
             AuditAction action, UUID actorUserId, String resourceType, Object resourceId, Map<String, ?> metadata) {
         insert(null, actorUserId, action, resourceType, resourceId, metadata);
     }
 
-    /** Eventos da clínica ativa, do mais novo para o mais antigo (até 500), com filtros opcionais. */
     @Transactional(readOnly = true)
     public List<AuditEventView> events(LocalDate from, LocalDate to, String action, String resourceType) {
         UUID tenantId = TenantContext.requireTenantId();

@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Equipe da clínica ativa: listagem, papéis e desativação. */
 @Service
 public class MemberService {
 
@@ -123,7 +122,6 @@ public class MemberService {
                 new TreeSet<>(wanted));
     }
 
-    /** Desativa o vínculo e derruba imediatamente as sessões dessa pessoa nesta clínica. */
     @Transactional
     public void deactivate(UUID membershipId, AuthenticatedUser actor) {
         UUID tenantId = TenantContext.requireTenantId();

@@ -28,10 +28,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Planos de tratamento / orçamentos. Fluxo: DRAFT → PROPOSED → APPROVED → COMPLETED (ou REJECTED/CANCELLED).
- * Valores e totais são sempre calculados aqui; o cliente nunca envia totais.
- */
 @Service
 public class TreatmentService {
 
@@ -172,7 +168,6 @@ public class TreatmentService {
         return transition(id, Set.of("DRAFT", "PROPOSED", "APPROVED"), "CANCELLED", reason);
     }
 
-    /** Aprovação do paciente. Opcionalmente gera a conta a receber parcelada (via evento para o Financeiro). */
     @Transactional
     public PlanView approve(UUID id, ApproveRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -199,10 +194,6 @@ public class TreatmentService {
         return get(id);
     }
 
-    /**
-     * Baixa (ou reabre) o item quando o procedimento é registrado (ou anulado) no prontuário. Chamado pelo listener do
-     * módulo, dentro da transação de quem publica o evento.
-     */
     public void applyProcedurePerformed(ProcedurePerformed event) {
         planItems.updateStatus(
                 event.voided() ? "PLANNED" : "DONE", event.voided(), event.tenantId(), event.treatmentItemId());

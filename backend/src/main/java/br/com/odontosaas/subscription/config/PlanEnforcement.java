@@ -20,31 +20,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.util.ServletRequestPathUtils;
 import org.springframework.web.util.UriUtils;
 
-/**
- * Aplica o plano da clínica no SERVIDOR (esconder no front-end é só conveniência):
- * <ul>
- *   <li>assinatura cancelada bloqueia TODA a área da clínica (403 SUBSCRIPTION_INACTIVE), exceto a consulta da própria
- *       assinatura;
- *   <li>pagamento vencido além da tolerância bloqueia TODA a área da clínica (402 SUBSCRIPTION_PAST_DUE), exceto a
- *       consulta da própria assinatura, usada pela tela de pagamento;
- *   <li>funcionalidade fora do plano → 403 FEATURE_NOT_IN_PLAN;
- * </ul>
- *
- * <p>As rotas são comparadas pelo caminho já decodificado e normalizado, o mesmo que o Spring MVC usa para escolher o
- * controller; comparar a URL bruta deixaria passar {@code /api/v1/%69nventory}. Os limites de profissionais e
- * pacientes ativos não são decididos aqui, e sim nos serviços, via {@link br.com.odontosaas.shared.PlanLimits}
- * (cobre cadastro, importação e reativação).
- */
 @Configuration
 class PlanEnforcement implements WebMvcConfigurer {
 
-    /** Prefixo de rota → funcionalidade exigida. */
     private static final Map<String, String> GATED = Map.of(
             "/api/v1/inventory", "INVENTORY",
             "/api/v1/communication", "COMMUNICATION",
             "/api/v1/reports", "REPORTS");
 
-    /** Liberada mesmo com o acesso bloqueado: é ela que mostra o vencimento e o link de pagamento. */
     static final String SUBSCRIPTION_PATH = "/api/v1/clinic/subscription";
 
     private final SubscriptionService subscriptions;
@@ -96,10 +79,6 @@ class PlanEnforcement implements WebMvcConfigurer {
         return true;
     }
 
-    /**
-     * Caminho que o Spring MVC usa para rotear: sem o contexto da aplicação, decodificado ({@code %69} vira
-     * {@code i}) e sem parâmetros de caminho ({@code ;x=y}).
-     */
     static String normalizedPath(HttpServletRequest request) {
         if (ServletRequestPathUtils.hasParsedRequestPath(request)) {
             StringBuilder path = new StringBuilder();

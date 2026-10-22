@@ -10,14 +10,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Aceite dos Termos de uso e da Política de privacidade. Cada pessoa aceita uma única vez por versão; ao mudar o
- * texto, aumente {@link #CURRENT_VERSION} (e a data em LegalPage no front-end) para pedir um novo aceite a todos.
- */
 @Service
 public class TermsService {
 
-    /** Versão vigente: data da última atualização dos textos. */
     public static final String CURRENT_VERSION = "2026-10-15";
 
     private final TermsRepository terms;
@@ -32,7 +27,6 @@ public class TermsService {
         return terms.hasAccepted(userId, CURRENT_VERSION);
     }
 
-    /** Registra o aceite (idempotente). Recusa versão diferente da vigente: a tela estava com um texto antigo. */
     @Transactional
     public void accept(UUID userId, String version) {
         if (!CURRENT_VERSION.equals(version)) {

@@ -14,14 +14,11 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Consultas dos relatórios gerenciais (somente leitura, sempre filtradas pela clínica; datas no fuso informado). */
 @Repository
 public class ReportRepository {
 
-    /** Totais de pacientes ativos e inativos. */
     public record PatientCountsRow(long active, long inactive) {}
 
-    // Valor: preço do item do orçamento (quando vinculado) ou preço de tabela do procedimento.
     private static final String PRODUCTION_BASE = """
             select x.professional_id, p.name as professional_name, x.description,
                    coalesce(i.quantity * i.unit_price - i.discount, pc.default_price, 0) as value

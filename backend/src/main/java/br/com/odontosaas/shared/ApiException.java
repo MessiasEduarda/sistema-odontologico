@@ -4,10 +4,6 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 
-/**
- * Erro de negócio ou de requisição com resposta HTTP padronizada. A mensagem ({@code detail}) é sempre segura para
- * exibir ao usuário final.
- */
 public class ApiException extends RuntimeException {
 
     private final HttpStatus status;
@@ -35,7 +31,6 @@ public class ApiException extends RuntimeException {
         this(status, code, title, detail, null, null);
     }
 
-    /** Recurso inexistente OU pertencente a outra clínica — a resposta nunca diferencia os dois casos. */
     public static ApiException notFound(String what) {
         return new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Não encontrado", what + " não encontrado(a).");
     }

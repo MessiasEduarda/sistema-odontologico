@@ -27,10 +27,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Cadastros da clínica ativa. Todas as consultas filtram por tenant_id (do contexto do servidor) e também passam
- * pelo RLS.
- */
 @Service
 public class ClinicService {
 
@@ -60,8 +56,6 @@ public class ClinicService {
         return TenantContext.requireTenantId();
     }
 
-    // ------------------------------------------------------------------ Configurações
-
     @Transactional(readOnly = true)
     public SettingsView settings() {
         return settingsRepository.find(tenant());
@@ -75,8 +69,6 @@ public class ClinicService {
         audit.record(AuditAction.RECORD_UPDATED, "clinic_settings", tenantId, Map.of());
         return settings();
     }
-
-    // ------------------------------------------------------------------ Profissionais
 
     @Transactional(readOnly = true)
     public List<ProfessionalView> professionals(Boolean active) {
@@ -121,7 +113,6 @@ public class ClinicService {
         return professionalRepository.schedule(tenant(), professionalId);
     }
 
-    /** Substitui a grade semanal do profissional. Intervalos do mesmo dia não podem se sobrepor. */
     @Transactional
     public List<ScheduleSlot> replaceSchedule(UUID professionalId, List<ScheduleSlot> slots) {
         UUID tenantId = tenant();
@@ -151,8 +142,6 @@ public class ClinicService {
         if (!member) throw ApiException.invalidField("userId", "Usuário não faz parte da equipe desta clínica.");
     }
 
-    // ------------------------------------------------------------------ Salas
-
     @Transactional(readOnly = true)
     public List<RoomView> rooms() {
         return roomRepository.list(tenant());
@@ -173,8 +162,6 @@ public class ClinicService {
         audit.record(AuditAction.RECORD_UPDATED, "room", id, Map.of());
         return roomRepository.get(tenant(), id);
     }
-
-    // ------------------------------------------------------------------ Procedimentos
 
     @Transactional(readOnly = true)
     public List<ProcedureView> procedures(String query, Boolean active) {

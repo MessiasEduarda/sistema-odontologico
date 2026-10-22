@@ -2,7 +2,6 @@ package br.com.odontosaas.patients.support;
 
 import br.com.odontosaas.shared.ApiException;
 
-/** CPF: normalização (só dígitos) e validação dos dígitos verificadores. */
 public final class Cpf {
 
     private Cpf() {}
@@ -24,7 +23,6 @@ public final class Cpf {
         return rest == 10 ? 0 : rest;
     }
 
-    /** Normaliza e valida; null/vazio continua null. Lança 400 no campo informado se for inválido. */
     public static String normalizeOrReject(String value, String field) {
         if (value == null || value.isBlank()) return null;
         if (!isValid(value)) throw ApiException.invalidField(field, "CPF inválido.");

@@ -23,7 +23,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Estoque: produtos e movimentações (somente inclusão). O saldo nunca fica negativo (regra do banco). */
 @Service
 public class InventoryService {
 
@@ -96,7 +95,6 @@ public class InventoryService {
         return movementRepo.findByProduct(TenantContext.requireTenantId(), productId);
     }
 
-    /** Registra a movimentação e atualiza o saldo na mesma transação (com bloqueio da linha do produto). */
     @Transactional
     public ProductView move(UUID productId, MovementRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -105,7 +103,7 @@ public class InventoryService {
         BigDecimal delta = switch (r.type()) {
             case "IN" -> r.quantity();
             case "OUT" -> r.quantity().negate();
-            default -> r.quantity().subtract(current); // ADJUST: quantity = saldo contado
+            default -> r.quantity().subtract(current);
         };
         if (delta.signum() == 0) {
             throw ApiException.invalidField("quantity", "A movimentação não altera o saldo.");

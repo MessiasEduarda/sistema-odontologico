@@ -3,7 +3,6 @@ package br.com.odontosaas.identity.repository;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das tentativas de autenticação ({@code login_attempts}). */
 @Repository
 public class LoginAttemptRepository {
 
@@ -13,7 +12,6 @@ public class LoginAttemptRepository {
         this.jdbc = jdbc;
     }
 
-    /** Falhas do e-mail dentro da janela (em segundos). */
     public long countEmailFailures(String email, long windowSeconds) {
         return jdbc.sql("""
                         select count(*) from login_attempts
@@ -21,7 +19,6 @@ public class LoginAttemptRepository {
                         """).params(email, windowSeconds).query(Long.class).single();
     }
 
-    /** Falhas do IP dentro da janela (em segundos). */
     public long countIpFailures(String ip, long windowSeconds) {
         return jdbc.sql("""
                                 select count(*) from login_attempts

@@ -12,7 +12,6 @@ import java.util.Locale;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-/** Pessoa que acessa a plataforma. Global: o acesso a cada clínica é dado por {@code Membership}. */
 @Entity
 @Table(name = "users")
 public class User extends BaseEntity {

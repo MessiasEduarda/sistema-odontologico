@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das parcelas (tabela installments). Participa da transação do service. */
 @Repository
 public class InstallmentRepository {
 
@@ -31,7 +30,6 @@ public class InstallmentRepository {
                 .update();
     }
 
-    /** Parcelas de uma conta, cada uma com seus recebimentos (indexados pelo id da parcela). */
     public List<InstallmentView> findViews(
             UUID tenantId, UUID receivableId, Map<UUID, List<PaymentView>> paymentsByInstallment) {
         return jdbc.sql("""
@@ -59,7 +57,6 @@ public class InstallmentRepository {
                 .update();
     }
 
-    /** Lista parcelas por período e filtro (OPEN, OVERDUE, PAID ou ALL; nulo equivale a OPEN). */
     public List<InstallmentRow> list(UUID tenantId, LocalDate from, LocalDate to, String filter) {
         String where = switch (filter == null ? "OPEN" : filter) {
             case "OVERDUE" -> " and i.status = 'OPEN' and i.due_date < current_date";
@@ -85,7 +82,6 @@ public class InstallmentRepository {
                 .list();
     }
 
-    /** Trava a parcela (for update) para receber sem corrida. */
     public Optional<InstallmentLockRow> findForUpdate(UUID tenantId, UUID installmentId) {
         return jdbc.sql("""
                         select receivable_id, amount, paid_amount, status from installments
@@ -96,7 +92,6 @@ public class InstallmentRepository {
                 .optional();
     }
 
-    /** Soma (ou subtrai, se negativo) um valor ao pago da parcela e recalcula o status. */
     public void applyDelta(BigDecimal delta, UUID tenantId, UUID installmentId) {
         jdbc.sql("""
                         update installments set paid_amount = paid_amount + ?,

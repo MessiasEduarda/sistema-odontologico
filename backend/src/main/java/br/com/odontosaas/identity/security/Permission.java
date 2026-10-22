@@ -3,11 +3,6 @@ package br.com.odontosaas.identity.security;
 import java.util.Arrays;
 import java.util.Optional;
 
-/**
- * Permissões granulares por recurso e ação. O código ({@code recurso:ação}) é gravado no banco e usado como
- * authority do Spring Security, por exemplo {@code @PreAuthorize("hasAuthority('users:manage')")}.
- * Matriz por papel: docs/seguranca/matriz-permissoes.md.
- */
 public enum Permission {
     CLINIC_SETTINGS_MANAGE("clinic:settings:manage"),
     USERS_READ("users:read"),

@@ -23,11 +23,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Modelos de mensagem e fila de envio (outbox). Mensagens só são enfileiradas se o paciente tiver e-mail e permitir
- * contato por e-mail. Campos disponíveis nos modelos: {{paciente}} {{clinica}} {{data}} {{hora}} {{profissional}}
- * {{link}} {{titulo}} {{conteudo}}.
- */
 @Service
 public class CommunicationService {
 
@@ -146,10 +141,6 @@ public class CommunicationService {
         if (updated == 0) throw ApiException.notFound("Mensagem com falha");
     }
 
-    /**
-     * Enfileira mensagem para o paciente se: o modelo estiver ativo, o paciente tiver e-mail e permitir contato por
-     * e-mail. Retorna vazio quando não enfileirou (e o motivo fica só no log de depuração).
-     */
     @Transactional
     public Optional<UUID> enqueue(UUID patientId, UUID appointmentId, String type, Map<String, String> fields) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -182,7 +173,6 @@ public class CommunicationService {
         return result;
     }
 
-    /** Campos de data/hora/profissional de um agendamento, no fuso da clínica. */
     public Map<String, String> appointmentFields(UUID tenantId, UUID appointmentId) {
         AppointmentSlotRow a = messages.appointmentSlot(tenantId, appointmentId);
         var local = a.startsAt().atZone(ZoneId.of(a.zone()));

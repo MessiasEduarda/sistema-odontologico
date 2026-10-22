@@ -18,7 +18,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Gestão de clínicas pela administração da plataforma. Não acessa dados internos das clínicas. */
 @Service
 public class PlatformTenantService {
 
@@ -38,7 +37,6 @@ public class PlatformTenantService {
         this.subscriptions = subscriptions;
     }
 
-    /** Cria a clínica, seus papéis padrão e convida o responsável (que define a própria senha pelo e-mail). */
     @Transactional
     public TenantView create(CreateTenantRequest request, UUID actorUserId) {
         if (tenants.existsBySlugIgnoreCase(request.slug())) {
@@ -55,10 +53,6 @@ public class PlatformTenantService {
         return toView(tenant);
     }
 
-    /**
-     * Reenvia o convite de responsável (o anterior, se pendente, deixa de valer). Útil quando o e-mail não chegou ou o
-     * endereço estava errado. 404 se a clínica não existir; 409 ALREADY_MEMBER se a pessoa já entrou.
-     */
     @Transactional
     public void resendOwnerInvite(UUID tenantId, String ownerEmail, UUID actorUserId) {
         if (!tenants.existsById(tenantId)) {

@@ -33,10 +33,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Portal do paciente: acesso por link pessoal (token de 256 bits, válido por 30 dias, revogável), sem senha. O
- * paciente vê apenas os PRÓPRIOS dados não clínicos: próximas consultas, termos a assinar e contato.
- */
 @Service
 public class PortalService {
 
@@ -67,7 +63,6 @@ public class PortalService {
         this.publicUrl = publicUrl;
     }
 
-    /** A clínica gera (ou renova) o link do paciente. Links anteriores são revogados. */
     @Transactional
     public AccessView grant(UUID patientId, boolean sendEmail) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -97,8 +92,6 @@ public class PortalService {
         refs.require("patients", tenantId, patientId, "Paciente");
         repository.revokeTokens(tenantId, patientId);
     }
-
-    // ------------------------------------------------------------------ Público
 
     private <T> T withAccess(String rawToken, java.util.function.Function<AccessRow, T> action) {
         ApiException invalid = ApiException.badRequest("INVALID_TOKEN", "Este link é inválido ou expirou.");
@@ -182,7 +175,6 @@ public class PortalService {
         return overview(body.token());
     }
 
-    /** Campo omitido (null) preserva o valor atual; texto vazio apaga; senão grava o valor sem espaços. */
     private static String stripped(String value) {
         return value == null ? null : value.strip();
     }

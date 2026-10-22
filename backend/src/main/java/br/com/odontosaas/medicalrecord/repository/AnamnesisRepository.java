@@ -13,7 +13,6 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Acesso a dados dos preenchimentos de anamnese (tabela anamneses). */
 @Repository
 public class AnamnesisRepository {
 
@@ -87,7 +86,6 @@ public class AnamnesisRepository {
                 .list();
     }
 
-    /** Preenchimentos recentes da clínica; filtros nulos são ignorados. */
     public List<RecentAnamnesis> findRecent(UUID tenantId, String kind, boolean alertsOnly, String query) {
         return jdbc.sql("""
                         select a.id, a.patient_id, p.full_name as patient_name, a.form_name, a.form_kind,

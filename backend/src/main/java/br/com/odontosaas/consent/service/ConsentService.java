@@ -35,13 +35,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Termos de consentimento. O texto final (com os dados do paciente já preenchidos) é gravado no momento da emissão,
- * junto com o SHA-256, e é exatamente esse texto que o paciente aceita. Assinatura: nome, documento, imagem da
- * assinatura desenhada, data/hora, IP e navegador.
- *
- * <p>Validade jurídica (ex.: exigência de certificado ICP-Brasil) deve ser avaliada por assessoria jurídica.
- */
 @Service
 public class ConsentService {
 
@@ -70,8 +63,6 @@ public class ConsentService {
         this.publicUrl = publicUrl;
     }
 
-    // ------------------------------------------------------------------ Modelos
-
     private static String category(String value) {
         return value == null || value.isBlank() ? "DENTAL" : value;
     }
@@ -95,7 +86,6 @@ public class ConsentService {
         return template(id);
     }
 
-    /** Editar = nova versão. A versão anterior fica inativa, mas termos já emitidos mantêm o texto original. */
     @Transactional
     public ConsentTemplateView newVersion(UUID templateId, ConsentTemplateRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -126,7 +116,6 @@ public class ConsentService {
         audit.record(AuditAction.RECORD_DEACTIVATED, "consent_template", templateId, Map.of());
     }
 
-    /** Adiciona os modelos de exemplo que a clínica ainda não tem (pelo título). Retorna quantos foram criados. */
     @Transactional
     public int addExamples(List<String> categories) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -149,8 +138,6 @@ public class ConsentService {
                 .orElseThrow(() -> ApiException.notFound("Modelo de termo"));
     }
 
-    // ------------------------------------------------------------------ Termos do paciente
-
     @Transactional(readOnly = true)
     public List<ConsentView> list(UUID patientId) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -164,7 +151,6 @@ public class ConsentService {
                 .orElseThrow(() -> ApiException.notFound("Termo"));
     }
 
-    /** Termos de todos os pacientes (página Termos), com filtros de situação, categoria e nome do paciente. */
     @Transactional(readOnly = true)
     public List<ConsentListItem> listAll(String status, String category, String query) {
         String q = query == null || query.isBlank() ? null : "%" + query.strip().toLowerCase() + "%";
@@ -175,7 +161,6 @@ public class ConsentService {
                 q);
     }
 
-    /** Emite o termo para o paciente: preenche os campos do modelo e guarda o texto final + hash. */
     @Transactional
     public ConsentView issue(UUID patientId, ConsentRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -215,7 +200,6 @@ public class ConsentService {
         return get(patientId, id);
     }
 
-    /** Assinatura presencial (tablet/tela da clínica). */
     @Transactional
     public ConsentView signInClinic(UUID patientId, UUID consentId, String name, String document, String image) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -224,7 +208,6 @@ public class ConsentService {
         return get(patientId, consentId);
     }
 
-    /** Gera link de assinatura (válido por 7 dias) e, se pedido, envia por e-mail ao paciente. */
     @Transactional
     public ConsentLinkView createLink(UUID patientId, UUID consentId, boolean sendEmail) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -250,8 +233,6 @@ public class ConsentService {
         audit.record(AuditAction.CONSENT_REVOKED, "patient_consent", consentId, Map.of());
         return get(patientId, consentId);
     }
-
-    // ------------------------------------------------------------------ Público (link do paciente)
 
     private ConsentTokenRow resolve(String rawToken) {
         ApiException invalid = ApiException.badRequest("INVALID_TOKEN", "Este link é inválido ou expirou.");

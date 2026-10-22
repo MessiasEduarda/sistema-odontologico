@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados das salas (consultórios) da clínica. */
 @Repository
 public class RoomRepository {
 
@@ -29,7 +28,6 @@ public class RoomRepository {
                 .update();
     }
 
-    /** Atualiza o nome e, se informado, o estado ativo; devolve as linhas afetadas. */
     public int update(UUID tenantId, UUID id, String name, Boolean active) {
         return jdbc.sql("update rooms set name = ?, active = coalesce(cast(? as boolean), active)"
                         + " where tenant_id = ? and id = ?")

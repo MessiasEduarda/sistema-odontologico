@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos termos emitidos para pacientes (tabela patient_consents). */
 @Repository
 public class ConsentRepository {
 
@@ -21,13 +20,10 @@ public class ConsentRepository {
             left join professionals p on p.tenant_id = c.tenant_id and p.id = c.professional_id
             """;
 
-    /** Dados do paciente, da clínica e do profissional usados para preencher o texto do termo. */
     public record IssueContextRow(String patient, String cpf, String clinic, String professional, String cro) {}
 
-    /** Localização de um termo a partir do token do link de assinatura. */
     public record ConsentTokenRow(UUID tenantId, UUID patientId, UUID consentId) {}
 
-    /** Nomes exibidos na página pública de assinatura. */
     public record PublicNamesRow(String clinic, String patient) {}
 
     private final JdbcClient jdbc;
@@ -50,7 +46,6 @@ public class ConsentRepository {
                 .optional();
     }
 
-    /** Termos de todos os pacientes; filtros nulos são ignorados. */
     public List<ConsentListItem> findAll(UUID tenantId, String status, String category, String query) {
         return jdbc.sql("""
                         select c.id, c.patient_id, pa.full_name as patient_name, c.title, c.category, c.status,
@@ -120,7 +115,6 @@ public class ConsentRepository {
                 .update();
     }
 
-    /** Grava o hash do token do link de assinatura e sua validade. */
     public void saveSignToken(UUID tenantId, UUID consentId, String tokenHash, Instant expiresAt) {
         jdbc.sql("""
                         update patient_consents set sign_token_hash = ?, sign_token_expires_at = ?,
@@ -137,7 +131,6 @@ public class ConsentRepository {
                         """).params(reason, tenantId, consentId).update();
     }
 
-    /** Localiza o termo pelo hash do token (link ainda válido). */
     public Optional<ConsentTokenRow> findByTokenHash(String tokenHash) {
         return jdbc.sql("""
                         select tenant_id, patient_id, id as consent_id from patient_consents

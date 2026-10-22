@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos fornecedores (tabela suppliers). Participa da transação do service. */
 @Repository
 public class SupplierRepository {
 
@@ -41,7 +40,6 @@ public class SupplierRepository {
                 .update();
     }
 
-    /** Atualiza o fornecedor; devolve o número de linhas afetadas. */
     public int update(
             String name,
             String document,

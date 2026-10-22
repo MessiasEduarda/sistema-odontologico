@@ -5,10 +5,6 @@ import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-/**
- * Política de senha (alinhada ao NIST SP 800-63B): tamanho mínimo, sem regras de composição obrigatórias, bloqueio de
- * senhas óbvias e da senha igual ao e-mail.
- */
 @Component
 public class PasswordPolicy {
 

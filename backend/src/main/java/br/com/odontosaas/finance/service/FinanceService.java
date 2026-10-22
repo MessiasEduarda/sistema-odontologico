@@ -39,10 +39,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Contas a receber, parcelas, recebimentos, estornos e fluxo de caixa. Valores em BigDecimal; nada é apagado
- * (cancelamento/estorno ficam registrados). Datas "do dia" seguem o fuso da clínica.
- */
 @Service
 public class FinanceService {
 
@@ -68,8 +64,6 @@ public class FinanceService {
         this.audit = audit;
     }
 
-    // ------------------------------------------------------------------ Contas a receber
-
     @Transactional
     public ReceivableView createReceivable(ReceivableRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -79,10 +73,6 @@ public class FinanceService {
         return receivable(id);
     }
 
-    /**
-     * Orçamento aprovado com geração de cobrança: cria a conta a receber parcelada. Chamado pelo listener do módulo,
-     * dentro da transação de quem publica o evento.
-     */
     public void createReceivableForApprovedPlan(TreatmentPlanApproved e) {
         insertReceivable(
                 e.tenantId(),
@@ -119,7 +109,6 @@ public class FinanceService {
         return id;
     }
 
-    /** Divide o total em N parcelas; os centavos que sobram vão para a primeira. */
     public static List<BigDecimal> split(BigDecimal total, int n) {
         BigDecimal base = total.divide(BigDecimal.valueOf(n), 2, RoundingMode.DOWN);
         BigDecimal remainder = total.subtract(base.multiply(BigDecimal.valueOf(n)));
@@ -185,7 +174,6 @@ public class FinanceService {
         return installmentRepo.list(tenantId, from, to, filter);
     }
 
-    /** Recebimento (total ou parcial) de uma parcela. Não permite receber mais que o saldo. */
     @Transactional
     public ReceivableView pay(UUID installmentId, PaymentRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -222,7 +210,6 @@ public class FinanceService {
         return receivable(inst.receivableId());
     }
 
-    /** Estorno total/parcial de um recebimento: o pagamento original é mantido e o estorno fica registrado. */
     @Transactional
     public ReceivableView refund(UUID paymentId, BigDecimal amount, String reason) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -249,8 +236,6 @@ public class FinanceService {
         installmentRepo.applyDelta(delta, tenantId, installmentId);
         receivableRepo.refreshStatus(tenantId, receivableId);
     }
-
-    // ------------------------------------------------------------------ Fluxo de caixa e resumo
 
     @Transactional(readOnly = true)
     public CashFlowView cashFlow(LocalDate from, LocalDate to) {

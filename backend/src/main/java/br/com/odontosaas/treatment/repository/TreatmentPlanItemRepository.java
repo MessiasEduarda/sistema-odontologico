@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos itens dos planos (tabela treatment_plan_items). Participa da transação do service. */
 @Repository
 public class TreatmentPlanItemRepository {
 
@@ -63,7 +62,6 @@ public class TreatmentPlanItemRepository {
                 .update();
     }
 
-    /** Baixa o item (status DONE) ou o reabre (PLANNED, voided = true) conforme o prontuário. */
     public void updateStatus(String status, boolean voided, UUID tenantId, UUID itemId) {
         jdbc.sql("""
                         update treatment_plan_items set status = ?, done_at = case when ? then null else now() end

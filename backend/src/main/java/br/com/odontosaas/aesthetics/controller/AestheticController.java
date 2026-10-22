@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Harmonização orofacial: aplicações com produto, lote, validade e regiões (rastreabilidade). */
 @RestController
 @Tag(name = "Prontuário")
 public class AestheticController {

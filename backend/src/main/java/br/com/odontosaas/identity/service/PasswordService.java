@@ -51,10 +51,6 @@ public class PasswordService {
         this.props = props;
     }
 
-    /**
-     * Sempre "funciona" do ponto de vista do cliente (202), exista ou não a conta — não revela quais e-mails estão
-     * cadastrados. Limita a quantidade de e-mails por conta por hora.
-     */
     @Transactional
     public void requestReset(String rawEmail) {
         Optional<User> found = users.findByEmail(User.normalizeEmail(rawEmail));
@@ -74,7 +70,6 @@ public class PasswordService {
         mailer.sendPasswordReset(user.getEmail(), user.getName(), raw);
     }
 
-    /** Define nova senha com token de uso único e derruba TODAS as sessões do usuário. */
     @Transactional
     public void reset(String rawToken, String newPassword) {
         ApiException invalid = ApiException.badRequest(
@@ -94,7 +89,6 @@ public class PasswordService {
         audit.recordGlobal(AuditAction.PASSWORD_RESET_COMPLETED, userId, "user", userId, Map.of());
     }
 
-    /** Troca de senha autenticada: exige a senha atual e encerra as OUTRAS sessões. */
     @Transactional
     public void change(AuthenticatedUser current, String currentPassword, String newPassword) {
         User user = users.findById(current.userId()).orElseThrow(() -> ApiException.notFound("Usuário"));

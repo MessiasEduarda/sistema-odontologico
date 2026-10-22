@@ -5,11 +5,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Consultas de apoio ao resumo de abertura do prontuário (dados básicos e contagens por paciente). */
 @Repository
 public class RecordSummaryRepository {
 
-    /** Dados básicos do paciente exibidos no resumo. */
     public record PatientBasicRow(String fullName, LocalDate birthDate) {}
 
     private final JdbcClient jdbc;

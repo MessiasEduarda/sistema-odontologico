@@ -6,11 +6,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados da logo da clínica ({@code clinic_logos}). */
 @Repository
 public class LogoRepository {
 
-    /** Linha da logo armazenada. */
     public record LogoRow(String contentType, byte[] data, Instant updatedAt) {}
 
     private final JdbcClient jdbc;
@@ -37,7 +35,6 @@ public class LogoRepository {
                         """).params(tenantId, contentType, data, updatedBy).update();
     }
 
-    /** Remove a logo; devolve as linhas afetadas. */
     public int delete(UUID tenantId) {
         return jdbc.sql("delete from clinic_logos where tenant_id = ?")
                 .param(tenantId)

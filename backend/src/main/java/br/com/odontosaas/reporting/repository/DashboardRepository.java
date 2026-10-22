@@ -7,11 +7,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Consultas agregadas do painel inicial (somente leitura, sempre filtradas pela clínica). */
 @Repository
 public class DashboardRepository {
 
-    /** Parcelas em atraso: quantidade e valor em aberto. */
     public record OverdueRow(long count, BigDecimal amount) {}
 
     private final JdbcClient jdbc;

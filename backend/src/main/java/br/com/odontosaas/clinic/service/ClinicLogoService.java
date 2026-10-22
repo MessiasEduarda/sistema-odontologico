@@ -14,10 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Logo da clínica (menu lateral e PDFs). Aceita somente PNG de até 1 MB, com o tipo verificado pelo conteúdo do
- * arquivo (não pela extensão). SVG não é aceito porque pode conter scripts.
- */
 @Service
 public class ClinicLogoService {
 

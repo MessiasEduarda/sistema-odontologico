@@ -29,10 +29,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Termos de consentimento. Modelos: clinic:settings:manage. Emitir, assinar na clínica e revogar exige
- * clinical_records:write ou patients:write; ler, clinical_records:read ou patients:write.
- */
 @RestController
 @Tag(name = "Prontuário")
 public class ConsentController {

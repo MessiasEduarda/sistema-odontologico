@@ -4,7 +4,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos aceites de Termos de uso e Política de privacidade ({@code terms_acceptances}). */
 @Repository
 public class TermsRepository {
 
@@ -22,7 +21,6 @@ public class TermsRepository {
                 .single();
     }
 
-    /** Registra o aceite ignorando duplicidade; devolve quantas linhas foram inseridas (0 se já existia). */
     public int insertIfAbsent(UUID userId, String version, String ip, String userAgent) {
         return jdbc.sql("""
                         INSERT INTO terms_acceptances (user_id, version, ip, user_agent)

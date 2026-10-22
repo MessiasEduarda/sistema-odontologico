@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados da lista de espera (encaixe). */
 @Repository
 public class WaitlistRepository {
 
@@ -29,7 +28,6 @@ public class WaitlistRepository {
         this.jdbc = jdbc;
     }
 
-    /** Aguardando: urgentes primeiro, depois por ordem de chegada. Demais status: as mais recentes primeiro. */
     public List<WaitlistView> list(UUID tenantId, String status) {
         String order =
                 "WAITING".equals(status) ? " order by w.urgent desc, w.created_at" : " order by w.resolved_at desc";
@@ -46,7 +44,6 @@ public class WaitlistRepository {
                 .optional();
     }
 
-    /** O paciente já tem entrada aguardando na lista? */
     public boolean isWaiting(UUID tenantId, UUID patientId) {
         return jdbc.sql("""
                         select exists(select 1 from waitlist_entries
@@ -84,7 +81,6 @@ public class WaitlistRepository {
                 .update();
     }
 
-    /** O atendimento existe na clínica e pertence ao paciente? */
     public boolean appointmentBelongsToPatient(UUID tenantId, UUID appointmentId, UUID patientId) {
         return jdbc.sql("""
                         select exists(select 1 from appointments
@@ -95,7 +91,6 @@ public class WaitlistRepository {
                 .single();
     }
 
-    /** Tira a entrada da lista (encaixada ou removida). */
     public void resolve(UUID tenantId, UUID id, String status, UUID appointmentId) {
         jdbc.sql("""
                         update waitlist_entries set status = ?, appointment_id = ?, resolved_at = now()

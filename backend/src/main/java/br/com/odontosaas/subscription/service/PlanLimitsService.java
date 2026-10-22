@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/** Implementa {@link PlanLimits} com o plano da assinatura e a contagem de cadastros ativos da clínica. */
 @Service
 class PlanLimitsService implements PlanLimits {
 
@@ -41,7 +40,6 @@ class PlanLimitsService implements PlanLimits {
         return (int) Math.max(0, limit.get() - active);
     }
 
-    /** Serializa a checagem do limite por clínica e tabela até o fim da transação (evita estourar em paralelo). */
     private void lock(UUID tenantId, String table) {
         if (!TransactionSynchronizationManager.isActualTransactionActive()) return;
         usage.lockAdvisory(tenantId, table);

@@ -8,10 +8,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/**
- * Consultas agregadas de leitura para o fluxo de caixa e o resumo financeiro (payments, refunds, payables e
- * installments). Datas "do dia" seguem o fuso da clínica.
- */
 @Repository
 public class CashFlowRepository {
 
@@ -21,7 +17,6 @@ public class CashFlowRepository {
         this.jdbc = jdbc;
     }
 
-    /** Fuso horário da clínica. */
     public String timeZone(UUID tenantId) {
         return jdbc.sql("select time_zone from tenants where id = ?")
                 .param(tenantId)
@@ -29,7 +24,6 @@ public class CashFlowRepository {
                 .single();
     }
 
-    /** Recebimentos por dia no período. */
     public List<DayTotalRow> paymentTotalsByDay(String zone, UUID tenantId, LocalDate from, LocalDate to) {
         return jdbc.sql("""
                         select (paid_at at time zone ?)::date as day, sum(amount) as total from payments
@@ -40,7 +34,6 @@ public class CashFlowRepository {
                 .list();
     }
 
-    /** Estornos por dia no período. */
     public List<DayTotalRow> refundTotalsByDay(String zone, UUID tenantId, LocalDate from, LocalDate to) {
         return jdbc.sql("""
                         select (refunded_at at time zone ?)::date as day, sum(amount) as total from refunds
@@ -51,7 +44,6 @@ public class CashFlowRepository {
                 .list();
     }
 
-    /** Contas a pagar quitadas por dia no período. */
     public List<DayTotalRow> paidPayableTotalsByDay(String zone, UUID tenantId, LocalDate from, LocalDate to) {
         return jdbc.sql("""
                         select (paid_at at time zone ?)::date as day, sum(amount) as total from payables
@@ -63,7 +55,6 @@ public class CashFlowRepository {
                 .list();
     }
 
-    /** Total líquido (recebido menos estornado) por forma de pagamento no período. */
     public List<MethodTotal> totalsByMethod(UUID tenantId, String zone, LocalDate from, LocalDate to) {
         return jdbc.sql("""
                         select method, sum(amount - refunded_amount) as amount from payments

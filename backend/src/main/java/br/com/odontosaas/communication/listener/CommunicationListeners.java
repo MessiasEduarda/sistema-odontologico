@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/** Reage a eventos de outros módulos enfileirando mensagens (na mesma transação do evento). */
 @Component
 class CommunicationListeners {
 

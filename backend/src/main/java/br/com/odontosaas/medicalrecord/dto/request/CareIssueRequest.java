@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
-/** Entrega de orientação ao paciente: vira documento do prontuário e, se pedido, é enviada por e-mail. */
 public record CareIssueRequest(
         @NotNull UUID professionalId,
         @NotBlank @Size(max = 160) String title,

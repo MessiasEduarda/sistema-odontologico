@@ -4,7 +4,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Consultas de uso dos limites do plano: contagem de cadastros ativos por clínica e trava de serialização. */
 @Repository
 public class PlanUsageRepository {
 
@@ -28,7 +27,6 @@ public class PlanUsageRepository {
                 .single();
     }
 
-    /** Cadastros ativos da clínica na tabela informada (nome fixo definido pelo chamador, nunca entrada externa). */
     public long countActive(UUID tenantId, String table) {
         return jdbc.sql("select count(*) from " + table + " where tenant_id = ? and active")
                 .param(tenantId)
@@ -36,7 +34,6 @@ public class PlanUsageRepository {
                 .single();
     }
 
-    /** Trava consultiva até o fim da transação, por clínica e tabela. */
     public void lockAdvisory(UUID tenantId, String table) {
         jdbc.sql("select 1 from (select pg_advisory_xact_lock(hashtextextended(?, 0))) l")
                 .param(tenantId + ":" + table)

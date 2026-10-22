@@ -5,7 +5,6 @@ import br.com.odontosaas.treatment.service.TreatmentService;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/** Reage ao procedimento registrado (ou anulado) no prontuário baixando o item do plano (síncrono, na mesma transação). */
 @Component
 class ProcedurePerformedListener {
 

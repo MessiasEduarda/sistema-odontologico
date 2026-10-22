@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Administração da plataforma: indicadores, clínicas (situação) e auditoria. Planos e assinaturas: módulo subscription. */
 @RestController
 @Tag(name = "Plataforma: administração", description = "Planos, assinaturas, indicadores e auditoria")
 public class PlatformAdminController {

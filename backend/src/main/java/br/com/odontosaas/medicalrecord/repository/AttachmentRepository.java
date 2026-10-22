@@ -7,11 +7,9 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Acesso a dados dos anexos do prontuário (tabela attachments). */
 @Repository
 public class AttachmentRepository {
 
-    /** Metadados necessários para servir o arquivo de um anexo. */
     public record AttachmentFileRow(String filename, String contentType, String storageKey) {}
 
     private final JdbcClient jdbc;
@@ -75,7 +73,6 @@ public class AttachmentRepository {
                 .optional();
     }
 
-    /** Exclusão lógica; devolve as linhas afetadas. */
     public int softDelete(UUID tenantId, UUID patientId, UUID attachmentId, UUID deletedBy) {
         return jdbc.sql("""
                         update attachments set deleted_at = now(), deleted_by = ?

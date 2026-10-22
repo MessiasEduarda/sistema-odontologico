@@ -8,23 +8,15 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/**
- * Fila de mensagens de saída (outbox) e as consultas de apoio à comunicação: contato do paciente, dados do
- * agendamento, consultas a lembrar e clínicas ativas.
- */
 @Repository
 public class MessageRepository {
 
-    /** Contato do paciente e nome da clínica, usados para enfileirar uma mensagem. */
     public record ContactRow(String fullName, String email, boolean allowEmail, String clinic) {}
 
-    /** Dados do agendamento usados nos campos dos modelos. */
     public record AppointmentSlotRow(Instant startsAt, String professional, String zone) {}
 
-    /** Consulta que precisa de lembrete. */
     public record DueReminderRow(UUID id, UUID patientId) {}
 
-    /** Mensagem pendente de envio. */
     public record PendingMessageRow(UUID id, String toAddress, String subject, String body, int attempts) {}
 
     private final JdbcClient jdbc;
@@ -47,7 +39,6 @@ public class MessageRepository {
                 .list();
     }
 
-    /** Recoloca uma mensagem com falha na fila; devolve quantas linhas foram atualizadas. */
     public int requeueFailed(UUID tenantId, UUID messageId) {
         return jdbc.sql("""
                         update outbound_messages set status = 'PENDING', attempts = 0, last_error = null
@@ -123,7 +114,6 @@ public class MessageRepository {
     }
 
     public void markSent(UUID tenantId, UUID messageId) {
-        // Depois do envio o link de acesso (#token=...) não precisa mais ficar guardado em texto puro.
         jdbc.sql("update outbound_messages set status = 'SENT', sent_at = now(), attempts = attempts + 1,"
                         + " body = regexp_replace(body, '#token=[A-Za-z0-9_-]+', '#token=[removido]', 'g')"
                         + " where tenant_id = ? and id = ?")

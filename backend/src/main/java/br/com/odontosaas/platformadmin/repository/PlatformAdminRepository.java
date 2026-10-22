@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Consultas da administração da plataforma sobre tabelas globais (clínicas, assinaturas, planos, usuários, sessões). */
 @Repository
 public class PlatformAdminRepository {
 
@@ -18,7 +17,6 @@ public class PlatformAdminRepository {
         this.jdbc = jdbc;
     }
 
-    /** Clínicas com plano e assinatura; {@code like} nulo não filtra (padrão já em minúsculas, com {@code %}). */
     public List<TenantRow> tenants(String like) {
         return jdbc.sql("""
                         select t.id, t.name, t.slug, t.status, t.created_at, p.code as plan_code, p.name as plan_name,
@@ -31,7 +29,6 @@ public class PlatformAdminRepository {
                         """).params(like, like, like).query(TenantRow.class).list();
     }
 
-    /** Altera o status da clínica; devolve quantas linhas foram alteradas (0 se não existe). */
     public int updateTenantStatus(UUID tenantId, String status) {
         return jdbc.sql("update tenants set status = ?, updated_at = now() where id = ?")
                 .params(status, tenantId)
@@ -55,7 +52,6 @@ public class PlatformAdminRepository {
                         """).query(Metrics.class).single();
     }
 
-    /** Eventos de auditoria sem clínica (RLS), opcionalmente filtrados por ação. */
     public List<PlatformEvent> events(String action) {
         return jdbc.sql("""
                         select e.id, e.action, u.email as actor_email, e.resource_type, e.resource_id, e.ip,

@@ -34,7 +34,6 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class AppointmentService {
 
-    /** Transições permitidas de status (máquina de estados do atendimento). */
     private static final Map<String, Set<String>> TRANSITIONS = Map.of(
             "SCHEDULED", Set.of("CONFIRMED", "ARRIVED", "CANCELLED", "NO_SHOW"),
             "CONFIRMED", Set.of("SCHEDULED", "ARRIVED", "CANCELLED", "NO_SHOW"),
@@ -113,7 +112,6 @@ public class AppointmentService {
         return get(id);
     }
 
-    /** Edita/remarca. Atendimentos concluídos ou cancelados não podem ser alterados. */
     @Transactional
     public AppointmentView update(UUID id, AppointmentRequest r) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -150,7 +148,6 @@ public class AppointmentService {
         return get(id);
     }
 
-    /** Aplica a transição de status (usada também pela confirmação/cancelamento feita pelo paciente). */
     void applyStatus(UUID tenantId, AppointmentView current, String status, String reason, UUID actor) {
         if (current.status().equals(status)) return;
         if (!TRANSITIONS.getOrDefault(current.status(), Set.of()).contains(status)) {
@@ -178,10 +175,6 @@ public class AppointmentService {
         }
     }
 
-    /**
-     * Resposta do PACIENTE (link ou portal): confirmar ou cancelar uma consulta futura ainda não iniciada. Exige o
-     * contexto da clínica dona do agendamento (já validado pelo chamador por token).
-     */
     @Transactional
     public AppointmentView respondAsPatient(UUID appointmentId, String action) {
         UUID tenantId = TenantContext.requireTenantId();
@@ -203,9 +196,6 @@ public class AppointmentService {
                 && a.startsAt().isAfter(Instant.now());
     }
 
-    /**
-     * Horários livres do profissional num dia, considerando a grade semanal dele e os atendimentos já marcados.
-     */
     @Transactional(readOnly = true)
     public List<FreeSlot> availability(UUID professionalId, LocalDate date, int durationMinutes) {
         UUID tenantId = TenantContext.requireTenantId();

@@ -37,7 +37,6 @@ public record PatientRequest(
         @Size(max = 14) String guardianCpf,
         @Size(max = 20) String guardianPhone,
         @Size(max = 4000) String notes,
-        /** Consentimentos de contato: omitido = cadastro novo sem consentimento; em edição mantém o atual. */
         Boolean allowEmail,
         Boolean allowSms,
         Boolean allowWhatsapp,
