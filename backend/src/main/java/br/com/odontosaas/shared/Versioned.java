@@ -1,14 +1,9 @@
 package br.com.odontosaas.shared;
 
-/** Controle de concorrência otimista para atualizações SQL com "where ... and version = ?". */
 public final class Versioned {
 
     private Versioned() {}
 
-    /**
-     * @param updated linhas atualizadas
-     * @param exists se o registro existe na clínica (para diferenciar 404 de 409)
-     */
     public static void check(int updated, boolean exists, String label) {
         if (updated > 0) return;
         if (!exists) throw ApiException.notFound(label);

@@ -2,7 +2,7 @@ package br.com.odontosaas.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import br.com.odontosaas.identity.session.SessionMaintenance;
+import br.com.odontosaas.identity.job.SessionMaintenance;
 import br.com.odontosaas.support.PostgresIntegrationTest;
 import br.com.odontosaas.support.TestData;
 import java.util.UUID;

@@ -1,0 +1,170 @@
+[DELETE] [/api/v1/auth/sessions/{id}] | consumes=[] | produces=[] | auth=- | revokeSession(UUID) -> void
+[DELETE] [/api/v1/clinic/invitations/{id}] | consumes=[] | produces=[] | auth=hasAuthority('users:manage') | revokeInvitation(UUID) -> void
+[DELETE] [/api/v1/clinic/logo] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | deleteLogo() -> void
+[DELETE] [/api/v1/patients/{patientId}/attachments/{attachmentId}] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | deleteAttachment(UUID, UUID) -> void
+[DELETE] [/api/v1/schedule-blocks/{id}] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | delete(UUID) -> void
+[GET] [/api/v1/aesthetic-procedures] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | searchAesthetics(String, String, LocalDate) -> List<AestheticView>
+[GET] [/api/v1/anamneses] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | recentAnamneses(String, boolean, String) -> List<RecentAnamnesis>
+[GET] [/api/v1/appointments/availability] | consumes=[] | produces=[] | auth=hasAuthority('schedule:read') | availability(UUID, LocalDate, int) -> List<FreeSlot>
+[GET] [/api/v1/appointments/{id}] | consumes=[] | produces=[] | auth=hasAuthority('schedule:read') | detail(UUID) -> AppointmentDetail
+[GET] [/api/v1/appointments] | consumes=[] | produces=[] | auth=hasAuthority('schedule:read') | list(Instant, Instant, UUID, UUID, String) -> List<AppointmentView>
+[GET] [/api/v1/auth/csrf] | consumes=[] | produces=[] | auth=- | csrf(CsrfToken) -> void
+[GET] [/api/v1/auth/me] | consumes=[] | produces=[] | auth=- | me() -> MeResponse
+[GET] [/api/v1/auth/sessions] | consumes=[] | produces=[] | auth=- | listSessions() -> List<SessionView>
+[GET] [/api/v1/clinic/anamnesis-forms] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | forms(boolean) -> List<FormView>
+[GET] [/api/v1/clinic/audit] | consumes=[] | produces=[] | auth=hasAuthority('audit:read') | events(LocalDate, LocalDate, String, String) -> List<AuditEventView>
+[GET] [/api/v1/clinic/care-templates] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | careTemplates(boolean) -> List<CareTemplateView>
+[GET] [/api/v1/clinic/consent-templates] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | consentTemplates(boolean) -> List<ConsentTemplateView>
+[GET] [/api/v1/clinic/invitations] | consumes=[] | produces=[] | auth=hasAuthority('users:manage') | listInvitations() -> List<InvitationView>
+[GET] [/api/v1/clinic/logo] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | logo() -> ResponseEntity<byte[]>
+[GET] [/api/v1/clinic/members] | consumes=[] | produces=[] | auth=hasAuthority('users:read') | listMembers() -> List<MemberView>
+[GET] [/api/v1/clinic/procedures] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | procedures(String, Boolean) -> List<ProcedureView>
+[GET] [/api/v1/clinic/professionals/{id}/schedule] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | schedule(UUID) -> List<ScheduleSlot>
+[GET] [/api/v1/clinic/professionals/{id}] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | professional(UUID) -> ProfessionalView
+[GET] [/api/v1/clinic/professionals] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | professionals(Boolean) -> List<ProfessionalView>
+[GET] [/api/v1/clinic/roles] | consumes=[] | produces=[] | auth=hasAuthority('users:read') | roles() -> List<RoleView>
+[GET] [/api/v1/clinic/rooms] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | rooms() -> List<RoomView>
+[GET] [/api/v1/clinic/settings] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | settings() -> SettingsView
+[GET] [/api/v1/clinic/subscription] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | clinicSubscription() -> SubscriptionView
+[GET] [/api/v1/clinical-documents] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | recentDocuments(String) -> List<IssuedDocument>
+[GET] [/api/v1/communication/messages] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | messages(String) -> List<MessageView>
+[GET] [/api/v1/communication/templates] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | templates() -> List<TemplateView>
+[GET] [/api/v1/consents] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinical_records:read', 'patients:write') | allConsents(String, String, String) -> List<ConsentListItem>
+[GET] [/api/v1/dashboard] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | dashboard() -> Dashboard
+[GET] [/api/v1/finance/cash-flow] | consumes=[] | produces=[] | auth=hasAuthority('finance:read') | cashFlow(LocalDate, LocalDate) -> CashFlowView
+[GET] [/api/v1/finance/installments] | consumes=[] | produces=[] | auth=hasAuthority('finance:read') | installments(LocalDate, LocalDate, String) -> List<InstallmentRow>
+[GET] [/api/v1/finance/payables] | consumes=[] | produces=[] | auth=hasAuthority('finance:read') | payables(String, LocalDate, LocalDate) -> List<PayableView>
+[GET] [/api/v1/finance/receivables/{id}] | consumes=[] | produces=[] | auth=hasAuthority('finance:read') | receivable(UUID) -> ReceivableView
+[GET] [/api/v1/finance/receivables] | consumes=[] | produces=[] | auth=hasAuthority('finance:read') | receivables(String, UUID, String) -> List<ReceivableSummary>
+[GET] [/api/v1/finance/summary] | consumes=[] | produces=[] | auth=hasAuthority('finance:read') | summary() -> FinanceSummary
+[GET] [/api/v1/inventory/alerts] | consumes=[] | produces=[] | auth=hasAuthority('inventory:read') | alerts() -> Alerts
+[GET] [/api/v1/inventory/products/{id}/movements] | consumes=[] | produces=[] | auth=hasAuthority('inventory:read') | movements(UUID) -> List<MovementView>
+[GET] [/api/v1/inventory/products/{id}] | consumes=[] | produces=[] | auth=hasAuthority('inventory:read') | product(UUID) -> ProductView
+[GET] [/api/v1/inventory/products] | consumes=[] | produces=[] | auth=hasAuthority('inventory:read') | products(String, boolean) -> List<ProductView>
+[GET] [/api/v1/patients/{id}/export] | consumes=[] | produces=[] | auth=hasAuthority('patients:read') and hasAuthority('clinical_records:read') | export(UUID) -> Map<String, Object>
+[GET] [/api/v1/patients/{id}] | consumes=[] | produces=[] | auth=hasAuthority('patients:read') | get(UUID) -> PatientView
+[GET] [/api/v1/patients/{patientId}/aesthetic-procedures] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | aesthetics(UUID) -> List<AestheticView>
+[GET] [/api/v1/patients/{patientId}/anamneses] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | anamneses(UUID) -> List<AnamnesisView>
+[GET] [/api/v1/patients/{patientId}/attachments/{attachmentId}/download] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | download(UUID, UUID) -> ResponseEntity<Resource>
+[GET] [/api/v1/patients/{patientId}/attachments] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | attachments(UUID) -> List<AttachmentView>
+[GET] [/api/v1/patients/{patientId}/consents/{consentId}] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinical_records:read', 'patients:write') | consent(UUID, UUID) -> ConsentView
+[GET] [/api/v1/patients/{patientId}/consents] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinical_records:read', 'patients:write') | consents(UUID) -> List<ConsentView>
+[GET] [/api/v1/patients/{patientId}/dental-chart] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | chart(UUID) -> List<ChartEntryView>
+[GET] [/api/v1/patients/{patientId}/documents] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | documents(UUID) -> List<DocumentView>
+[GET] [/api/v1/patients/{patientId}/notes] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | notes(UUID) -> List<NoteView>
+[GET] [/api/v1/patients/{patientId}/performed-procedures] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | performed(UUID) -> List<PerformedView>
+[GET] [/api/v1/patients/{patientId}/record] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:read') | summary(UUID) -> RecordSummary
+[GET] [/api/v1/patients] | consumes=[] | produces=[] | auth=hasAuthority('patients:read') | search(String, Boolean, int, int) -> PageResponse<PatientSummary>
+[GET] [/api/v1/platform/audit] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | audit(String) -> List<PlatformEvent>
+[GET] [/api/v1/platform/clinics/{id}/subscription] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | subscription(UUID) -> SubscriptionView
+[GET] [/api/v1/platform/clinics] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | clinics(String) -> List<TenantRow>
+[GET] [/api/v1/platform/metrics] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | metrics() -> Metrics
+[GET] [/api/v1/platform/plans] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | plans() -> List<PlanView>
+[GET] [/api/v1/platform/tenants] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | list(int, int) -> PageResponse<TenantView>
+[GET] [/api/v1/public/status] | consumes=[] | produces=[] | auth=- | status() -> StatusResponse
+[GET] [/api/v1/reports/agenda] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') | agenda(LocalDate, LocalDate) -> AgendaReport
+[GET] [/api/v1/reports/financial] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') and hasAuthority('finance:read') | financial(LocalDate, LocalDate) -> FinancialReport
+[GET] [/api/v1/reports/patients] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') and hasAuthority('patients:read') | patients() -> PatientsReport
+[GET] [/api/v1/reports/production] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') | production(LocalDate, LocalDate) -> ProductionReport
+[GET] [/api/v1/reports/{type}/export] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') | export(String, LocalDate, LocalDate) -> ResponseEntity<byte[]>
+[GET] [/api/v1/schedule-blocks] | consumes=[] | produces=[] | auth=hasAuthority('schedule:read') | list(Instant, Instant) -> List<ScheduleBlockView>
+[GET] [/api/v1/suppliers] | consumes=[] | produces=[] | auth=hasAnyAuthority('finance:read', 'inventory:read') | suppliers() -> List<SupplierView>
+[GET] [/api/v1/treatment-plans/{id}] | consumes=[] | produces=[] | auth=hasAuthority('treatments:read') | get(UUID) -> PlanView
+[GET] [/api/v1/treatment-plans] | consumes=[] | produces=[] | auth=hasAuthority('treatments:read') | list(UUID, String) -> List<PlanSummary>
+[GET] [/api/v1/waitlist] | consumes=[] | produces=[] | auth=hasAuthority('schedule:read') | list(String) -> List<WaitlistView>
+[POST] [/api/v1/appointments/{id}/patient-link] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | patientLink(UUID) -> Map<String, String>
+[POST] [/api/v1/appointments/{id}/status] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | changeStatus(UUID, StatusRequest) -> AppointmentView
+[POST] [/api/v1/appointments] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | create(AppointmentRequest) -> AppointmentView
+[POST] [/api/v1/auth/login] | consumes=[] | produces=[] | auth=- | login(LoginRequest, HttpServletResponse) -> MeResponse
+[POST] [/api/v1/auth/logout] | consumes=[] | produces=[] | auth=- | logout(HttpServletRequest, HttpServletResponse) -> void
+[POST] [/api/v1/auth/password/change] | consumes=[] | produces=[] | auth=- | changePassword(ChangePasswordRequest) -> void
+[POST] [/api/v1/auth/password/forgot] | consumes=[] | produces=[] | auth=- | forgotPassword(ForgotPasswordRequest) -> void
+[POST] [/api/v1/auth/password/reset] | consumes=[] | produces=[] | auth=- | resetPassword(ResetPasswordRequest) -> void
+[POST] [/api/v1/auth/sessions/revoke-others] | consumes=[] | produces=[] | auth=- | revokeOtherSessions() -> void
+[POST] [/api/v1/auth/switch-clinic] | consumes=[] | produces=[] | auth=- | switchClinic(SwitchClinicRequest, HttpServletResponse) -> MeResponse
+[POST] [/api/v1/auth/terms/accept] | consumes=[] | produces=[] | auth=- | acceptTerms(AcceptTermsRequest) -> MeResponse
+[POST] [/api/v1/clinic/anamnesis-forms/{id}/active] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | setFormActive(UUID, ActiveRequest) -> FormView
+[POST] [/api/v1/clinic/anamnesis-forms] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | createForm(FormRequest) -> FormView
+[POST] [/api/v1/clinic/care-templates] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinic:settings:manage', 'clinical_records:write') | createCareTemplate(CareTemplateRequest) -> CareTemplateView
+[POST] [/api/v1/clinic/consent-templates/examples] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | addExamples(ExamplesRequest) -> ExamplesResult
+[POST] [/api/v1/clinic/consent-templates/{id}/archive] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | archiveTemplate(UUID) -> void
+[POST] [/api/v1/clinic/consent-templates] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | createTemplate(ConsentTemplateRequest) -> ConsentTemplateView
+[POST] [/api/v1/clinic/invitations] | consumes=[] | produces=[] | auth=hasAuthority('users:manage') | invite(CreateInvitationRequest) -> InvitationView
+[POST] [/api/v1/clinic/members/{membershipId}/deactivate] | consumes=[] | produces=[] | auth=hasAuthority('users:manage') | deactivate(UUID) -> void
+[POST] [/api/v1/clinic/procedures] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | createProcedure(ProcedureRequest) -> ProcedureView
+[POST] [/api/v1/clinic/professionals] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | createProfessional(ProfessionalRequest) -> ProfessionalView
+[POST] [/api/v1/clinic/rooms] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | createRoom(RoomRequest) -> RoomView
+[POST] [/api/v1/communication/messages/{id}/retry] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | retry(UUID) -> void
+[POST] [/api/v1/finance/installments/{id}/payments] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | pay(UUID, PaymentRequest) -> ReceivableView
+[POST] [/api/v1/finance/payables/{id}/cancel] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | cancelPayable(UUID, ReasonRequest) -> PayableView
+[POST] [/api/v1/finance/payables/{id}/pay] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | payPayable(UUID, PayRequest) -> PayableView
+[POST] [/api/v1/finance/payables] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | createPayable(PayableRequest) -> PayableView
+[POST] [/api/v1/finance/payments/{id}/refunds] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | refund(UUID, RefundRequest) -> ReceivableView
+[POST] [/api/v1/finance/receivables/{id}/cancel] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | cancelReceivable(UUID, ReasonRequest) -> ReceivableView
+[POST] [/api/v1/finance/receivables] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | createReceivable(ReceivableRequest) -> ReceivableView
+[POST] [/api/v1/inventory/products/{id}/movements] | consumes=[] | produces=[] | auth=hasAuthority('inventory:write') | move(UUID, MovementRequest) -> ProductView
+[POST] [/api/v1/inventory/products] | consumes=[] | produces=[] | auth=hasAuthority('inventory:write') | create(ProductRequest) -> ProductView
+[POST] [/api/v1/patients/import] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | importPatients(ImportRequest) -> ImportResult
+[POST] [/api/v1/patients/{id}/activate] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | activate(UUID) -> PatientView
+[POST] [/api/v1/patients/{id}/deactivate] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | deactivate(UUID) -> PatientView
+[POST] [/api/v1/patients/{patientId}/aesthetic-procedures/{id}/void] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | voidAesthetic(UUID, UUID, VoidRequest) -> void
+[POST] [/api/v1/patients/{patientId}/aesthetic-procedures] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | addAesthetic(UUID, AestheticRequest) -> AestheticView
+[POST] [/api/v1/patients/{patientId}/anamneses] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | fillAnamnesis(UUID, AnamnesisRequest) -> AnamnesisView
+[POST] [/api/v1/patients/{patientId}/attachments] | consumes=[multipart/form-data] | produces=[] | auth=hasAuthority('clinical_records:write') | upload(UUID, MultipartFile, String, String) -> AttachmentView
+[POST] [/api/v1/patients/{patientId}/care-instructions] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | issueCare(UUID, CareIssueRequest) -> DocumentView
+[POST] [/api/v1/patients/{patientId}/consents/{consentId}/link] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinical_records:write', 'patients:write') | consentLink(UUID, UUID, LinkRequest) -> ConsentLinkView
+[POST] [/api/v1/patients/{patientId}/consents/{consentId}/revoke] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinical_records:write', 'patients:write') | revokeConsent(UUID, UUID, VoidRequest) -> ConsentView
+[POST] [/api/v1/patients/{patientId}/consents/{consentId}/sign] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinical_records:write', 'patients:write') | signInClinic(UUID, UUID, SignRequest) -> ConsentView
+[POST] [/api/v1/patients/{patientId}/consents] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinical_records:write', 'patients:write') | issueConsent(UUID, ConsentRequest) -> ConsentView
+[POST] [/api/v1/patients/{patientId}/dental-chart/{entryId}/void] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | voidChartEntry(UUID, UUID, VoidRequest) -> void
+[POST] [/api/v1/patients/{patientId}/dental-chart] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | addChartEntry(UUID, ChartEntryRequest) -> ChartEntryView
+[POST] [/api/v1/patients/{patientId}/documents] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | addDocument(UUID, DocumentRequest) -> DocumentView
+[POST] [/api/v1/patients/{patientId}/notes] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | addNote(UUID, NoteRequest) -> NoteView
+[POST] [/api/v1/patients/{patientId}/performed-procedures/{performedId}/void] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | voidPerformed(UUID, UUID, VoidRequest) -> void
+[POST] [/api/v1/patients/{patientId}/performed-procedures] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | addPerformed(UUID, PerformedRequest) -> PerformedView
+[POST] [/api/v1/patients/{patientId}/portal-access/revoke] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | revoke(UUID) -> void
+[POST] [/api/v1/patients/{patientId}/portal-access] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | grant(UUID, GrantRequest) -> AccessView
+[POST] [/api/v1/patients] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | create(PatientRequest) -> PatientView
+[POST] [/api/v1/platform/clinics/{id}/status] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | setStatus(UUID, StatusRequest) -> void
+[POST] [/api/v1/platform/plans] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | createPlan(PlanRequest) -> PlanView
+[POST] [/api/v1/platform/tenants/{id}/owner-invitation] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | resendOwnerInvite(UUID, ResendOwnerInviteRequest) -> void
+[POST] [/api/v1/platform/tenants] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | create(CreateTenantRequest) -> TenantView
+[POST] [/api/v1/public/appointments/lookup] | consumes=[] | produces=[] | auth=- | publicLookup(TokenRequest) -> PublicAppointmentView
+[POST] [/api/v1/public/appointments/respond] | consumes=[] | produces=[] | auth=- | publicRespond(PublicResponseRequest) -> PublicAppointmentView
+[POST] [/api/v1/public/consents/lookup] | consumes=[] | produces=[] | auth=- | publicLookup(PublicTokenRequest) -> PublicConsentView
+[POST] [/api/v1/public/consents/sign] | consumes=[] | produces=[] | auth=- | publicSign(PublicSignRequest) -> PublicConsentView
+[POST] [/api/v1/public/invitations/accept] | consumes=[] | produces=[] | auth=- | accept(AcceptInvitationRequest) -> void
+[POST] [/api/v1/public/invitations/preview] | consumes=[] | produces=[] | auth=- | preview(TokenRequest) -> InvitationPreview
+[POST] [/api/v1/public/portal/appointments/respond] | consumes=[] | produces=[] | auth=- | respond(RespondBody) -> PortalOverview
+[POST] [/api/v1/public/portal/consents/sign] | consumes=[] | produces=[] | auth=- | sign(SignBody) -> PortalOverview
+[POST] [/api/v1/public/portal/contact] | consumes=[] | produces=[] | auth=- | contact(ContactBody) -> PortalOverview
+[POST] [/api/v1/public/portal/overview] | consumes=[] | produces=[] | auth=- | overview(TokenBody) -> PortalOverview
+[POST] [/api/v1/schedule-blocks] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | create(ScheduleBlockRequest) -> ScheduleBlockView
+[POST] [/api/v1/suppliers] | consumes=[] | produces=[] | auth=hasAnyAuthority('finance:write', 'inventory:write') | createSupplier(SupplierRequest) -> SupplierView
+[POST] [/api/v1/treatment-plans/{id}/approve] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | approve(UUID, ApproveRequest) -> PlanView
+[POST] [/api/v1/treatment-plans/{id}/cancel] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | cancel(UUID, ReasonRequest) -> PlanView
+[POST] [/api/v1/treatment-plans/{id}/propose] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | propose(UUID) -> PlanView
+[POST] [/api/v1/treatment-plans/{id}/reject] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | reject(UUID, ReasonRequest) -> PlanView
+[POST] [/api/v1/treatment-plans] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | create(PlanRequest) -> PlanView
+[POST] [/api/v1/waitlist/{id}/resolve] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | resolve(UUID, WaitlistResolveRequest) -> WaitlistView
+[POST] [/api/v1/waitlist] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | create(WaitlistRequest) -> WaitlistView
+[PUT] [/api/v1/appointments/{id}] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | update(UUID, AppointmentRequest) -> AppointmentView
+[PUT] [/api/v1/clinic/anamnesis-forms/{id}] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | updateForm(UUID, FormRequest) -> FormView
+[PUT] [/api/v1/clinic/care-templates/{id}] | consumes=[] | produces=[] | auth=hasAnyAuthority('clinic:settings:manage', 'clinical_records:write') | updateCareTemplate(UUID, CareTemplateRequest) -> CareTemplateView
+[PUT] [/api/v1/clinic/consent-templates/{id}] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | newVersion(UUID, ConsentTemplateRequest) -> ConsentTemplateView
+[PUT] [/api/v1/clinic/logo] | consumes=[multipart/form-data] | produces=[] | auth=hasAuthority('clinic:settings:manage') | saveLogo(MultipartFile) -> LogoResult
+[PUT] [/api/v1/clinic/members/{membershipId}/roles] | consumes=[] | produces=[] | auth=hasAuthority('users:manage') | updateRoles(UUID, UpdateMemberRolesRequest) -> MemberView
+[PUT] [/api/v1/clinic/procedures/{id}] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | updateProcedure(UUID, ProcedureRequest) -> ProcedureView
+[PUT] [/api/v1/clinic/professionals/{id}/schedule] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | replaceSchedule(UUID, ScheduleRequest) -> List<ScheduleSlot>
+[PUT] [/api/v1/clinic/professionals/{id}] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | updateProfessional(UUID, ProfessionalRequest) -> ProfessionalView
+[PUT] [/api/v1/clinic/rooms/{id}] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | updateRoom(UUID, RoomRequest) -> RoomView
+[PUT] [/api/v1/clinic/settings] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | updateSettings(SettingsRequest) -> SettingsView
+[PUT] [/api/v1/communication/templates/{type}] | consumes=[] | produces=[] | auth=hasAuthority('clinic:settings:manage') | saveTemplate(String, TemplateRequest) -> TemplateView
+[PUT] [/api/v1/finance/payables/{id}] | consumes=[] | produces=[] | auth=hasAuthority('finance:write') | updatePayable(UUID, PayableRequest) -> PayableView
+[PUT] [/api/v1/inventory/products/{id}] | consumes=[] | produces=[] | auth=hasAuthority('inventory:write') | update(UUID, ProductRequest) -> ProductView
+[PUT] [/api/v1/patients/{id}] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | update(UUID, PatientRequest) -> PatientView
+[PUT] [/api/v1/platform/clinics/{id}/subscription] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | updateSubscription(UUID, SubscriptionRequest) -> SubscriptionView
+[PUT] [/api/v1/platform/plans/{id}] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | updatePlan(UUID, PlanRequest) -> PlanView
+[PUT] [/api/v1/suppliers/{id}] | consumes=[] | produces=[] | auth=hasAnyAuthority('finance:write', 'inventory:write') | updateSupplier(UUID, SupplierRequest) -> SupplierView
+[PUT] [/api/v1/treatment-plans/{id}] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | update(UUID, PlanRequest) -> PlanView
+[PUT] [/api/v1/waitlist/{id}] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | update(UUID, WaitlistRequest) -> WaitlistView

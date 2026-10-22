@@ -22,8 +22,18 @@ export function applyServerErrors<T extends FieldValues>(
 
 /** Aceita apenas caminhos internos (evita redirecionamento aberto para outros sites). */
 export function safeRedirectPath(value: string | null | undefined, fallback = "/inicio"): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return fallback;
-  return value;
+  // Caracteres de controle (TAB, CR, LF) e "\" são removidos ou convertidos pelo navegador ao interpretar a URL:
+  // "/\t/site.example" viraria "//site.example". Por isso são recusados, e o destino final é conferido com o parser.
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\u0000-\u001f\u007f\\]/.test(value)) {
+    return fallback;
+  }
+  try {
+    const resolved = new URL(value, "http://interno.invalid");
+    if (resolved.origin !== "http://interno.invalid") return fallback;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return fallback;
+  }
 }
 
 /** Lê o token do fragmento da URL (#token=...), que não é enviado ao servidor nem fica em logs. */

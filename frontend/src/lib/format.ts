@@ -15,6 +15,9 @@ export const formatMoney = (value: number | string | null | undefined) =>
   value === null || value === undefined || value === "" ? "—" : money.format(Number(value));
 
 /** Datas sem hora ("2026-10-13") são interpretadas como data local, sem deslocamento de fuso. */
+/** Arredonda para centavos: a API recusa mais de 2 casas e a subtração em ponto flutuante gera 0,30000000000000004. */
+export const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
+
 export function parseDateOnly(value: string): Date {
   const [y, m, d] = value.split("-").map(Number);
   return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);

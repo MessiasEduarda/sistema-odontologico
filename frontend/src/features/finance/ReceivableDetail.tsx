@@ -15,7 +15,7 @@ import { Modal } from "@/components/ui/Modal";
 import { TextField } from "@/components/ui/TextField";
 import { api } from "@/lib/api/endpoints";
 import type { Installment, Payment, PaymentMethod } from "@/lib/api/types";
-import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney, roundMoney } from "@/lib/format";
 import { FINANCE_STATUS, methodLabel, PAYMENT_METHODS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
@@ -223,10 +223,10 @@ export function PayDialog({
 }
 
 function RefundDialog({ payment, onClose }: { payment: Payment; onClose: () => void }) {
-  const max = Number(payment.amount) - Number(payment.refundedAmount);
+  const max = roundMoney(Number(payment.amount) - Number(payment.refundedAmount));
   const [amount, setAmount] = useState(max);
   const [reason, setReason] = useState("");
-  const refund = useAction(() => api.finance.refund(payment.id, amount, reason), {
+  const refund = useAction(() => api.finance.refund(payment.id, roundMoney(amount), reason), {
     success: "Estorno registrado com sucesso!",
     invalidate: INV,
     onSuccess: onClose,

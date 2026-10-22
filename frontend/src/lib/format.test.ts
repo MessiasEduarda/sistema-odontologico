@@ -9,7 +9,17 @@ import {
   isValidCpf,
   moneyInWords,
   parseDateOnly,
+  roundMoney,
 } from "./format";
+
+describe("arredondamento de dinheiro", () => {
+  it("elimina o erro de ponto flutuante da subtração de decimais", () => {
+    expect(150.3 - 50.1).not.toBe(100.2);
+    expect(roundMoney(150.3 - 50.1)).toBe(100.2);
+    expect(roundMoney(0.1 + 0.2)).toBe(0.3);
+    expect(roundMoney(15.000000000000002)).toBe(15);
+  });
+});
 
 describe("formatação brasileira", () => {
   it("formata dinheiro e trata vazio", () => {

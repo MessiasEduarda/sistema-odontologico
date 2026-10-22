@@ -18,10 +18,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-/**
- * Converte qualquer exceção em Problem Details (RFC 9457). Mensagens internas e stack traces nunca são expostos ao
- * cliente; o {@code traceId} permite correlacionar com os logs.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -77,7 +73,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         "O registro foi alterado por outra pessoa. Recarregue e tente novamente."));
     }
 
-    /** Violações de regras do banco viram respostas de negócio claras (sem expor detalhes internos). */
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
         String state = sqlState(ex);
@@ -96,7 +91,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         } else if ("23503".equals(state)) {
             mapped = ApiException.businessRule(
                     "INVALID_REFERENCE", "Um dos registros relacionados não existe ou está em uso.");
-        } else if ("23514".equals(state)) {
+        } else if ("23514".equals(state) || (state != null && state.startsWith("22"))) {
+            // 23514: check constraint. Classe 22: texto longo demais, número fora da faixa, formato inválido.
             mapped = ApiException.businessRule("INVALID_VALUE", "Um ou mais valores estão fora do permitido.");
         } else {
             return handleUnexpected(ex);
@@ -122,7 +118,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
     }
 
-    /** Garante os campos padronizados também nos erros tratados pelo próprio Spring (404, 405, 415...). */
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception ex, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {

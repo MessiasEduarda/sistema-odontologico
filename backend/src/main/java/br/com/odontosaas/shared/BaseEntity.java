@@ -9,11 +9,6 @@ import java.util.Objects;
 import java.util.UUID;
 import org.springframework.data.domain.Persistable;
 
-/**
- * Entidade com ID UUIDv7 atribuído pela aplicação no momento da criação (permite usar o ID antes de persistir, por
- * exemplo para definir o contexto de tenant). Implementa {@link Persistable} para que o Spring Data faça
- * {@code persist} — e não {@code merge} — em entidades novas.
- */
 @MappedSuperclass
 public abstract class BaseEntity implements Persistable<UUID> {
 

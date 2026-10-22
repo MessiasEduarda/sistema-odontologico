@@ -14,4 +14,6 @@ WORKDIR /app
 COPY --from=build /src/target/odonto-api-*.jar app.jar
 USER app
 EXPOSE 8080
+# Produção por padrão: sem seed, sem credenciais padrão e sem Swagger. O ambiente local define "dev" no docker-compose.
+ENV SPRING_PROFILES_ACTIVE=prod
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "/app/app.jar"]

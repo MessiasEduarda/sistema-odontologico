@@ -410,9 +410,9 @@ function SubscriptionDialog({ clinic, onClose }: { clinic: PlatformClinic; onClo
           </FullRow>
           <FullRow>
             <Alert tone="info">
-              Com o pagamento vencido (inadimplente, fim do período pago ou da avaliação), a clínica vê um aviso
-              com o botão “Pagar agora”. Passados 5 dias, o acesso fica bloqueado até você registrar o pagamento
-              (situação “Ativa” com novo fim de período). Cancelada bloqueia de vez.
+              Com o pagamento vencido (inadimplente, fim do período pago ou da avaliação), a clínica vê um aviso com o
+              botão “Pagar agora”. Passados 5 dias, o acesso fica bloqueado até você registrar o pagamento (situação
+              “Ativa” com novo fim de período). Cancelada bloqueia de vez.
             </Alert>
           </FullRow>
           {save.error && (

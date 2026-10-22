@@ -21,6 +21,7 @@
 		<spring-modulith.version>2.1.1</spring-modulith.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<spotless.version>3.10.4</spotless.version>
+		<jacoco.version>0.8.12</jacoco.version>
 		<bouncycastle.version>1.86</bouncycastle.version>
 	</properties>
 
@@ -174,6 +175,53 @@
 							<goal>check</goal>
 						</goals>
 						<phase>verify</phase>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<phase>verify</phase>
+					</execution>
+					<execution>
+						<!-- Piso de cobertura: o build falha se linhas ou instruções caírem abaixo de 80%. -->
+						<id>check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<phase>verify</phase>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+										<limit>
+											<counter>INSTRUCTION</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

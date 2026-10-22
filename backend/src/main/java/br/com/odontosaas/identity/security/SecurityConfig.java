@@ -1,8 +1,8 @@
 package br.com.odontosaas.identity.security;
 
-import br.com.odontosaas.identity.access.AccessQueries;
-import br.com.odontosaas.identity.session.SessionCookies;
-import br.com.odontosaas.identity.session.SessionStore;
+import br.com.odontosaas.identity.repository.AccessQueries;
+import br.com.odontosaas.identity.repository.SessionStore;
+import br.com.odontosaas.identity.support.SessionCookies;
 import br.com.odontosaas.shared.web.ProblemResponseWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,15 +17,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfException;
 
-/**
- * Segurança HTTP (ADR-0005):
- * <ul>
- *   <li>autenticação por sessão opaca em cookie httpOnly ({@link SessionAuthenticationFilter});
- *   <li>CSRF com cookie {@code XSRF-TOKEN} + header {@code X-XSRF-TOKEN} em toda requisição que altera estado;
- *   <li>negação por padrão: só rotas públicas explícitas são liberadas;
- *   <li>autorização fina por permissão com {@code @PreAuthorize} nos controllers.
- * </ul>
- */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {

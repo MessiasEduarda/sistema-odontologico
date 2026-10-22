@@ -1,8 +1,8 @@
 package br.com.odontosaas.support;
 
 import br.com.odontosaas.identity.ClinicProvisioning;
-import br.com.odontosaas.tenancy.Tenant;
-import br.com.odontosaas.tenancy.TenantRepository;
+import br.com.odontosaas.tenancy.entity.Tenant;
+import br.com.odontosaas.tenancy.repository.TenantRepository;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Component;
@@ -23,13 +23,13 @@ public class TestData {
     private final ClinicProvisioning provisioning;
     private final TenantRepository tenants;
     private final TransactionTemplate tx;
-    private final br.com.odontosaas.platform.SubscriptionService subscriptions;
+    private final br.com.odontosaas.subscription.service.SubscriptionService subscriptions;
 
     public TestData(
             ClinicProvisioning provisioning,
             TenantRepository tenants,
             TransactionTemplate tx,
-            br.com.odontosaas.platform.SubscriptionService subscriptions) {
+            br.com.odontosaas.subscription.service.SubscriptionService subscriptions) {
         this.provisioning = provisioning;
         this.tenants = tenants;
         this.tx = tx;

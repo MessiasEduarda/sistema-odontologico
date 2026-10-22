@@ -1,0 +1,5 @@
+EVENT CommunicationListeners#onAppointmentChanged(AppointmentChanged)
+EVENT CommunicationListeners#onCareInstructions(CareInstructionsSent)
+EVENT CommunicationListeners#onConsentLink(ConsentLinkRequested)
+EVENT ProcedurePerformedListener#onProcedurePerformed(ProcedurePerformed)
+EVENT TreatmentApprovedListener#onTreatmentApproved(TreatmentPlanApproved)

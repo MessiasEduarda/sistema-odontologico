@@ -53,7 +53,13 @@ export function offerMessage(entry: WaitlistEntry, clinicName: string | undefine
  * Lista de espera: quem quer adiantar a consulta ou não achou vaga. Quando abre um horário, a recepção chama pelo
  * WhatsApp e agenda dali mesmo (a entrada sai da lista ao salvar o agendamento).
  */
-export function WaitlistPanel({ onClose, onSchedule }: { onClose: () => void; onSchedule: (e: WaitlistEntry) => void }) {
+export function WaitlistPanel({
+  onClose,
+  onSchedule,
+}: {
+  onClose: () => void;
+  onSchedule: (e: WaitlistEntry) => void;
+}) {
   const can = useCan();
   const writable = can(P.SCHEDULE_WRITE);
   const [status, setStatus] = useState<WaitlistStatus>("WAITING");
@@ -75,8 +81,8 @@ export function WaitlistPanel({ onClose, onSchedule }: { onClose: () => void; on
       <Modal open onClose={onClose} title="Lista de espera" size="lg" confirmDiscard={false}>
         <Stack $gap={4}>
           <Muted>
-            Pacientes que querem adiantar a consulta ou não acharam vaga. Urgentes aparecem primeiro; depois, por
-            ordem de chegada.
+            Pacientes que querem adiantar a consulta ou não acharam vaga. Urgentes aparecem primeiro; depois, por ordem
+            de chegada.
           </Muted>
           <Bar>
             <StatusField>

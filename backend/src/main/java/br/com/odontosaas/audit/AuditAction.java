@@ -1,6 +1,5 @@
 package br.com.odontosaas.audit;
 
-/** Ações auditadas. Novos valores podem ser adicionados; nunca renomeie um existente (histórico). */
 public enum AuditAction {
     LOGIN_SUCCEEDED,
     LOGIN_FAILED,
@@ -18,17 +17,14 @@ public enum AuditAction {
     MEMBER_DEACTIVATED,
     TENANT_CREATED,
     PLATFORM_ADMIN_BOOTSTRAPPED,
-    /* Genéricos para registros de negócio (o tipo vai em resource_type). */
     RECORD_CREATED,
     RECORD_UPDATED,
     RECORD_DEACTIVATED,
     RECORD_CANCELLED,
     RECORD_VOIDED,
-    /* Acesso a dados sensíveis. */
     CLINICAL_RECORD_VIEWED,
     ATTACHMENT_DOWNLOADED,
     REPORT_EXPORTED,
-    /* Termos, portal e financeiro. */
     CONSENT_SIGNED,
     CONSENT_REVOKED,
     PORTAL_ACCESS_GRANTED,
@@ -37,8 +33,6 @@ public enum AuditAction {
     PAYMENT_REFUNDED,
     SUBSCRIPTION_CHANGED,
     TENANT_STATUS_CHANGED,
-    /* Aceite dos Termos de uso e da Política de privacidade. */
     TERMS_ACCEPTED,
-    /* Exportação dos dados do paciente (portabilidade, LGPD). */
     PATIENT_DATA_EXPORTED
 }

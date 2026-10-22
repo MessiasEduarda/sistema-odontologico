@@ -4,10 +4,6 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.UUID;
 
-/**
- * Gera UUID versão 7 (RFC 9562): prefixo de 48 bits com o horário em milissegundos + bits aleatórios. Mantém os
- * índices do banco ordenados por criação, sem revelar sequência previsível.
- */
 public final class Ids {
 
     private static final SecureRandom RANDOM = new SecureRandom();

@@ -6,6 +6,7 @@ import static br.com.odontosaas.support.Fixtures.createProcedure;
 import static br.com.odontosaas.support.Fixtures.createProfessional;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import br.com.odontosaas.finance.service.FinanceService;
 import br.com.odontosaas.support.Browser;
 import br.com.odontosaas.support.PostgresIntegrationTest;
 import br.com.odontosaas.support.TestData;
