@@ -1,12 +1,3 @@
-/**
- * Cliente HTTP da API. Sempre chama caminhos relativos (/api/...) na mesma origem;
- * o Next.js repassa para o back-end. Erros chegam como Problem Details (RFC 9457).
- *
- * Segurança:
- * - a sessão vive num cookie httpOnly (inacessível a este código);
- * - requisições que alteram estado enviam o token CSRF (cookie XSRF-TOKEN → header X-XSRF-TOKEN).
- */
-
 export interface FieldError {
   field: string;
   message: string;
@@ -43,7 +34,6 @@ const NETWORK_ERROR: ProblemDetails = {
   detail: "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
 };
 
-/** Disparado quando o servidor recusa por falta de pagamento da assinatura (402), para a tela de bloqueio aparecer. */
 export const BILLING_BLOCKED_EVENT = "odonto:billing-blocked";
 
 const CSRF_COOKIE = "XSRF-TOKEN";
@@ -51,12 +41,18 @@ const CSRF_HEADER = "X-XSRF-TOKEN";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await request(path, init);
+  if (response.status === 204 || response.status === 202) return undefined as T;
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+async function request(path: string, init?: RequestInit): Promise<Response> {
   const method = (init?.method ?? "GET").toUpperCase();
   const needsCsrf = !SAFE_METHODS.has(method);
 
   let response = await send(path, init, needsCsrf ? await csrfToken() : undefined);
 
-  // Token CSRF ausente/expirado: renova uma única vez e repete.
   if (needsCsrf && response.status === 403) {
     const problem = await readProblem(response.clone());
     if (problem.code === "CSRF_INVALID") {
@@ -70,10 +66,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     }
     throw new ApiError(response.status, await readProblem(response));
   }
-
-  if (response.status === 204 || response.status === 202) return undefined as T;
-  const text = await response.text();
-  return (text ? JSON.parse(text) : undefined) as T;
+  return response;
 }
 
 export function apiPost<T>(path: string, body?: unknown): Promise<T> {
@@ -128,9 +121,7 @@ async function readProblem(response: Response): Promise<ProblemDetails> {
   if (contentType.includes("json")) {
     try {
       return (await response.json()) as ProblemDetails;
-    } catch {
-      // corpo inválido: cai no padrão abaixo
-    }
+    } catch {}
   }
   return { status: response.status, detail: "O servidor retornou um erro inesperado." };
 }

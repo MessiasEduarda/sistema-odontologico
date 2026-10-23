@@ -1,9 +1,12 @@
 package br.com.odontosaas.medicalrecord.controller;
 
+import br.com.odontosaas.medicalrecord.dto.request.AttachmentUpdateRequest;
+import br.com.odontosaas.medicalrecord.dto.request.SharingRequest;
 import br.com.odontosaas.medicalrecord.dto.response.AttachmentView;
 import br.com.odontosaas.medicalrecord.service.AttachmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.core.io.FileSystemResource;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -71,6 +76,24 @@ public class AttachmentController {
                 .header("X-Content-Type-Options", "nosniff")
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
                 .body(new FileSystemResource(file.path()));
+    }
+
+    @PutMapping(BASE + "/attachments/{attachmentId}")
+    @PreAuthorize(WRITE)
+    @Operation(summary = "Corrige categoria e descrição do anexo")
+    public AttachmentView update(
+            @PathVariable UUID patientId,
+            @PathVariable UUID attachmentId,
+            @Valid @RequestBody AttachmentUpdateRequest body) {
+        return attachments.update(patientId, attachmentId, body.category(), body.description());
+    }
+
+    @PutMapping(BASE + "/attachments/{attachmentId}/sharing")
+    @PreAuthorize(WRITE)
+    @Operation(summary = "Mostra ou esconde o anexo no portal do paciente")
+    public AttachmentView sharing(
+            @PathVariable UUID patientId, @PathVariable UUID attachmentId, @Valid @RequestBody SharingRequest body) {
+        return attachments.setSharing(patientId, attachmentId, body.shared());
     }
 
     @DeleteMapping(BASE + "/attachments/{attachmentId}")

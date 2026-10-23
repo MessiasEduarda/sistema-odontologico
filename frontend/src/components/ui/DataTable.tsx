@@ -9,19 +9,12 @@ export interface Column<T> {
   key: string;
   header: string;
   render: (row: T) => ReactNode;
-  /** Largura mínima (evita quebra de cabeçalhos e códigos). */
   minWidth?: string;
   align?: "left" | "right" | "center";
-  /** Oculta a coluna na visão em cartões do celular. */
   hideOnMobile?: boolean;
-  /**
-   * Permite quebrar o texto em várias linhas. Padrão: só colunas de texto longo (descrição, observações...);
-   * as demais (datas, valores, telefone, CPF) ficam numa linha só.
-   */
   wrap?: boolean;
 }
 
-/** Colunas de texto livre, que podem quebrar linha. */
 const LONG_TEXT_HEADERS = new Set([
   "Descrição",
   "Observações",
@@ -56,19 +49,12 @@ interface DataTableProps<T> {
   emptyDescription?: ReactNode;
   emptyAction?: ReactNode;
   onRowClick?: (row: T) => void;
-  /** Itens por página na paginação automática (padrão 10). */
   pageSize?: number;
-  /** Lista já paginada pelo servidor: a tabela só mostra o paginador com estes dados. */
   serverPagination?: { page: number; totalPages: number; totalItems: number; onChange: (page: number) => void };
 }
 
-/** Componentes que já usavam o paginador antigo continuam importando daqui. */
 export { Pagination };
 
-/**
- * Tabela padrão: cabeçalho caramelo em gradiente (referências), linhas espaçadas; no celular vira lista de cartões.
- * Inclui estados de carregamento, erro e vazio.
- */
 export function DataTable<T>({
   columns,
   rows,
@@ -85,7 +71,6 @@ export function DataTable<T>({
   serverPagination,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(0);
-  // Altura real de uma linha de dados desta tabela (varia com etiquetas e botões), medida no navegador.
   const [rowHeight, setRowHeight] = useState(0);
   const observer = useRef<ResizeObserver | null>(null);
   const measureRow = useCallback((row: HTMLTableRowElement | null) => {
@@ -99,7 +84,6 @@ export function DataTable<T>({
 
   if (error) return <ErrorState error={error} onRetry={onRetry} />;
 
-  // Se a lista diminuir (busca, filtro, exclusão), fica na última página que ainda existe.
   const current = Math.min(page, totalPages - 1);
   const visible = serverPagination ? rows : rows?.slice(current * pageSize, current * pageSize + pageSize);
 
@@ -136,7 +120,6 @@ export function DataTable<T>({
                     ref={index === 0 ? measureRow : undefined}
                     $clickable={Boolean(onRowClick)}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
-                    // Linha clicável também abre pelo teclado (Tab até a linha, Enter ou Espaço).
                     tabIndex={onRowClick ? 0 : undefined}
                     onKeyDown={
                       onRowClick
@@ -163,7 +146,6 @@ export function DataTable<T>({
                     ))}
                   </Tr>
                 ))}
-              {/* Espaço em branco (sem linhas) para a tabela ter sempre a altura de uma página cheia de dados. */}
               {!loading && rowHeight > 0 && (visible?.length ?? 0) > 0 && (visible?.length ?? 0) < pageSize && (
                 <FillerRow aria-hidden="true">
                   <td colSpan={columns.length} style={{ height: (pageSize - (visible?.length ?? 0)) * rowHeight }} />
@@ -195,11 +177,6 @@ export function DataTable<T>({
   );
 }
 
-/**
- * Cartão da tabela. Quando a tabela é mais larga que a tela, uma sombra suave aparece na borda que ainda tem
- * colunas escondidas (técnica de "scroll shadow" só com CSS: as faixas claras rolam junto e cobrem a sombra).
- */
-/** Cartão da tabela: cantos, sombra e rodapé com o paginador (o rodapé não rola de lado com a tabela). */
 const Wrapper = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   border-radius: ${({ theme }) => theme.radii.lg};
@@ -207,10 +184,6 @@ const Wrapper = styled.div`
   overflow: hidden;
 `;
 
-/**
- * Área da tabela. Quando ela é mais larga que a tela, uma sombra suave aparece na borda que ainda tem colunas
- * escondidas (técnica de "scroll shadow" só com CSS: as faixas claras rolam junto e cobrem a sombra).
- */
 const Scroll = styled.div`
   @media (min-width: ${({ theme }) => theme.breakpoints.md}px) {
     overflow-x: auto;
@@ -227,7 +200,6 @@ const Scroll = styled.div`
   }
 `;
 
-/** Rodapé do cartão da tabela, com o paginador. */
 const Footer = styled.div`
   padding: ${({ theme }) => `${theme.space[2]} ${theme.space[4]}`};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
@@ -285,7 +257,6 @@ const Th = styled.th`
   padding: ${({ theme }) => `${theme.space[4]} ${theme.space[5]}`};
   white-space: nowrap;
 
-  /* Telas médias: colunas mais justas para caber sem rolar de lado. */
   @media (max-width: ${({ theme }) => theme.breakpoints.xl - 1}px) {
     padding: ${({ theme }) => `${theme.space[4]} ${theme.space[3]}`};
   }
@@ -305,7 +276,6 @@ const Tr = styled.tr<{ $clickable: boolean }>`
   }
 `;
 
-/** Espaço de preenchimento (só na visão de tabela; no celular, em cartões, não aparece). */
 const FillerRow = styled.tr`
   @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
     display: none !important;
@@ -319,7 +289,6 @@ const Td = styled.td<{ $hideOnMobile?: boolean; $wrap?: boolean }>`
   @media (max-width: ${({ theme }) => theme.breakpoints.xl - 1}px) {
     padding: ${({ theme }) => `${theme.space[4]} ${theme.space[3]}`};
   }
-  /* Datas, valores, telefones e CPFs não se partem ao meio ("(11) 90000-" / "0021"): a tabela rola de lado. */
   white-space: ${({ $wrap }) => ($wrap ? "normal" : "nowrap")};
   min-width: ${({ $wrap }) => ($wrap ? "180px" : "0")};
 
@@ -349,7 +318,6 @@ const Skeleton = styled.span`
   }
 `;
 
-/** Célula com ações (botões de ícone) alinhadas. */
 export const RowActions = styled.div`
   display: inline-flex;
   gap: ${({ theme }) => theme.space[2]};

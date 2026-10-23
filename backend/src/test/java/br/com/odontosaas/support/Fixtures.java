@@ -16,8 +16,9 @@ public final class Fixtures {
     public static String createProfessional(Browser owner, String name) {
         MvcTestResult r = owner.post(
                 "/api/v1/clinic/professionals",
-                "{\"name\":\"%s\",\"cro\":\"12345\",\"croState\":\"SP\",\"color\":\"#9C7A5B\",\"active\":true}"
-                        .formatted(name));
+                ("{\"name\":\"%s\",\"cro\":\"12345\",\"croState\":\"SP\",\"color\":\"#9C7A5B\","
+                                + "\"email\":\"prof%s@teste.example\",\"active\":true}")
+                        .formatted(name, TestData.unique()));
         assertThat(r).hasStatus(HttpStatus.CREATED);
         return json(r, "$.id");
     }
@@ -32,11 +33,7 @@ public final class Fixtures {
     }
 
     public static String createPatient(Browser browser, String name) {
-        MvcTestResult r = browser.post(
-                "/api/v1/patients",
-                ("{\"fullName\":\"%s\",\"birthDate\":\"1990-05-10\",\"mobile\":\"11999990000\","
-                                + "\"email\":\"paciente%s@teste.example\",\"allowEmail\":true}")
-                        .formatted(name, TestData.unique()));
+        MvcTestResult r = browser.post("/api/v1/patients", TestData.patientJson(name, "\"allowEmail\":true"));
         assertThat(r).hasStatus(HttpStatus.CREATED);
         return json(r, "$.id");
     }

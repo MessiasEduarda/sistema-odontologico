@@ -10,7 +10,6 @@ import { DialogButton, LegalDialog, type LegalTab } from "./LegalDialog";
 
 interface AuthLayoutProps {
   title: string;
-  /** Esconde o título (continua para leitores de tela) e usa a logo grande no lugar dele. */
   hideTitle?: boolean;
   subtitle?: ReactNode;
   children: ReactNode;
@@ -18,7 +17,6 @@ interface AuthLayoutProps {
 
 const TOOTH = TOOTH_PATH;
 
-/** Paleta da tela de acesso: só cores chapadas (sem degradê). */
 const P = {
   page: "#F4EDE6",
   blob: "#9C7A5B",
@@ -34,10 +32,6 @@ const P = {
   gray: "#8D867F",
 };
 
-/**
- * Telas de acesso: cartão em primeiro plano (formulário à esquerda, ilustração à direita) sobre um fundo de cor
- * única; a profundidade vem da sombra nas bordas do cartão. No celular, só o formulário.
- */
 export function AuthLayout({ title, hideTitle = false, subtitle, children }: AuthLayoutProps) {
   const [legal, setLegal] = useState<LegalTab | null>(null);
   const closeLegal = useCallback(() => setLegal(null), []);
@@ -89,22 +83,18 @@ export function AuthLayout({ title, hideTitle = false, subtitle, children }: Aut
   );
 }
 
-/** Ilustração própria (SVG, cores chapadas): dentista apontando para um celular com dente na tela e paciente sentado. */
 function DentalIllustration() {
   const dots = (y: number, n: number) =>
     Array.from({ length: n }, (_, i) => <circle key={`${y}-${i}`} cx={192 + i * 9} cy={y} r="2.4" fill={P.panel} />);
   return (
     <svg viewBox="72 8 368 318" width="100%" style={{ maxWidth: 460 }}>
-      {/* chão */}
       <ellipse cx="230" cy="318" rx="180" ry="8" fill={P.soft} />
 
-      {/* caminho pontilhado com dente */}
       <path d="M150 40 C 240 0, 340 14, 352 74" fill="none" stroke={P.blob} strokeWidth="2" strokeDasharray="4 6" />
       <g transform="translate(128 24) scale(0.16)">
         <path d={TOOTH} fill={P.blob} />
       </g>
 
-      {/* brilhos */}
       {[
         [362, 104, 1],
         [384, 132, 0.6],
@@ -117,7 +107,6 @@ function DentalIllustration() {
         />
       ))}
 
-      {/* celular: moldura atrás e tela na frente */}
       <rect x="190" y="70" width="150" height="248" rx="18" fill={P.dark} />
       <rect x="160" y="52" width="142" height="230" rx="16" fill={P.blob} />
       <circle cx="231" cy="108" r="31" fill={P.soft} stroke={P.white} strokeWidth="5" />
@@ -130,7 +119,6 @@ function DentalIllustration() {
       {dots(184.5, 9)}
       <rect x="182" y="204" width="98" height="14" rx="7" fill={P.dark} />
 
-      {/* dentista em pé */}
       <rect x="97" y="88" width="30" height="46" rx="12" fill={P.dark} />
       <circle cx="115" cy="97" r="11" fill={P.skin} />
       <path d="M103 94 a12 12 0 0 1 24 -2 l-6 -2 l-16 4 Z" fill={P.dark} />
@@ -148,7 +136,6 @@ function DentalIllustration() {
       <ellipse cx="109" cy="297" rx="10" ry="4.5" fill={P.darkHover} />
       <ellipse cx="126" cy="297" rx="10" ry="4.5" fill={P.darkHover} />
 
-      {/* paciente sentado com notebook */}
       <g transform="translate(332 304) scale(1.4) translate(-332 -304)">
         <ellipse cx="332" cy="300" rx="38" ry="11" fill={P.dark} />
         <path d="M314 244 h36 l5 52 h-46 Z" fill={P.shirt} />
@@ -160,7 +147,6 @@ function DentalIllustration() {
         <line x1="348" y1="254" x2="344" y2="282" stroke={P.shirt} strokeWidth="7" strokeLinecap="round" />
       </g>
 
-      {/* planta */}
       <g transform="translate(26 0)">
         <ellipse cx="376" cy="252" rx="6" ry="20" transform="rotate(-24 376 252)" fill={P.leaf} />
         <ellipse cx="398" cy="250" rx="6" ry="20" transform="rotate(24 398 250)" fill={P.leaf} />
@@ -204,7 +190,6 @@ const Card = styled.section`
   border-radius: 8px;
   overflow: hidden;
   background: ${P.white};
-  /* sombra em todas as bordas: o cartão parece flutuar à frente do fundo */
   box-shadow:
     0 0 0 1px rgba(20, 20, 20, 0.04),
     0 4px 10px rgba(20, 20, 20, 0.12),
@@ -217,7 +202,6 @@ const Card = styled.section`
   }
 `;
 
-/** Lado do formulário: caramelo chapado; campos brancos em pílula e botão escuro, como no modelo de referência. */
 const FormSide = styled.div`
   display: grid;
   align-content: center;
@@ -243,7 +227,6 @@ const Content = styled.div`
   label {
     color: ${P.white};
   }
-  /* Altura fixa com texto centralizado; borda fina (1px), sem anel grosso no foco. */
   input {
     height: 48px;
     min-height: 48px;
@@ -252,7 +235,6 @@ const Content = styled.div`
     color: ${({ theme }) => theme.colors.text};
     border: 1px solid transparent;
   }
-  /* Mesmo cinza claro em todos os campos (inclusive quando o navegador marca o campo como preenchimento automático). */
   input::placeholder,
   input:-webkit-autofill::placeholder {
     color: #bdb6af;
@@ -267,14 +249,12 @@ const Content = styled.div`
     border: 1px solid ${P.dark};
     box-shadow: none;
   }
-  /* Preenchimento automático do navegador: mantém o campo branco (vem depois para vencer o foco/erro). */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus {
     -webkit-text-fill-color: ${({ theme }) => theme.colors.text};
     box-shadow: 0 0 0 40px ${P.white} inset;
   }
-  /* dicas dos campos sobre o caramelo */
   input + p {
     color: ${P.soft};
   }
@@ -306,7 +286,6 @@ const Content = styled.div`
   }
 `;
 
-/** Mesmo estilo dos títulos de página do sistema (PageTitle), em branco sobre o caramelo. */
 const Title = styled.h1`
   font-family: ${({ theme }) => theme.fonts.display};
   font-weight: ${({ theme }) => theme.fontWeights.semibold};

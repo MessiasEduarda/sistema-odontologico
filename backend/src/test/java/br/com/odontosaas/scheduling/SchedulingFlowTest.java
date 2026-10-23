@@ -180,7 +180,9 @@ class SchedulingFlowTest extends PostgresIntegrationTest {
         assertThat(reception.post("/api/v1/appointments", appointmentJson(patient, professional, slot(18), 30)))
                 .hasStatus(HttpStatus.CREATED);
         assertThat(reception.post(
-                        "/api/v1/clinic/professionals", "{\"name\":\"X\",\"color\":\"#000000\",\"active\":true}"))
+                        "/api/v1/clinic/professionals",
+                        "{\"name\":\"%s\",\"cro\":\"999\",\"croState\":\"SP\",\"email\":\"p%s@teste.example\",\"color\":\"#000000\",\"active\":true}"
+                                .formatted("X", TestData.unique())))
                 .hasStatus(HttpStatus.FORBIDDEN);
     }
 

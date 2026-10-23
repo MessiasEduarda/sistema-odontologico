@@ -3,12 +3,6 @@
 import { type RefObject, useEffect, useLayoutEffect } from "react";
 import styled from "styled-components";
 
-/**
- * Peças compartilhadas das listas suspensas (seleção, busca de paciente…): mesmo visual em todo o sistema.
- *
- * A lista é exibida na "camada superior" do navegador (Popover API), por isso fica acima de modais e não é cortada
- * por áreas com rolagem. A posição acompanha o campo (abaixo dele, ou acima quando falta espaço).
- */
 export function useAnchoredList(
   open: boolean,
   anchorRef: RefObject<HTMLElement | null>,
@@ -52,7 +46,6 @@ export function useAnchoredList(
   }, [open, anchorRef, listRef]);
 }
 
-/** Fecha a lista ao clicar fora do campo e da lista. */
 export function useClickOutside(open: boolean, refs: RefObject<HTMLElement | null>[], onOutside: () => void) {
   useEffect(() => {
     if (!open) return;
@@ -123,7 +116,6 @@ export const ListEmpty = styled.li`
   color: ${({ theme }) => theme.colors.textMuted};
 `;
 
-/** Valor do atributo `popover`: só quando o navegador suporta (senão a lista ficaria oculta). */
 export function popoverMode(): "manual" | undefined {
   return typeof HTMLElement !== "undefined" && "showPopover" in HTMLElement.prototype ? "manual" : undefined;
 }

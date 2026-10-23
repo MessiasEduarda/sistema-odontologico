@@ -14,10 +14,8 @@ import { formatDate, formatMoney, parseDateOnly } from "@/lib/format";
 
 export const SUBSCRIPTION_KEY = ["clinic-subscription"] as const;
 
-/** Espera depois de entrar até o aviso de vencimento aparecer. */
 const DELAY_MS = 2000;
 
-/** O aviso (ainda sem bloqueio) aparece no máximo uma vez por dia em cada navegador. */
 function reminderKey(tenantId: string) {
   return `odonto.billing.reminded.${tenantId}`;
 }
@@ -38,22 +36,15 @@ function alreadyReminded(tenantId: string): boolean {
 function markReminded(tenantId: string) {
   try {
     window.localStorage.setItem(reminderKey(tenantId), todayKey());
-  } catch {
-    // Sem armazenamento: o aviso volta a aparecer na próxima visita, o que é aceitável.
-  }
+  } catch {}
 }
 
-/** Véspera do bloqueio (último dia em que o sistema ainda funciona). */
 function lastDay(blockedFrom: string): string {
   const d = parseDateOnly(blockedFrom);
   d.setDate(d.getDate() - 1);
   return formatDate(d.toISOString());
 }
 
-/**
- * Cobrança da assinatura. Vencida dentro da tolerância: aviso (uma vez por dia) com o botão de pagamento. Tolerância
- * esgotada: tela de bloqueio que não fecha; o servidor também recusa tudo (402) até o pagamento ser registrado.
- */
 export function BillingGate() {
   const { data: me } = useMe();
   const queryClient = useQueryClient();
@@ -69,7 +60,6 @@ export function BillingGate() {
   const [reminderOpen, setReminderOpen] = useState(false);
   const state = sub.data?.billing.state ?? "OK";
 
-  // Qualquer resposta 402 (bloqueio por falta de pagamento) atualiza a situação na hora.
   const stateRef = useRef(state);
   useEffect(() => {
     stateRef.current = state;
@@ -82,7 +72,6 @@ export function BillingGate() {
     return () => window.removeEventListener(BILLING_BLOCKED_EVENT, onBlocked);
   }, [queryClient]);
 
-  // Acesso liberado (pagamento registrado): recarrega o que falhou enquanto estava bloqueado.
   const previous = useRef(state);
   useEffect(() => {
     if (previous.current === "BLOCKED" && state !== "BLOCKED") void queryClient.invalidateQueries();
@@ -196,7 +185,6 @@ function BlockedDialog({ sub, checking, onCheck }: { sub: Subscription; checking
   );
 }
 
-/** Moldura do aviso: cabeçalho na cor da marca. Sem `onClose`, não fecha (nem com Esc nem clicando fora). */
 function Frame({
   title,
   subtitle,

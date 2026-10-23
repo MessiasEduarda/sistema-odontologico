@@ -21,7 +21,9 @@ Prontuário: anamnese, odontograma, evoluções, procedimentos realizados, docum
 ## API para outros módulos
 
 - Classes do pacote raiz (`medicalrecord`)
+- `medicalrecord.dto.response` (interface `dto`)
 - `medicalrecord.event` (interface `event`)
+- `medicalrecord.service` (interface `service`)
 
 ## Eventos publicados
 

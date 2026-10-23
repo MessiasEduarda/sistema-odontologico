@@ -21,7 +21,7 @@ public class AttachmentRepository {
     public List<AttachmentView> findByPatient(UUID tenantId, UUID patientId) {
         return jdbc.sql("""
                         select a.id, a.category, a.description, a.filename, a.content_type, a.size_bytes,
-                               u.name as uploaded_by_name, a.created_at
+                               a.shared_with_patient, u.name as uploaded_by_name, a.created_at
                         from attachments a left join users u on u.id = a.uploaded_by
                         where a.tenant_id = ? and a.patient_id = ? and a.deleted_at is null
                         order by a.created_at desc
@@ -29,6 +29,28 @@ public class AttachmentRepository {
                 .params(tenantId, patientId)
                 .query(AttachmentView.class)
                 .list();
+    }
+
+    public List<AttachmentView> findSharedByPatient(UUID tenantId, UUID patientId) {
+        return findByPatient(tenantId, patientId).stream()
+                .filter(AttachmentView::sharedWithPatient)
+                .toList();
+    }
+
+    public int updateDetails(UUID tenantId, UUID patientId, UUID attachmentId, String category, String description) {
+        return jdbc.sql("""
+                        update attachments set category = ?, description = ?
+                        where tenant_id = ? and patient_id = ? and id = ? and deleted_at is null
+                        """)
+                .params(category, description, tenantId, patientId, attachmentId)
+                .update();
+    }
+
+    public int updateSharing(UUID tenantId, UUID patientId, UUID attachmentId, boolean shared) {
+        return jdbc.sql("""
+                        update attachments set shared_with_patient = ?
+                        where tenant_id = ? and patient_id = ? and id = ? and deleted_at is null
+                        """).params(shared, tenantId, patientId, attachmentId).update();
     }
 
     public void insert(
@@ -67,6 +89,17 @@ public class AttachmentRepository {
         return jdbc.sql("""
                         select filename, content_type, storage_key from attachments
                         where tenant_id = ? and patient_id = ? and id = ? and deleted_at is null
+                        """)
+                .params(tenantId, patientId, attachmentId)
+                .query(AttachmentFileRow.class)
+                .optional();
+    }
+
+    public Optional<AttachmentFileRow> findSharedFile(UUID tenantId, UUID patientId, UUID attachmentId) {
+        return jdbc.sql("""
+                        select filename, content_type, storage_key from attachments
+                        where tenant_id = ? and patient_id = ? and id = ? and deleted_at is null
+                          and shared_with_patient
                         """)
                 .params(tenantId, patientId, attachmentId)
                 .query(AttachmentFileRow.class)

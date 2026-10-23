@@ -8,10 +8,17 @@
             "communication :: service",
             "consent :: dto",
             "consent :: service",
+            "finance :: dto",
+            "finance :: service",
+            "medicalrecord :: dto",
+            "medicalrecord :: service",
+            "patients :: event",
             "scheduling :: dto",
             "scheduling :: service",
             "shared",
-            "tenancy"
+            "tenancy",
+            "treatment :: dto",
+            "treatment :: service"
         })
 package br.com.odontosaas.portal;
 

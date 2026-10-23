@@ -1,6 +1,5 @@
-package br.com.odontosaas.identity.support;
+package br.com.odontosaas.shared;
 
-import br.com.odontosaas.shared.ApiException;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Component;
@@ -8,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class PasswordPolicy {
 
-    public static final int MIN_LENGTH = 10;
+    public static final int MIN_LENGTH = 8;
     public static final int MAX_LENGTH = 128;
 
     private static final Set<String> COMMON = Set.of(
@@ -30,10 +29,17 @@ public class PasswordPolicy {
 
     public void validate(String field, String password, String email) {
         if (password == null || password.length() < MIN_LENGTH) {
-            throw ApiException.invalidField(field, "A senha deve ter pelo menos " + MIN_LENGTH + " caracteres.");
+            throw ApiException.invalidField(field, "A senha deve ter no mínimo " + MIN_LENGTH + " caracteres.");
         }
         if (password.length() > MAX_LENGTH) {
             throw ApiException.invalidField(field, "A senha deve ter no máximo " + MAX_LENGTH + " caracteres.");
+        }
+        if (password.chars().noneMatch(Character::isUpperCase)) {
+            throw ApiException.invalidField(field, "A senha deve ter pelo menos uma letra maiúscula.");
+        }
+        if (password.chars().allMatch(c -> Character.isLetterOrDigit(c) || Character.isWhitespace(c))) {
+            throw ApiException.invalidField(
+                    field, "A senha deve ter pelo menos um caractere especial (ex.: ! @ # $ %).");
         }
         String lower = password.toLowerCase(Locale.ROOT);
         if (COMMON.contains(lower) || lower.chars().distinct().count() < 4) {

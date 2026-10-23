@@ -13,7 +13,6 @@ interface AlertProps {
 
 const ICONS: Record<Tone, string> = { info: "ℹ", success: "✓", warning: "⚠", danger: "!" };
 
-/** Mensagem em destaque. Erros e avisos são anunciados imediatamente por leitores de tela. */
 export function Alert({ tone = "info", title, children }: AlertProps) {
   const urgent = tone === "danger" || tone === "warning";
   return (

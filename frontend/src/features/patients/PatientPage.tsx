@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CalendarPlus, ClipboardPlus, FileJson } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ClipboardPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -23,11 +23,10 @@ import {
   Row,
   Stack,
 } from "@/components/ui/display";
-import { CheckboxField } from "@/components/ui/fields";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Tabs } from "@/components/ui/Tabs";
+import { ExportButton } from "@/components/domain/ExportButton";
 import { WhatsAppButton } from "@/components/domain/WhatsAppButton";
-import { useFeedback } from "@/components/ui/Feedback";
 import { AestheticsSection, useAestheticsEnabled } from "@/features/aesthetics/AestheticsPage";
 import { AnamnesisSection } from "@/features/clinical/AnamnesisSection";
 import { AttachmentsSection } from "@/features/clinical/AttachmentsSection";
@@ -36,7 +35,10 @@ import { ConsentsSection } from "@/features/clinical/ConsentsSection";
 import { DocumentsSection } from "@/features/clinical/DocumentsSection";
 import { NotesSection, PerformedSection } from "@/features/clinical/NotesSection";
 import { api } from "@/lib/api/endpoints";
-import type { Appointment, PlanSummary, ReceivableSummary } from "@/lib/api/types";
+import { fileDate, fileSlug } from "@/lib/download";
+import { loadPatientData } from "@/lib/export/patientData";
+import { useExport } from "@/lib/export/useExport";
+import type { Appointment, Patient, PlanSummary, ReceivableSummary } from "@/lib/api/types";
 import { ageFrom, formatCpf, formatDate, formatDateTime, formatMoney, formatPhone, formatTime } from "@/lib/format";
 import { APPOINTMENT_STATUS, FINANCE_STATUS, PLAN_STATUS, SEX_OPTIONS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
@@ -74,7 +76,7 @@ export function PatientPage({ patientId }: { patientId: string }) {
     can(P.PATIENTS_WRITE) && {
       id: "portal",
       label: "Portal",
-      content: <PortalTab patientId={patientId} email={p.email} allowEmail={p.allowEmail} />,
+      content: <PortalTab patient={p} />,
     },
   ].filter(Boolean) as { id: string; label: string; content: React.ReactNode }[];
 
@@ -429,54 +431,91 @@ function FinanceTab({ patientId }: { patientId: string }) {
   );
 }
 
-function PortalTab({ patientId, email, allowEmail }: { patientId: string; email: string | null; allowEmail: boolean }) {
-  const feedback = useFeedback();
-  const [sendEmail, setSendEmail] = useState(Boolean(email && allowEmail));
-  const [url, setUrl] = useState<string | null>(null);
-  const grant = useAction(() => api.patients.portalAccess(patientId, sendEmail), {
-    success: "Link do portal gerado com sucesso!",
-    onSuccess: (r) => setUrl(r.url),
+const PORTAL_STATUS: Record<string, { label: string; tone: "neutral" | "warning" | "success" | "danger" }> = {
+  NONE: { label: "Sem acesso", tone: "neutral" },
+  INVITED: { label: "Convite enviado", tone: "warning" },
+  ACTIVE: { label: "Acesso ativo", tone: "success" },
+  BLOCKED: { label: "Bloqueado", tone: "danger" },
+};
+
+function PortalTab({ patient }: { patient: Patient }) {
+  const can = useCan();
+  const writable = can(P.PATIENTS_WRITE);
+  const status = useQuery({
+    queryKey: ["portal-account", patient.id],
+    queryFn: () => api.patients.portalAccount(patient.id),
   });
-  const revoke = useAction(() => api.patients.revokePortal(patientId), {
-    success: "Acesso ao portal revogado com sucesso!",
-    onSuccess: () => setUrl(null),
+  const invite = useAction(() => api.patients.portalInvite(patient.id), {
+    success: (r) => `Convite enviado para ${r.email}.`,
+    invalidate: [["portal-account", patient.id]],
   });
+  const block = useAction((blocked: boolean) => api.patients.portalBlock(patient.id, blocked), {
+    success: (r) => (r.status === "BLOCKED" ? "Acesso ao portal bloqueado." : "Acesso ao portal liberado."),
+    invalidate: [["portal-account", patient.id]],
+  });
+  const s = status.data;
+  const info = PORTAL_STATUS[s?.status ?? "NONE"] ?? { label: "Sem acesso", tone: "neutral" as const };
   return (
     <Card>
       <Stack $gap={4}>
         <p>
-          O portal permite ao paciente ver as próximas consultas, confirmar ou cancelar, assinar termos pendentes e
-          atualizar o contato. O acesso é por link pessoal válido por 30 dias; gerar um novo link revoga o anterior.
+          No portal o paciente entra com o próprio e-mail e uma senha criada por ele. Lá ele vê as consultas, confirma
+          presença, assina termos e baixa os documentos e exames liberados pela clínica. O convite é enviado
+          automaticamente no cadastro e vale por 48 horas; em aparelho novo, pedimos um código enviado por e-mail.
         </p>
-        <CheckboxField
-          label={email ? `Enviar o link para ${email}` : "Paciente sem e-mail cadastrado"}
-          checked={sendEmail}
-          disabled={!email || !allowEmail}
-          onChange={(e) => setSendEmail(e.target.checked)}
-        />
-        {email && !allowEmail && <Muted>O paciente não autorizou contato por e-mail.</Muted>}
-        <Row>
-          <Button onClick={() => grant.mutate(undefined)} loading={grant.isPending}>
-            Gerar link do portal
-          </Button>
-          <Button variant="ghost" onClick={() => revoke.mutate(undefined)} loading={revoke.isPending}>
-            Revogar acesso
-          </Button>
-        </Row>
-        {url && (
-          <Alert tone="success" title="Link gerado">
-            <code style={{ wordBreak: "break-all" }}>{url}</code>{" "}
-            <Button
-              variant="ghost"
-              onClick={() =>
-                navigator.clipboard.writeText(url).then(() => feedback.success("Link copiado com sucesso!"))
-              }
-            >
-              Copiar
-            </Button>
-          </Alert>
+        {status.isPending ? (
+          <LoadingState />
+        ) : status.isError ? (
+          <Alert tone="danger">{status.error.message}</Alert>
+        ) : (
+          s && (
+            <DetailList>
+              <div>
+                <dt>Situação</dt>
+                <dd>
+                  <Badge $tone={info.tone}>{info.label}</Badge>
+                </dd>
+              </div>
+              <div>
+                <dt>E-mail de acesso</dt>
+                <dd>{s.email ?? patient.email ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Convite enviado em</dt>
+                <dd>{s.invitedAt ? formatDateTime(s.invitedAt) : "—"}</dd>
+              </div>
+              <div>
+                <dt>Senha criada em</dt>
+                <dd>{s.activatedAt ? formatDateTime(s.activatedAt) : "—"}</dd>
+              </div>
+              <div>
+                <dt>Último acesso</dt>
+                <dd>{s.lastLoginAt ? formatDateTime(s.lastLoginAt) : "—"}</dd>
+              </div>
+            </DetailList>
+          )
         )}
-        {grant.error && <Alert tone="danger">{grant.error.message}</Alert>}
+        {writable && s && (
+          <Row>
+            {s.status !== "ACTIVE" && s.status !== "BLOCKED" && (
+              <Button onClick={() => invite.mutate(undefined)} loading={invite.isPending}>
+                {s.status === "NONE" ? "Enviar convite" : "Reenviar convite"}
+              </Button>
+            )}
+            {s.status === "BLOCKED" ? (
+              <Button variant="outline" onClick={() => block.mutate(false)} loading={block.isPending}>
+                Liberar acesso
+              </Button>
+            ) : (
+              s.status !== "NONE" && (
+                <Button variant="ghost" onClick={() => block.mutate(true)} loading={block.isPending}>
+                  Bloquear acesso
+                </Button>
+              )
+            )}
+          </Row>
+        )}
+        {(invite.error ?? block.error) && <Alert tone="danger">{(invite.error ?? block.error)?.message}</Alert>}
       </Stack>
     </Card>
   );
@@ -491,43 +530,26 @@ const BackLink = styled(Link)`
   text-decoration: none;
 `;
 
-/**
- * Portabilidade (LGPD): baixa todos os dados do paciente em JSON (formato estruturado, que outro sistema consegue
- * ler). A exportação fica registrada na auditoria.
- */
 function ExportDataButton({ patientId, patientName }: { patientId: string; patientName: string }) {
-  const feedback = useFeedback();
-  const [pending, setPending] = useState(false);
-  const run = async () => {
-    setPending(true);
-    try {
-      const data = await api.patients.exportData(patientId);
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const name = patientName
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-      a.href = url;
-      a.download = `dados-${name}-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      feedback.success(
-        "Dados do paciente exportados com sucesso!",
-        "Arquivo em formato aberto (JSON) com cadastro, consultas, prontuário, termos, orçamentos e financeiro.",
-      );
-    } catch (error) {
-      feedback.error("Não foi possível exportar os dados", error instanceof Error ? error.message : undefined);
-    } finally {
-      setPending(false);
-    }
-  };
+  const exportAs = useExport();
   return (
-    <Button variant="ghost" onClick={() => void run()} loading={pending}>
-      <FileJson size={16} aria-hidden /> Exportar dados (LGPD)
-    </Button>
+    <ExportButton
+      variant="ghost"
+      label="Exportar dados (LGPD)"
+      title="Exportar dados do paciente"
+      description="Tudo o que a clínica guarda sobre o paciente: cadastro, consultas, prontuário, termos, orçamentos e financeiro. Use quando o paciente pedir os próprios dados."
+      onExport={async (format) => {
+        const { patient, tables } = await loadPatientData(patientId);
+        await exportAs(format, {
+          title: "Relatório de dados do paciente",
+          subtitle: "Dados pessoais e de saúde mantidos pela clínica (LGPD, art. 18)",
+          tables,
+          patient,
+          footnote:
+            "Os arquivos anexados (fotos, radiografias e exames) ficam guardados na clínica e podem ser entregues ao paciente mediante solicitação.",
+          filename: `dados-${fileSlug(patientName)}-${fileDate()}`,
+        });
+      }}
+    />
   );
 }

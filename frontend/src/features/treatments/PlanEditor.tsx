@@ -30,11 +30,9 @@ interface Props {
   initialPatient?: { id: string; name: string } | null;
 }
 
-/** Criação/edição de orçamento. A prévia dos totais é só visual: o servidor recalcula e é a referência. */
 export function PlanEditor({ plan, initialPatient = null }: Props) {
   const router = useRouter();
   const feedback = useFeedback();
-  // Algo foi preenchido/alterado? Usado para confirmar antes de descartar ao cancelar.
   const dirty = useRef(false);
   const markDirty = () => {
     dirty.current = true;

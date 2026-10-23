@@ -13,6 +13,7 @@ import type { ClinicSettings } from "@/lib/api/types";
 import { formatDate, formatMoney } from "@/lib/format";
 import { FEATURE_LABELS, SUBSCRIPTION_STATUS, UF_OPTIONS } from "@/lib/labels";
 import { useAction } from "@/lib/mutations";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 export function SettingsPage() {
   const settings = useQuery({ queryKey: ["clinic-settings"], queryFn: api.clinic.settings });
@@ -32,6 +33,7 @@ function SettingsForm({ initial }: { initial: ClinicSettings }) {
     value: (v[k] as string | null) ?? "",
     onChange: (e: { target: { value: string } }) => set(k, (e.target.value || null) as never),
   });
+  const form = useRequiredFields({ name: !v.name.trim() && "Informe o nome de exibição da clínica." });
   const save = useAction(
     () => {
       const { timeZone: _tz, logoUpdatedAt: _logo, ...body } = v;
@@ -51,6 +53,7 @@ function SettingsForm({ initial }: { initial: ClinicSettings }) {
         <TextField
           label="Nome de exibição"
           required
+          error={form.errors.name}
           maxLength={160}
           value={v.name}
           onChange={(e) => set("name", e.target.value)}
@@ -112,7 +115,7 @@ function SettingsForm({ initial }: { initial: ClinicSettings }) {
       </Stack>
       {save.error && <Alert tone="danger">{save.error.message}</Alert>}
       <Row $justify="flex-end" style={{ marginTop: 16 }}>
-        <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!v.name.trim()}>
+        <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
           Salvar configurações
         </Button>
       </Row>

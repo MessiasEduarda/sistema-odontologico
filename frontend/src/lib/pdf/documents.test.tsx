@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -16,7 +15,6 @@ import {
   type PdfContext,
 } from "./documents";
 
-/** Dados 100% fictícios. Com PDF_OUT=<pasta> os arquivos também são gravados para conferência visual. */
 const clinic = {
   name: "Clínica Exemplo Dois",
   legalName: "Exemplo Dois Odontologia Ltda (fictícia)",
@@ -125,6 +123,10 @@ const cases: [string, ReactElement<DocumentProps>][] = [
         title: "Cuidados após aplicação (texto de teste)",
         content: "TEXTO DE TESTE — a clínica escreve aqui as orientações definidas pelo responsável técnico.",
         issuedAt: now,
+        sharedWithPatient: false,
+        updatedAt: null,
+        voidedAt: null,
+        voidReason: null,
       },
     }),
   ],

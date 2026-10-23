@@ -17,15 +17,12 @@ import type { AestheticRegion } from "@/lib/api/types";
 import { localDateTimeToIso, toDateInput, toTimeInput } from "@/lib/format";
 import { AESTHETIC_TYPES, AESTHETIC_UNITS, FACE_REGIONS } from "@/lib/labels";
 import { useAction } from "@/lib/mutations";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 const TYPE_OPTIONS = Object.entries(AESTHETIC_TYPES).map(([value, label]) => ({ value, label }));
 const UNIT_OPTIONS = Object.entries(AESTHETIC_UNITS).map(([value, label]) => ({ value, label }));
 const DEFAULT_UNIT: Record<string, string> = { TOXIN: "U", FILLER: "ML", BIOSTIMULATOR: "ML", SKINBOOSTER: "ML" };
 
-/**
- * Registro de aplicação de harmonização orofacial: produto, lote e validade (rastreabilidade), regiões tratadas com
- * quantidade, técnica, termo assinado e data de retorno. Depois de salvo não é editado (só anulado com motivo).
- */
 export function AestheticForm({
   patient: fixedPatient,
   onClose,
@@ -88,14 +85,22 @@ export function AestheticForm({
 
   const setRegion = (i: number, patch: Partial<AestheticRegion>) =>
     setRegions(regions.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-  const invalid =
-    !patient ||
-    !v.professionalId ||
-    !v.productName.trim() ||
-    !v.batch.trim() ||
-    regions.length === 0 ||
-    regions.some((r) => !r.region.trim() || !(Number(r.quantity) > 0));
   const expired = v.expiryDate !== "" && v.expiryDate < v.date;
+  const form = useRequiredFields({
+    patient: !patient && "Selecione o paciente.",
+    professionalId: !v.professionalId && "Selecione o profissional.",
+    date: !v.date && "Informe a data.",
+    time: !v.time && "Informe a hora.",
+    productName: !v.productName.trim() && "Informe o produto.",
+    batch: !v.batch.trim() && "Informe o lote.",
+    expiryDate: expired && "Produto vencido na data da aplicação.",
+    ...Object.fromEntries(
+      regions.flatMap((r, i) => [
+        [`region${i}`, !r.region.trim() && "Informe a região."],
+        [`quantity${i}`, !(Number(r.quantity) > 0) && "Informe a quantidade."],
+      ]),
+    ),
+  });
   const signedConsents = (consents.data ?? []).filter((c) => c.status !== "REVOKED");
 
   return (
@@ -109,7 +114,7 @@ export function AestheticForm({
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={invalid || expired}>
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Registrar
           </Button>
         </>
@@ -121,12 +126,13 @@ export function AestheticForm({
             {fixedPatient ? (
               <TextField label="Paciente" value={fixedPatient.name} disabled readOnly />
             ) : (
-              <PatientSelect value={patient} onChange={setPatient} required />
+              <PatientSelect value={patient} onChange={setPatient} required error={form.errors.patient} />
             )}
           </FullRow>
           <SelectField
             label="Profissional"
             required
+            error={form.errors.professionalId}
             placeholder="Selecione…"
             value={v.professionalId}
             onChange={(e) => setV({ ...v, professionalId: e.target.value })}
@@ -136,6 +142,7 @@ export function AestheticForm({
             label="Data"
             type="date"
             required
+            error={form.errors.date}
             value={v.date}
             onChange={(e) => setV({ ...v, date: e.target.value })}
           />
@@ -143,6 +150,7 @@ export function AestheticForm({
             label="Hora"
             type="time"
             required
+            error={form.errors.time}
             value={v.time}
             onChange={(e) => setV({ ...v, time: e.target.value })}
           />
@@ -157,6 +165,7 @@ export function AestheticForm({
           <TextField
             label="Produto (nome comercial)"
             required
+            error={form.errors.productName}
             maxLength={160}
             value={v.productName}
             onChange={(e) => setV({ ...v, productName: e.target.value })}
@@ -170,6 +179,7 @@ export function AestheticForm({
           <TextField
             label="Lote"
             required
+            error={form.errors.batch}
             maxLength={60}
             value={v.batch}
             onChange={(e) => setV({ ...v, batch: e.target.value })}
@@ -203,6 +213,8 @@ export function AestheticForm({
               <RegionRow key={i}>
                 <TextField
                   label={`Região ${i + 1}`}
+                  required
+                  error={form.errors[`region${i}`]}
                   list={regionsListId}
                   maxLength={80}
                   value={r.region}
@@ -210,6 +222,8 @@ export function AestheticForm({
                 />
                 <TextField
                   label={`Quantidade (${AESTHETIC_UNITS[v.unit]})`}
+                  required
+                  error={form.errors[`quantity${i}`]}
                   type="number"
                   min={0}
                   step="0.01"

@@ -7,11 +7,16 @@ import java.util.function.Supplier;
 
 public final class TenantContext {
 
-    public record State(UUID tenantId, UUID userId, String accessTokenHash, boolean platformAdmin) {
-        static final State EMPTY = new State(null, null, null, false);
+    public record State(
+            UUID tenantId, UUID userId, String accessTokenHash, boolean platformAdmin, UUID portalAccountId) {
+        static final State EMPTY = new State(null, null, null, false, null);
+
+        public State(UUID tenantId, UUID userId, String accessTokenHash, boolean platformAdmin) {
+            this(tenantId, userId, accessTokenHash, platformAdmin, null);
+        }
 
         public String key() {
-            return tenantId + "|" + userId + "|" + accessTokenHash + "|" + platformAdmin;
+            return tenantId + "|" + userId + "|" + accessTokenHash + "|" + platformAdmin + "|" + portalAccountId;
         }
     }
 
@@ -53,6 +58,10 @@ public final class TenantContext {
 
     public static <T> T runAs(UUID tenantId, UUID userId, Supplier<T> action) {
         return runWith(new State(tenantId, userId, null, false), action);
+    }
+
+    public static <T> T runAsPortalAccount(UUID accountId, Supplier<T> action) {
+        return runWith(new State(null, null, null, false, accountId), action);
     }
 
     public static <T> T runWithToken(String tokenHash, Supplier<T> action) {

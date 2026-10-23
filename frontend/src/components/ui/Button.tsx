@@ -11,7 +11,6 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
-/** Botão em pílula. Em carregamento fica desabilitado e anuncia o estado para leitores de tela. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = "primary", loading = false, fullWidth = false, disabled, children, type = "button", ...rest },
   ref,
@@ -92,7 +91,6 @@ const StyledButton = styled.button<{ $variant: Variant; $fullWidth: boolean }>`
   border-radius: ${({ theme }) => theme.radii.pill};
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   font-size: ${({ theme }) => theme.fontSizes.md};
-  /* Texto do botão numa linha só ("Cadastrar paciente" não quebra em dois). */
   white-space: nowrap;
   cursor: pointer;
   transition:

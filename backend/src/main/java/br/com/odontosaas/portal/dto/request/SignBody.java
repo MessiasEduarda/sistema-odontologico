@@ -8,7 +8,6 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public record SignBody(
-        @NotBlank @Size(max = 64) String token,
         @NotNull UUID consentId,
         @NotBlank @Size(max = 160) String signerName,
         @Size(max = 20) String signerDocument,

@@ -8,7 +8,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge, Card, Row, Stack } from "@/components/ui/display";
-import { CheckboxField, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
+import { CheckboxField, FieldError, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { Modal } from "@/components/ui/Modal";
 import { TextField } from "@/components/ui/TextField";
@@ -17,13 +17,10 @@ import type { AnamnesisForm, Question } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { FORM_KINDS } from "@/lib/labels";
 import { useAction } from "@/lib/mutations";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 const KIND_OPTIONS = Object.entries(FORM_KINDS).map(([value, k]) => ({ value, label: k.label }));
 
-/**
- * Fichas de anamnese da clínica: odontológica, harmonização orofacial e outras que a clínica criar. Alterar uma
- * ficha não muda anamneses já preenchidas (cada uma guarda as perguntas da época).
- */
 export function FormsManager() {
   const forms = useQuery({ queryKey: ["anamnesis-forms", true], queryFn: () => api.clinic.anamnesisForms(true) });
   const [editing, setEditing] = useState<AnamnesisForm | "new" | null>(null);
@@ -120,7 +117,16 @@ function FormEditor({
     if (item) next.splice(i + dir, 0, item);
     setQuestions(next);
   };
-  const invalid = !name.trim() || questions.length === 0 || questions.some((q) => !q.text.trim() || !q.section.trim());
+  const check = useRequiredFields({
+    name: !name.trim() && "Informe o nome da ficha.",
+    questions: questions.length === 0 && "Adicione pelo menos uma pergunta.",
+    ...Object.fromEntries(
+      questions.flatMap((q, i) => [
+        [`text${i}`, !q.text.trim() && "Escreva a pergunta."],
+        [`section${i}`, !q.section.trim() && "Informe a seção."],
+      ]),
+    ),
+  });
 
   return (
     <Modal
@@ -133,7 +139,7 @@ function FormEditor({
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={invalid}>
+          <Button onClick={() => check.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar ficha
           </Button>
         </>
@@ -144,6 +150,7 @@ function FormEditor({
           <TextField
             label="Nome da ficha"
             required
+            error={check.errors.name}
             maxLength={120}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -170,6 +177,8 @@ function FormEditor({
               <FullRow>
                 <TextField
                   label={`Pergunta ${i + 1}`}
+                  required
+                  error={check.errors[`text${i}`]}
                   maxLength={300}
                   value={q.text}
                   onChange={(e) => update(i, { text: e.target.value })}
@@ -177,6 +186,8 @@ function FormEditor({
               </FullRow>
               <TextField
                 label="Seção"
+                required
+                error={check.errors[`section${i}`]}
                 maxLength={60}
                 value={q.section}
                 onChange={(e) => update(i, { section: e.target.value })}
@@ -234,6 +245,7 @@ function FormEditor({
             <Plus size={16} aria-hidden /> Adicionar pergunta
           </Button>
         </Row>
+        {check.errors.questions && <FieldError>{check.errors.questions}</FieldError>}
         {save.error && <Alert tone="danger">{save.error.message}</Alert>}
       </Stack>
     </Modal>

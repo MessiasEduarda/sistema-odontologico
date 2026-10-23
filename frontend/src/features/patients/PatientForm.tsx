@@ -61,7 +61,6 @@ interface Props {
   onCancel?: () => void;
 }
 
-/** Cadastro completo do paciente. Validações espelham as do servidor (que é a autoridade final). */
 export function PatientForm({ initial = EMPTY, saving, serverError, submitLabel, onSubmit, onCancel }: Props) {
   const [v, setV] = useState<PatientInput>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,9 +77,13 @@ export function PatientForm({ initial = EMPTY, saving, serverError, submitLabel,
   const submit = () => {
     const e: Record<string, string> = {};
     if (!v.fullName.trim()) e.fullName = "Informe o nome completo.";
-    if (v.cpf && !isValidCpf(v.cpf)) e.cpf = "CPF inválido.";
+    if (!v.birthDate) e.birthDate = "Informe a data de nascimento.";
+    if (!v.cpf?.trim()) e.cpf = "Informe o CPF.";
+    else if (!isValidCpf(v.cpf)) e.cpf = "CPF inválido.";
+    if (!v.mobile?.trim()) e.mobile = "Informe o celular.";
+    if (!v.email?.trim()) e.email = "Informe o e-mail.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) e.email = "E-mail inválido.";
     if (v.guardianCpf && !isValidCpf(v.guardianCpf)) e.guardianCpf = "CPF inválido.";
-    if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) e.email = "E-mail inválido.";
     if (minor && !v.guardianName?.trim()) e.guardianName = "Informe o responsável legal (menor de 18).";
     if (v.birthDate && new Date(v.birthDate) > new Date()) e.birthDate = "Data no futuro.";
     setErrors(e);
@@ -107,6 +110,7 @@ export function PatientForm({ initial = EMPTY, saving, serverError, submitLabel,
           <TextField
             label="Data de nascimento"
             type="date"
+            required
             {...text("birthDate")}
             hint={age !== null ? `${age} ano(s)` : undefined}
           />
@@ -116,7 +120,14 @@ export function PatientForm({ initial = EMPTY, saving, serverError, submitLabel,
             onChange={(e) => set("sex", e.target.value as PatientInput["sex"])}
             options={SEX_OPTIONS}
           />
-          <TextField label="CPF" inputMode="numeric" maxLength={14} placeholder="000.000.000-00" {...text("cpf")} />
+          <TextField
+            label="CPF"
+            required
+            inputMode="numeric"
+            maxLength={14}
+            placeholder="000.000.000-00"
+            {...text("cpf")}
+          />
           <TextField label="RG" maxLength={20} {...text("rg")} />
           <TextField label="Profissão" maxLength={100} {...text("occupation")} />
         </FormGrid>
@@ -125,9 +136,27 @@ export function PatientForm({ initial = EMPTY, saving, serverError, submitLabel,
       <Section>
         <legend>Contato</legend>
         <FormGrid $columns={3}>
-          <TextField label="Celular" type="tel" maxLength={20} placeholder="(11) 90000-0000" {...text("mobile")} />
+          <TextField
+            label="Celular"
+            type="tel"
+            required
+            maxLength={20}
+            placeholder="(11) 90000-0000"
+            {...text("mobile")}
+          />
           <TextField label="Telefone" type="tel" maxLength={20} {...text("phone")} />
-          <TextField label="E-mail" type="email" maxLength={254} {...text("email")} />
+          <TextField
+            label="E-mail"
+            type="email"
+            required
+            maxLength={254}
+            hint={
+              minor
+                ? "Use o e-mail do responsável: ele recebe o convite para criar a senha do portal."
+                : "O paciente recebe neste e-mail o convite para criar a senha do portal."
+            }
+            {...text("email")}
+          />
         </FormGrid>
         <Prefs>
           <CheckboxField

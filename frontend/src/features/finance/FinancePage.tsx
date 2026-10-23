@@ -34,6 +34,7 @@ import { formatDate, formatMoney, toDateInput } from "@/lib/format";
 import { FINANCE_STATUS, methodLabel, PAYMENT_METHODS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 import { PayDialog, ReceivableDetail } from "./ReceivableDetail";
 
 const INV = [["receivables"], ["installments"], ["finance-summary"], ["cash-flow"], ["payables"], ["dashboard"]];
@@ -66,8 +67,6 @@ export function FinancePage() {
     </Stack>
   );
 }
-
-/* ------------------------------------------------------------------ Resumo e fluxo de caixa */
 
 function SummaryTab() {
   const today = new Date();
@@ -170,8 +169,6 @@ function SummaryTab() {
   );
 }
 
-/* ------------------------------------------------------------------ Parcelas a receber */
-
 function InstallmentsTab({ initialFilter, onOpen }: { initialFilter: string; onOpen: (id: string) => void }) {
   const can = useCan();
   const [filter, setFilter] = useState(initialFilter);
@@ -262,8 +259,6 @@ function InstallmentsTab({ initialFilter, onOpen }: { initialFilter: string; onO
   );
 }
 
-/* ------------------------------------------------------------------ Contas a receber (por paciente) */
-
 function ReceivablesTab({ onOpen }: { onOpen: (id: string) => void }) {
   const can = useCan();
   const [q, setQ] = useState("");
@@ -331,6 +326,12 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
   const [total, setTotal] = useState(0);
   const [installments, setInstallments] = useState(1);
   const [firstDue, setFirstDue] = useState(toDateInput(new Date()));
+  const form = useRequiredFields({
+    patient: !patient && "Selecione o paciente.",
+    description: !description.trim() && "Informe a descrição.",
+    total: !(total > 0) && "Informe um valor maior que zero.",
+    firstDue: !firstDue && "Informe o primeiro vencimento.",
+  });
   const create = useAction(
     () =>
       api.finance.createReceivable({
@@ -359,11 +360,7 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => create.mutate(undefined)}
-            loading={create.isPending}
-            disabled={!patient || !description.trim() || !(total > 0)}
-          >
+          <Button onClick={() => form.check() && create.mutate(undefined)} loading={create.isPending}>
             Criar
           </Button>
         </>
@@ -371,12 +368,13 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
     >
       <FormGrid $columns={2}>
         <FullRow>
-          <PatientSelect value={patient} onChange={setPatient} required />
+          <PatientSelect value={patient} onChange={setPatient} required error={form.errors.patient} />
         </FullRow>
         <FullRow>
           <TextField
             label="Descrição"
             required
+            error={form.errors.description}
             maxLength={200}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -384,6 +382,8 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
         </FullRow>
         <TextField
           label="Valor total (R$)"
+          required
+          error={form.errors.total}
           type="number"
           step="0.01"
           min={0.01}
@@ -398,7 +398,14 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
           value={installments}
           onChange={(e) => setInstallments(Math.min(48, Math.max(1, Number(e.target.value))))}
         />
-        <TextField label="1º vencimento" type="date" value={firstDue} onChange={(e) => setFirstDue(e.target.value)} />
+        <TextField
+          label="1º vencimento"
+          required
+          error={form.errors.firstDue}
+          type="date"
+          value={firstDue}
+          onChange={(e) => setFirstDue(e.target.value)}
+        />
         {create.error && (
           <FullRow>
             <Alert tone="danger">{create.error.message}</Alert>
@@ -408,8 +415,6 @@ function NewReceivable({ onClose, onCreated }: { onClose: () => void; onCreated:
     </Modal>
   );
 }
-
-/* ------------------------------------------------------------------ Contas a pagar */
 
 const PAYABLE_CATEGORIES = [
   "MATERIAIS",
@@ -537,6 +542,11 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
     dueDate: payable?.dueDate ?? toDateInput(new Date()),
     notes: payable?.notes ?? "",
   });
+  const form = useRequiredFields({
+    description: !v.description.trim() && "Informe a descrição.",
+    amount: !(v.amount > 0) && "Informe um valor maior que zero.",
+    dueDate: !v.dueDate && "Informe o vencimento.",
+  });
   const save = useAction(
     () => {
       const body = { ...v, supplierId: v.supplierId || null, notes: v.notes || null };
@@ -554,11 +564,7 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={!v.description.trim() || !(v.amount > 0)}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -569,6 +575,7 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
           <TextField
             label="Descrição"
             required
+            error={form.errors.description}
             maxLength={200}
             value={v.description}
             onChange={(e) => setV({ ...v, description: e.target.value })}
@@ -589,6 +596,8 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
         />
         <TextField
           label="Valor (R$)"
+          required
+          error={form.errors.amount}
           type="number"
           step="0.01"
           min={0.01}
@@ -597,6 +606,8 @@ function PayableForm({ payable, onClose }: { payable: Payable | null; onClose: (
         />
         <TextField
           label="Vencimento"
+          required
+          error={form.errors.dueDate}
           type="date"
           value={v.dueDate}
           onChange={(e) => setV({ ...v, dueDate: e.target.value })}
@@ -660,8 +671,6 @@ function PayPayable({ payable, onClose }: { payable: Payable; onClose: () => voi
   );
 }
 
-/* ------------------------------------------------------------------ Fornecedores */
-
 export function SuppliersTab() {
   const can = useCan();
   const [editing, setEditing] = useState<Supplier | "new" | null>(null);
@@ -717,6 +726,7 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
     notes: supplier?.notes ?? "",
     active: supplier?.active ?? true,
   });
+  const form = useRequiredFields({ name: !v.name.trim() && "Informe o nome do fornecedor." });
   const save = useAction(
     () => {
       const body = {
@@ -740,7 +750,7 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!v.name.trim()}>
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -751,6 +761,7 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
           <TextField
             label="Nome"
             required
+            error={form.errors.name}
             maxLength={160}
             value={v.name}
             onChange={(e) => setV({ ...v, name: e.target.value })}
@@ -796,8 +807,6 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
     </Modal>
   );
 }
-
-/* ------------------------------------------------------------------ Estilos */
 
 const Filter = styled.div`
   width: 200px;

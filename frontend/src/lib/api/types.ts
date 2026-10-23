@@ -1,5 +1,3 @@
-/** Tipos dos contratos da API (espelham os DTOs do back-end; ver /v3/api-docs). */
-
 export type Uuid = string;
 export type IsoInstant = string;
 export type IsoDate = string;
@@ -12,7 +10,6 @@ export interface Page<T> {
   totalPages: number;
 }
 
-// ------------------------------------------------------------------ Cadastros
 export interface ClinicSettings {
   name: string;
   legalName: string | null;
@@ -27,9 +24,7 @@ export interface ClinicSettings {
   remindersEnabled: boolean;
   reminderHoursBefore: number;
   timeZone: string;
-  /** A clínica realiza harmonização orofacial (exibe ficha, termos e registro de aplicações). */
   aestheticsEnabled: boolean;
-  /** Quando a logo foi enviada (nulo = sem logo). */
   logoUpdatedAt: IsoInstant | null;
 }
 
@@ -70,7 +65,6 @@ export interface Procedure {
   active: boolean;
 }
 
-// ------------------------------------------------------------------ Pacientes
 export interface PatientSummary {
   id: Uuid;
   fullName: string;
@@ -124,7 +118,6 @@ export type PatientInput = Omit<Patient, "id" | "active" | "createdAt" | "update
   version?: number;
 };
 
-// ------------------------------------------------------------------ Agenda
 export type AppointmentStatus =
   "SCHEDULED" | "CONFIRMED" | "ARRIVED" | "IN_PROGRESS" | "COMPLETED" | "NO_SHOW" | "CANCELLED";
 
@@ -166,7 +159,6 @@ export interface AppointmentInput {
   version?: number;
 }
 
-// ------------------------------------------------------------------ Prontuário
 export interface Question {
   id: string;
   section: string;
@@ -282,6 +274,10 @@ export interface ClinicalDocument {
   title: string;
   content: string;
   issuedAt: IsoInstant;
+  sharedWithPatient: boolean;
+  updatedAt: IsoInstant | null;
+  voidedAt: IsoInstant | null;
+  voidReason: string | null;
 }
 
 export interface IssuedDocument {
@@ -364,6 +360,7 @@ export interface Attachment {
   filename: string;
   contentType: string;
   sizeBytes: number;
+  sharedWithPatient: boolean;
   uploadedByName: string | null;
   createdAt: IsoInstant;
 }
@@ -414,7 +411,6 @@ export interface Consent {
   createdAt: IsoInstant;
 }
 
-// ------------------------------------------------------------------ Tratamentos
 export type PlanStatus = "DRAFT" | "PROPOSED" | "APPROVED" | "REJECTED" | "COMPLETED" | "CANCELLED";
 
 export interface PlanItem {
@@ -491,7 +487,6 @@ export interface PlanInput {
   version?: number;
 }
 
-// ------------------------------------------------------------------ Financeiro
 export type PaymentMethod = "CASH" | "PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "BANK_TRANSFER" | "BOLETO" | "OTHER";
 
 export interface ReceivableSummary {
@@ -607,7 +602,6 @@ export interface CashFlow {
   byMethod: { method: PaymentMethod; amount: number }[];
 }
 
-// ------------------------------------------------------------------ Estoque
 export interface Product {
   id: Uuid;
   name: string;
@@ -640,7 +634,6 @@ export interface InventoryAlerts {
   expiring: { productId: Uuid; productName: string; lotNumber: string | null; expiryDate: IsoDate }[];
 }
 
-// ------------------------------------------------------------------ Comunicação
 export interface MessageTemplate {
   type: string;
   subject: string;
@@ -662,7 +655,6 @@ export interface OutboundMessage {
   sentAt: IsoInstant | null;
 }
 
-// ------------------------------------------------------------------ Dashboard e relatórios
 export interface Dashboard {
   appointmentsToday: number | null;
   confirmedToday: number | null;
@@ -728,7 +720,6 @@ export interface PatientsReport {
   birthdaysThisMonth: { id: Uuid; fullName: string; birthDate: IsoDate; mobile: string | null }[];
 }
 
-// ------------------------------------------------------------------ Equipe, auditoria e plataforma
 export interface Member {
   membershipId: Uuid;
   userId: Uuid;
@@ -791,12 +782,10 @@ export interface Subscription {
   patients: number;
   notes: string | null;
   updatedAt: IsoInstant;
-  /** Link de pagamento (PIX, boleto ou cobrança) aberto pelo botão "Pagar agora". */
   paymentUrl: string | null;
   billing: SubscriptionBilling;
 }
 
-/** OK; DUE = vencida, ainda dentro da tolerância (aviso); BLOCKED = acesso suspenso até o pagamento. */
 export interface SubscriptionBilling {
   state: "OK" | "DUE" | "BLOCKED";
   dueDate: IsoDate | null;
@@ -850,7 +839,6 @@ export interface PlatformEvent {
   occurredAt: IsoInstant;
 }
 
-/** Linha da planilha de importação de pacientes (valores em texto, como vieram do arquivo). */
 export interface PatientImportRow {
   line: number;
   fullName?: string;
@@ -888,7 +876,6 @@ export interface PatientImportResult {
   issues: { line: number; name: string; kind: "ERROR" | "DUPLICATE"; message: string }[];
 }
 
-/** Bloqueio de agenda. professionalId nulo = clínica inteira. */
 export interface ScheduleBlock {
   id: Uuid;
   professionalId: Uuid | null;
@@ -896,11 +883,9 @@ export interface ScheduleBlock {
   startsAt: IsoInstant;
   endsAt: IsoInstant;
   reason: string;
-  /** Atendimentos já marcados dentro do bloqueio (para remarcar). */
   appointmentsInside: number;
 }
 
-/** Dados para o recibo de um pagamento (montados a partir da conta a receber). */
 export interface ReceiptData {
   id: Uuid;
   amount: number;
@@ -909,15 +894,12 @@ export interface ReceiptData {
   paidAt: IsoInstant;
   notes: string | null;
   createdByName: string | null;
-  /** Descrição da conta (ex.: orçamento aprovado). */
   description: string;
-  /** "2/3" quando parcelado. */
   installment: string | null;
 }
 
 export type WaitlistStatus = "WAITING" | "SCHEDULED" | "REMOVED";
 
-/** Paciente na lista de espera (encaixe). */
 export interface WaitlistEntry {
   id: Uuid;
   patientId: Uuid;
@@ -935,6 +917,14 @@ export interface WaitlistEntry {
   appointmentId: Uuid | null;
   createdAt: IsoInstant;
   resolvedAt: IsoInstant | null;
+}
+
+export interface PortalAccountStatus {
+  status: "NONE" | "INVITED" | "ACTIVE" | "BLOCKED";
+  email: string | null;
+  invitedAt: IsoInstant | null;
+  activatedAt: IsoInstant | null;
+  lastLoginAt: IsoInstant | null;
 }
 
 export interface WaitlistInput {

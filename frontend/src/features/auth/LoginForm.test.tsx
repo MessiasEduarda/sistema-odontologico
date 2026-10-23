@@ -52,7 +52,6 @@ describe("LoginForm", () => {
 
     await fillAndSubmit("nao-e-email", "");
 
-    // Uma única mensagem, embaixo da senha (sem mensagens soltas em cada campo).
     expect(await screen.findByRole("alert")).toHaveTextContent("Informe o e-mail e a senha.");
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(fetchMock).not.toHaveBeenCalled();

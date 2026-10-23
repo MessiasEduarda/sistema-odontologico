@@ -10,7 +10,6 @@ const PERMANENT_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36,
 const DECIDUOUS_UPPER = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65];
 const DECIDUOUS_LOWER = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
 
-/** Condições que afetam o dente inteiro (não uma face). */
 const WHOLE_TOOTH = new Set(["MISSING", "EXTRACTION", "IMPLANT", "CROWN", "ROOT_CANAL", "PROSTHESIS", "MOBILITY"]);
 
 interface OdontogramProps {
@@ -22,11 +21,6 @@ interface OdontogramProps {
 
 type ToothState = { surfaces: Record<string, ChartEntry>; whole: ChartEntry | null; count: number };
 
-/**
- * Odontograma em notação FDI. Cada dente é um botão (acessível por teclado) com 5 faces: V (vestibular, em cima),
- * L/P (lingual/palatina, embaixo), M e D (laterais, conforme o quadrante) e O/I (oclusal/incisal, centro).
- * Marcações planejadas aparecem com contorno; existentes/realizadas, preenchidas.
- */
 export function Odontogram({ entries, dentition, onSelectTooth, selectedTooth }: OdontogramProps) {
   const state = useMemo(() => {
     const map = new Map<number, ToothState>();
@@ -98,7 +92,6 @@ function describe(tooth: number, s: ToothState | undefined) {
   return `Dente ${tooth}: ${parts.join(", ")}`;
 }
 
-/** Desenho do dente: 5 regiões. Mesial fica voltada para a linha média. */
 function ToothSvg({ tooth, state }: { tooth: number; state: ToothState | undefined }) {
   const quadrant = Math.floor(tooth / 10);
   const mesialOnRight = [1, 4, 5, 8].includes(quadrant);

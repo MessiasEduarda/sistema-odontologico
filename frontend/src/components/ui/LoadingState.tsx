@@ -2,7 +2,6 @@
 
 import styled from "styled-components";
 
-/** Estado de carregamento padrão de página/seção (anunciado a leitores de tela). */
 export function LoadingState({ label = "Carregando…" }: { label?: string }) {
   return (
     <Box role="status" aria-live="polite">

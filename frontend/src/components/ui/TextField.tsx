@@ -9,7 +9,6 @@ export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: ReactNode;
 }
 
-/** Campo com rótulo, dica e mensagem de erro associados por ARIA (leitores de tela anunciam o erro). */
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
   { label, error, hint, id, ...rest },
   ref,
@@ -21,7 +20,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
 
   return (
     <Field>
-      <Label htmlFor={inputId}>{label}</Label>
+      <Label htmlFor={inputId}>
+        {label}
+        {rest.required && <Required aria-hidden="true"> *</Required>}
+      </Label>
       <Input
         ref={ref}
         id={inputId}
@@ -51,6 +53,10 @@ const Label = styled.label`
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   font-size: ${({ theme }) => theme.fontSizes.md};
   color: ${({ theme }) => theme.colors.text};
+`;
+
+const Required = styled.span`
+  color: ${({ theme }) => theme.colors.danger};
 `;
 
 const Input = styled.input<{ $invalid: boolean }>`
@@ -87,6 +93,7 @@ const Hint = styled.p`
 `;
 
 const ErrorText = styled.p`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
   color: ${({ theme }) => theme.colors.danger};
 `;

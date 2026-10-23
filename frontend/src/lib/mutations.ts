@@ -6,12 +6,6 @@ import { useToast } from "@/components/ui/Toast";
 import { useMe } from "@/features/auth/hooks";
 import { ApiError } from "@/lib/api/client";
 
-/**
- * Mutação padrão: avisa sucesso/erro e invalida as consultas afetadas.
- * - Sucesso: sempre a janela "Sucesso!" (padrão único do sistema).
- * - Erro: janela "Erro!" quando o sistema recusa a ação (regra de negócio, conflito, permissão, conexão);
- *   erros de preenchimento continuam como notificação e aparecem nos campos (`mutation.error`).
- */
 export function useAction<TVars, TResult>(
   fn: (vars: TVars) => Promise<TResult>,
   options: {
@@ -39,12 +33,10 @@ export function useAction<TVars, TResult>(
   });
 }
 
-/** Recusa do sistema (não é erro de preenchimento nem sessão expirada): merece a janela "Erro!". */
 function isRefusal(error: Error): boolean {
   return error instanceof ApiError && error.status !== 401 && error.fieldErrors.length === 0;
 }
 
-/** Verifica permissão na clínica ativa (só para exibir/ocultar; a API autoriza de verdade). */
 export function useCan() {
   const { data: me } = useMe();
   return (...permissions: string[]) => permissions.some((p) => me?.permissions.includes(p));

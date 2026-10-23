@@ -4,8 +4,6 @@ import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { Providers } from "./providers";
 
-// Fontes gratuitas (SIL Open Font License), servidas pelo próprio app via next/font.
-// Títulos: Comfortaa (geométrica arredondada). Textos: Metropolis (arquivos em src/fonts/metropolis).
 const display = Comfortaa({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
 const body = localFont({
   src: [
@@ -15,8 +13,6 @@ const body = localFont({
   ],
   variable: "--font-body",
   display: "swap",
-  // A Metropolis reserva mais espaço abaixo da linha de base (205) que acima das maiúsculas (108), o que deixa o
-  // texto "alto" em botões, campos e etiquetas. Redistribuir a altura (mesmo total de 1em) centraliza as maiúsculas.
   declarations: [
     { prop: "ascent-override", value: "84.35%" },
     { prop: "descent-override", value: "15.65%" },

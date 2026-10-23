@@ -6,12 +6,10 @@ import styled from "styled-components";
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon: LucideIcon;
-  /** Obrigatório: nome acessível e dica (title) do botão. */
   label: string;
   tone?: "default" | "danger" | "inverse";
 }
 
-/** Botão só com ícone (ações de tabela, fechar modal). Área de toque de 40px e rótulo acessível obrigatório. */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { icon: Icon, label, tone = "default", type = "button", ...rest },
   ref,

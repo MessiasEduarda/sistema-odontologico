@@ -18,7 +18,6 @@ import {
 import styled, { css } from "styled-components";
 import { ListEmpty, ListOption, ListPanel, popoverMode, useAnchoredList, useClickOutside } from "./listbox";
 
-/** Estilo base compartilhado por campo de texto, seleção e área de texto. */
 export const controlStyles = css<{ $invalid?: boolean }>`
   width: 100%;
   min-height: 44px;
@@ -58,7 +57,6 @@ interface WrapperProps {
   children: ReactNode;
 }
 
-/** Rótulo + dica + erro ligados ao controle por ARIA. */
 export function FieldWrapper({ id, label, error, hint, required, children }: WrapperProps) {
   return (
     <Field>
@@ -90,10 +88,8 @@ export interface SelectOption {
 export interface SelectFieldProps {
   label: string;
   value: string;
-  /** Mesmo formato do evento nativo (`e.target.value`), para trocar o `<select>` sem mudar quem usa. */
   onChange?: (event: { target: { value: string; name?: string } }) => void;
   options: readonly SelectOption[];
-  /** Opção vazia exibida no topo (ex.: "Todas", "Selecione…"). Escolhê-la limpa o valor. */
   placeholder?: string;
   error?: string;
   hint?: ReactNode;
@@ -105,10 +101,6 @@ export interface SelectFieldProps {
   "aria-label"?: string;
 }
 
-/**
- * Seleção com lista personalizada (mesmo visual do sistema em qualquer navegador). Segue o padrão ARIA de combobox
- * "somente seleção": setas, Home/End, Enter/Espaço, Esc, Tab e busca por letra inicial funcionam pelo teclado.
- */
 export function SelectField({
   label,
   value,
@@ -145,7 +137,6 @@ export function SelectField({
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(open, [triggerRef, listRef], close);
 
-  // Mantém a opção ativa visível ao navegar pelo teclado.
   useEffect(() => {
     if (!open) return;
     listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView?.({ block: "nearest" });
@@ -208,7 +199,7 @@ export function SelectField({
       case "Escape":
         if (open) {
           e.preventDefault();
-          e.stopPropagation(); // não fecha o modal junto
+          e.stopPropagation();
           setOpen(false);
         }
         return;
@@ -310,41 +301,56 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 
 export interface CheckboxFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   label: ReactNode;
+  error?: string;
 }
 
-/** Caixa de marcar no visual do sistema: o input nativo fica invisível (mas acessível) e a caixa é desenhada. */
 export const CheckboxField = forwardRef<HTMLInputElement, CheckboxFieldProps>(function CheckboxField(
-  { label, id, ...rest },
+  { label, id, error, ...rest },
   ref,
 ) {
   const generated = useId();
   const boxId = id ?? generated;
-  return (
+  const box = (
     <CheckLabel htmlFor={boxId}>
-      <NativeCheck ref={ref} id={boxId} type="checkbox" {...rest} />
+      <NativeCheck
+        ref={ref}
+        id={boxId}
+        type="checkbox"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${boxId}-error` : undefined}
+        {...rest}
+      />
       <CheckBox aria-hidden="true">
         <Check size={14} strokeWidth={3} />
       </CheckBox>
       <span>{label}</span>
     </CheckLabel>
   );
+  if (!error) return box;
+  return (
+    <CheckWithError>
+      {box}
+      <ErrorText id={`${boxId}-error`} role="alert">
+        {error}
+      </ErrorText>
+    </CheckWithError>
+  );
 });
+
+export function FieldError({ children }: { children: ReactNode }) {
+  return <ErrorText role="alert">{children}</ErrorText>;
+}
 
 export interface FileFieldProps {
   label: string;
   accept?: string;
   hint?: ReactNode;
   error?: string;
-  /** Nome do arquivo escolhido (ou null). */
   fileName: string | null;
   onChange: (file: File | null) => void;
   buttonLabel?: string;
 }
 
-/**
- * Escolha de arquivo no visual do sistema: botão em pílula + nome do arquivo, no lugar do controle nativo
- * ("Choose File"), que muda de navegador para navegador e não segue o idioma da tela.
- */
 export const FileField = forwardRef<HTMLInputElement, FileFieldProps>(function FileField(
   { label, accept, hint, error, fileName, onChange, buttonLabel = "Escolher arquivo" },
   ref,
@@ -385,7 +391,6 @@ export interface ColorFieldProps {
   onChange: (value: string) => void;
 }
 
-/** Escolha de cor no visual do sistema: amostra redonda + código da cor; o seletor do navegador abre ao clicar. */
 export function ColorField({ label, value, onChange }: ColorFieldProps) {
   const id = useId();
   return (
@@ -421,7 +426,8 @@ const Hint = styled.p`
 `;
 
 const ErrorText = styled.p`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
   color: ${({ theme }) => theme.colors.danger};
 `;
 
@@ -471,6 +477,11 @@ const TextArea = styled.textarea<{ $invalid?: boolean }>`
   line-height: 1.5;
 `;
 
+const CheckWithError = styled.div`
+  display: grid;
+  gap: ${({ theme }) => theme.space[1]};
+`;
+
 const CheckLabel = styled.label`
   position: relative;
   display: inline-flex;
@@ -479,9 +490,13 @@ const CheckLabel = styled.label`
   cursor: pointer;
   font-size: ${({ theme }) => theme.fontSizes.md};
   line-height: 1.4;
+
+  &:has(input:disabled) {
+    cursor: not-allowed;
+    color: ${({ theme }) => theme.colors.textMuted};
+  }
 `;
 
-/** Input nativo: invisível, mas continua recebendo foco, teclado (Espaço) e leitor de tela. */
 const NativeCheck = styled.input`
   position: absolute;
   opacity: 0;
@@ -505,7 +520,7 @@ const CheckBox = styled.span`
     background ${({ theme }) => theme.transitions.fast},
     border-color ${({ theme }) => theme.transitions.fast};
 
-  ${CheckLabel}:hover & {
+  ${CheckLabel}:hover ${NativeCheck}:not(:disabled) + & {
     border-color: ${({ theme }) => theme.colors.primary};
   }
   ${NativeCheck}:checked + & {
@@ -602,7 +617,6 @@ const Swatch = styled.span`
   flex-shrink: 0;
 `;
 
-/** Grade de formulário responsiva (1 coluna no celular, N a partir do tablet). */
 export const FormGrid = styled.div<{ $columns?: number }>`
   display: grid;
   gap: ${({ theme }) => theme.space[4]};
@@ -613,7 +627,6 @@ export const FormGrid = styled.div<{ $columns?: number }>`
   }
 `;
 
-/** Ocupa a linha inteira dentro de FormGrid. */
 export const FullRow = styled.div`
   grid-column: 1 / -1;
 `;

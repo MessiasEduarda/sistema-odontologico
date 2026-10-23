@@ -11,12 +11,12 @@ import { api } from "@/lib/api/endpoints";
 import type { ScheduleBlock } from "@/lib/api/types";
 import { formatDateTime, toDateInput } from "@/lib/format";
 import { useAction } from "@/lib/mutations";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 const REASONS = ["Folga", "Férias", "Feriado", "Almoço", "Curso ou evento", "Manutenção", "Outro"] as const;
 
 export const BLOCKS_KEY = ["schedule-blocks"] as const;
 
-/** Bloqueios que cruzam o período exibido na agenda. */
 export function useScheduleBlocks(from: Date, to: Date) {
   return useQuery({
     queryKey: [...BLOCKS_KEY, from.toISOString(), to.toISOString()],
@@ -30,7 +30,6 @@ function combine(date: string, time: string): Date {
   return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, h ?? 0, min ?? 0);
 }
 
-/** Formulário de bloqueio: profissional (ou clínica toda), período, dia inteiro ou horário, e motivo. */
 export function BlockForm({ initialDate, onClose }: { initialDate: Date; onClose: () => void }) {
   const professionals = useQuery({ queryKey: ["professionals", true], queryFn: () => api.clinic.professionals(true) });
   const [v, setV] = useState({
@@ -50,7 +49,13 @@ export function BlockForm({ initialDate, onClose }: { initialDate: Date; onClose
     ? new Date(combine(v.toDate, "00:00").getTime() + 24 * 60 * 60 * 1000)
     : combine(v.toDate, v.toTime);
   const reason = v.reason === "Outro" ? v.other.trim() : v.reason;
-  const invalid = !v.fromDate || !v.toDate || endsAt <= startsAt || !reason;
+  const period = endsAt <= startsAt && "O fim precisa ser depois do início.";
+  const form = useRequiredFields({
+    fromDate: !v.fromDate && "Informe a data inicial.",
+    toDate: (!v.toDate && "Informe a data final.") || (v.allDay && period),
+    toTime: !v.allDay && period,
+    other: !reason && "Descreva o motivo do bloqueio.",
+  });
 
   const save = useAction(
     () =>
@@ -80,7 +85,7 @@ export function BlockForm({ initialDate, onClose }: { initialDate: Date; onClose
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={invalid}>
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Bloquear
           </Button>
         </>
@@ -101,15 +106,35 @@ export function BlockForm({ initialDate, onClose }: { initialDate: Date; onClose
               options={(professionals.data ?? []).map((p) => ({ value: p.id, label: p.name }))}
             />
           </FullRow>
-          <TextField label="De" type="date" value={v.fromDate} onChange={(e) => set("fromDate", e.target.value)} />
-          <TextField label="Até" type="date" value={v.toDate} onChange={(e) => set("toDate", e.target.value)} />
+          <TextField
+            label="De"
+            type="date"
+            required
+            error={form.errors.fromDate}
+            value={v.fromDate}
+            onChange={(e) => set("fromDate", e.target.value)}
+          />
+          <TextField
+            label="Até"
+            type="date"
+            required
+            error={form.errors.toDate}
+            value={v.toDate}
+            onChange={(e) => set("toDate", e.target.value)}
+          />
           <FullRow>
             <CheckboxField label="Dia inteiro" checked={v.allDay} onChange={(e) => set("allDay", e.target.checked)} />
           </FullRow>
           {!v.allDay && (
             <>
               <TextField label="Das" type="time" value={v.fromTime} onChange={(e) => set("fromTime", e.target.value)} />
-              <TextField label="Às" type="time" value={v.toTime} onChange={(e) => set("toTime", e.target.value)} />
+              <TextField
+                label="Às"
+                type="time"
+                error={form.errors.toTime}
+                value={v.toTime}
+                onChange={(e) => set("toTime", e.target.value)}
+              />
             </>
           )}
           <SelectField
@@ -121,19 +146,19 @@ export function BlockForm({ initialDate, onClose }: { initialDate: Date; onClose
           {v.reason === "Outro" && (
             <TextField
               label="Descreva"
+              required
+              error={form.errors.other}
               maxLength={160}
               value={v.other}
               onChange={(e) => set("other", e.target.value)}
             />
           )}
         </FormGrid>
-        {endsAt <= startsAt && <Muted>O fim precisa ser depois do início.</Muted>}
       </Stack>
     </Modal>
   );
 }
 
-/** Confirmação para remover um bloqueio (ao clicar nele na agenda). */
 export function RemoveBlock({ block, onClose }: { block: ScheduleBlock; onClose: () => void }) {
   const remove = useAction(() => api.scheduleBlocks.remove(block.id), {
     success: "Bloqueio removido com sucesso!",

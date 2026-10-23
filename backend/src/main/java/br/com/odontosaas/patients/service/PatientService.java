@@ -8,6 +8,8 @@ import br.com.odontosaas.patients.dto.response.ImportIssue;
 import br.com.odontosaas.patients.dto.response.ImportResult;
 import br.com.odontosaas.patients.dto.response.PatientSummary;
 import br.com.odontosaas.patients.dto.response.PatientView;
+import br.com.odontosaas.patients.event.PatientEmailChanged;
+import br.com.odontosaas.patients.event.PatientRegistered;
 import br.com.odontosaas.patients.repository.PatientRepository;
 import br.com.odontosaas.patients.support.Cpf;
 import br.com.odontosaas.shared.ApiException;
@@ -29,6 +31,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,12 +44,19 @@ public class PatientService {
     private final AuditService audit;
     private final Validator validator;
     private final PlanLimits planLimits;
+    private final ApplicationEventPublisher events;
 
-    public PatientService(PatientRepository patients, AuditService audit, Validator validator, PlanLimits planLimits) {
+    public PatientService(
+            PatientRepository patients,
+            AuditService audit,
+            Validator validator,
+            PlanLimits planLimits,
+            ApplicationEventPublisher events) {
         this.patients = patients;
         this.audit = audit;
         this.validator = validator;
         this.planLimits = planLimits;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -75,6 +85,7 @@ public class PatientService {
         planLimits.requirePatientSlot(tenantId);
         UUID id = insert(tenantId, r, n);
         audit.record(AuditAction.RECORD_CREATED, "patient", id, Map.of());
+        events.publishEvent(new PatientRegistered(tenantId, id));
         return get(id);
     }
 
@@ -150,6 +161,8 @@ public class PatientService {
         UUID tenantId = TenantContext.requireTenantId();
         Normalized n = normalize(r);
         rejectDuplicateCpf(tenantId, n.cpf(), id);
+        String previousEmail =
+                patients.find(tenantId, id).map(PatientView::email).orElse(null);
         List<Object> params = new ArrayList<>(values(id, tenantId, r, n).subList(2, 29));
         params.add(tenantId);
         params.add(id);
@@ -158,7 +171,15 @@ public class PatientService {
         int updated = patients.update(params);
         Versioned.check(updated, patients.exists(tenantId, id), "Paciente");
         audit.record(AuditAction.RECORD_UPDATED, "patient", id, Map.of());
-        return get(id);
+        PatientView saved = get(id);
+        if (!sameEmail(previousEmail, saved.email())) {
+            events.publishEvent(new PatientEmailChanged(tenantId, id));
+        }
+        return saved;
+    }
+
+    private static boolean sameEmail(String a, String b) {
+        return a == null ? b == null : b != null && a.strip().equalsIgnoreCase(b.strip());
     }
 
     @Transactional
@@ -251,6 +272,7 @@ public class PatientService {
             case "birthDate" -> "Data de nascimento";
             case "cpf" -> "CPF";
             case "email" -> "E-mail";
+            case "mobile" -> "Celular";
             case "state" -> "UF";
             case "guardianName" -> "Responsável";
             case "guardianCpf" -> "CPF do responsável";

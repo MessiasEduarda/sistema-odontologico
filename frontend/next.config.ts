@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
 
-// Endereço da API usado pelo servidor do Next.js (nunca exposto ao navegador).
-// O navegador sempre chama /api/* na mesma origem; o Next repassa para o back-end,
-// o que permite cookies httpOnly SameSite sem CORS.
-// Atenção: rewrites são resolvidos no build — em Docker, passe API_INTERNAL_URL como build arg.
 const apiInternalUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080";
 
 const securityHeaders = [

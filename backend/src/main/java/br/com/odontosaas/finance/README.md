@@ -19,6 +19,8 @@ Recebíveis, parcelas, pagamentos, estornos, contas a pagar, fornecedores e flux
 ## API para outros módulos
 
 - Classes do pacote raiz (`finance`)
+- `finance.dto.response` (interface `dto`)
+- `finance.service` (interface `service`)
 
 ## Eventos consumidos
 

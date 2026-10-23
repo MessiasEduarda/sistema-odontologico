@@ -8,6 +8,7 @@ import { PdfButton } from "@/components/domain/PdfButton";
 import { PatientSelect } from "@/components/domain/PatientSelect";
 import { PrintSheet, SignatureLine } from "@/components/domain/PrintSheet";
 import { Alert } from "@/components/ui/Alert";
+import { BlankTextField } from "@/components/ui/BlankTextField";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge, Card, PageHeader, Row, Stack } from "@/components/ui/display";
@@ -24,14 +25,11 @@ import { CARE_CATEGORIES, CARE_MOMENTS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
 import { printSheet } from "@/lib/print";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 const CATEGORY_OPTIONS = Object.entries(CARE_CATEGORIES).map(([value, label]) => ({ value, label }));
 const MOMENT_OPTIONS = Object.entries(CARE_MOMENTS).map(([value, label]) => ({ value, label }));
 
-/**
- * Orientações e cuidados ao paciente (antes e depois dos procedimentos). A clínica escreve os próprios modelos; ao
- * entregar, o texto vira documento do prontuário, pode ser impresso e enviado por e-mail.
- */
 export function CarePage() {
   const can = useCan();
   const [tab, setTab] = useState<string | null>(null);
@@ -60,9 +58,16 @@ function DeliverTab() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [sendEmail, setSendEmail] = useState(true);
+  const [sharedWithPatient, setSharedWithPatient] = useState(false);
   const [issued, setIssued] = useState<{ doc: ClinicalDocument; patient: string; patientId: string } | null>(null);
+  const form = useRequiredFields({
+    patient: !patient && "Selecione o paciente.",
+    professionalId: !professionalId && "Selecione o profissional responsável.",
+    title: !title.trim() && "Informe o título.",
+    content: !content.trim() && "Escreva as orientações.",
+  });
   const issue = useAction(
-    () => api.clinical.issueCare(patient?.id ?? "", { professionalId, title, content, sendEmail }),
+    () => api.clinical.issueCare(patient?.id ?? "", { professionalId, title, content, sendEmail, sharedWithPatient }),
     {
       success: sendEmail
         ? "Orientação registrada e enviada com sucesso! (o e-mail só sai se o paciente permitir)"
@@ -70,6 +75,7 @@ function DeliverTab() {
       invalidate: [["documents"], ["issued-care"]],
       onSuccess: (doc) => {
         setIssued({ doc, patient: patient?.name ?? "", patientId: patient?.id ?? "" });
+        form.reset();
         setPatient(null);
         setTemplateId("");
         setTitle("");
@@ -96,10 +102,11 @@ function DeliverTab() {
       )}
       <Card>
         <FormGrid $columns={2}>
-          <PatientSelect value={patient} onChange={setPatient} required />
+          <PatientSelect value={patient} onChange={setPatient} required error={form.errors.patient} />
           <SelectField
             label="Profissional responsável"
             required
+            error={form.errors.professionalId}
             placeholder="Selecione…"
             value={professionalId}
             onChange={(e) => setProfessionalId(e.target.value)}
@@ -122,18 +129,20 @@ function DeliverTab() {
               label="Título"
               required
               maxLength={160}
+              error={form.errors.title}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </FullRow>
           <FullRow>
-            <TextAreaField
+            <BlankTextField
               label="Orientações"
               required
               rows={12}
               maxLength={20000}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
+              error={form.errors.content}
               hint="Você pode ajustar o texto para este paciente antes de entregar."
             />
           </FullRow>
@@ -142,14 +151,15 @@ function DeliverTab() {
             checked={sendEmail}
             onChange={(e) => setSendEmail(e.target.checked)}
           />
+          <CheckboxField
+            label="Disponibilizar no portal do paciente"
+            checked={sharedWithPatient}
+            onChange={(e) => setSharedWithPatient(e.target.checked)}
+          />
         </FormGrid>
         {issue.error && <Alert tone="danger">{issue.error.message}</Alert>}
         <Row $justify="flex-end" style={{ marginTop: 16 }}>
-          <Button
-            onClick={() => issue.mutate(undefined)}
-            loading={issue.isPending}
-            disabled={!patient || !professionalId || !title.trim() || !content.trim()}
-          >
+          <Button onClick={() => form.check() && issue.mutate(undefined)} loading={issue.isPending}>
             Registrar e entregar
           </Button>
         </Row>
@@ -308,6 +318,10 @@ function TemplateForm({ template, onClose }: { template: CareTemplate | null; on
     body: template?.body ?? "",
     active: template?.active ?? true,
   });
+  const form = useRequiredFields({
+    title: !v.title.trim() && "Informe o título.",
+    body: !v.body.trim() && "Escreva o texto das orientações.",
+  });
   const save = useAction(
     () => (template ? api.clinic.updateCareTemplate(template.id, v) : api.clinic.createCareTemplate(v)),
     { success: "Modelo salvo com sucesso!", invalidate: [["care-templates"]], onSuccess: onClose },
@@ -323,11 +337,7 @@ function TemplateForm({ template, onClose }: { template: CareTemplate | null; on
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={!v.title.trim() || !v.body.trim()}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -339,6 +349,7 @@ function TemplateForm({ template, onClose }: { template: CareTemplate | null; on
             label="Título"
             required
             maxLength={160}
+            error={form.errors.title}
             value={v.title}
             onChange={(e) => setV({ ...v, title: e.target.value })}
           />
@@ -359,6 +370,7 @@ function TemplateForm({ template, onClose }: { template: CareTemplate | null; on
           <TextAreaField
             label="Texto das orientações"
             required
+            error={form.errors.body}
             rows={14}
             maxLength={20000}
             value={v.body}

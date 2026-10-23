@@ -31,7 +31,7 @@ class PatientFlowTest extends PostgresIntegrationTest {
     private static String patientJson(String name, String cpf, String birth) {
         return ("{\"fullName\":\"%s\",\"cpf\":%s,\"birthDate\":\"%s\",\"mobile\":\"(11) 98888-7777\","
                         + "\"email\":\"p%s@teste.example\",\"allowEmail\":true}")
-                .formatted(name, cpf == null ? "null" : "\"" + cpf + "\"", birth, TestData.unique());
+                .formatted(name, "\"" + (cpf == null ? TestData.cpf() : cpf) + "\"", birth, TestData.unique());
     }
 
     @Test

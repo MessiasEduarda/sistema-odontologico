@@ -1,8 +1,3 @@
-/**
- * Tokens do design system. Base visual extraída das referências (docs/design/referencias):
- * sidebar escura, primária caramelo, superfícies brancas arredondadas, campos e botões em pílula.
- * Contrastes de texto ajustados para WCAG AA. Refinamento completo na Fase 3.
- */
 export const colors = {
   sidebar: "#141414",
   sidebarHover: "#232323",
@@ -14,7 +9,6 @@ export const colors = {
   primaryHover: "#87684C",
   primaryActive: "#735740",
   primarySoft: "#F4EDE6",
-  /** Texto sobre fundo claro na cor da marca (contraste ≥ 4,5:1). */
   primaryText: "#7A5C41",
   onPrimary: "#FFFFFF",
   tableHeaderStart: "#A88B6E",
@@ -44,7 +38,6 @@ export const colors = {
   overlay: "rgba(20, 20, 20, 0.45)",
 } as const;
 
-/** Títulos: Comfortaa. Textos: Metropolis. Ambas gratuitas (SIL Open Font License). */
 export const fonts = {
   display: "var(--font-display), 'Comfortaa', system-ui, sans-serif",
   body: "var(--font-body), 'Metropolis', system-ui, -apple-system, 'Segoe UI', sans-serif",
@@ -64,7 +57,6 @@ export const fontSizes = {
 
 export const fontWeights = { regular: 400, medium: 500, semibold: 600, bold: 700 } as const;
 
-/** Escala de 4px. */
 export const space = {
   0: "0",
   1: "0.25rem",

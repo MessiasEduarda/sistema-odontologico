@@ -21,7 +21,6 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-/** Uma única mensagem para o formulário inteiro, mostrada embaixo da senha (perto do botão). */
 function validationMessage(errors: FieldErrors<Values>): string {
   if (errors.email && errors.password) return "Informe o e-mail e a senha.";
   if (errors.email) return "Informe um e-mail válido.";
@@ -92,9 +91,7 @@ export function LoginForm() {
   );
 }
 
-/** Erro em texto simples (sem fundo nem borda), sobre o caramelo do cartão. */
-const ErrorMessage = styled.p`
-  /* Mais perto do botão que da senha: +8px acima e -10px abaixo do espaçamento padrão (16px). */
+export const ErrorMessage = styled.p`
   margin: ${({ theme }) => theme.space[2]} 0 -10px;
   color: #ffd9d2;
   font-size: ${({ theme }) => theme.fontSizes.md};

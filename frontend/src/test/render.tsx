@@ -6,7 +6,6 @@ import { FeedbackProvider } from "@/components/ui/Feedback";
 import { ToastProvider } from "@/components/ui/Toast";
 import { theme } from "@/styles/theme";
 
-/** Renderiza com os mesmos providers da aplicação (tema + React Query sem retentativas). */
 export function renderWithProviders(ui: ReactElement, options?: RenderOptions) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const Wrapper = ({ children }: { children: ReactNode }) => (

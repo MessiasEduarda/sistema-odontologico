@@ -84,7 +84,8 @@ public class CareService {
     @Transactional
     public DocumentView issue(UUID patientId, CareIssueRequest r) {
         DocumentView doc = clinical.addDocument(
-                patientId, new DocumentRequest(r.professionalId(), "INSTRUCTIONS", r.title(), r.content()));
+                patientId,
+                new DocumentRequest(r.professionalId(), "INSTRUCTIONS", r.title(), r.content(), r.sharedWithPatient()));
         if (r.sendEmail()) {
             events.publishEvent(
                     new CareInstructionsSent(TenantContext.requireTenantId(), patientId, doc.title(), doc.content()));

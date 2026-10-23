@@ -15,6 +15,7 @@ import type { ConsentCategory, ConsentTemplate } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { CONSENT_CATEGORIES } from "@/lib/labels";
 import { useAction } from "@/lib/mutations";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 export const CATEGORY_OPTIONS = Object.entries(CONSENT_CATEGORIES).map(([value, c]) => ({ value, label: c.label }));
 
@@ -24,7 +25,6 @@ Declaro que as informações de saúde que prestei são verdadeiras e autorizo a
 
 Data: {{data}}`;
 
-/** Modelos de termo por categoria. Editar cria nova versão; termos já emitidos mantêm o texto assinado. */
 export function ConsentTemplatesManager() {
   const [editing, setEditing] = useState<ConsentTemplate | "new" | null>(null);
   const [archiving, setArchiving] = useState<ConsentTemplate | null>(null);
@@ -139,6 +139,10 @@ function TemplateForm({ template, onClose }: { template: ConsentTemplate | null;
   const [title, setTitle] = useState(template?.title ?? "");
   const [category, setCategory] = useState<ConsentCategory>(template?.category ?? "DENTAL");
   const [body, setBody] = useState(template?.body ?? STARTER);
+  const form = useRequiredFields({
+    title: !title.trim() && "Informe o título.",
+    body: !body.trim() && "Escreva o texto do termo.",
+  });
   const save = useAction(
     () =>
       template
@@ -161,11 +165,7 @@ function TemplateForm({ template, onClose }: { template: ConsentTemplate | null;
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={!title.trim() || !body.trim()}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -173,7 +173,14 @@ function TemplateForm({ template, onClose }: { template: ConsentTemplate | null;
     >
       <Stack $gap={4}>
         <FormGrid $columns={2}>
-          <TextField label="Título" required maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} />
+          <TextField
+            label="Título"
+            required
+            maxLength={160}
+            error={form.errors.title}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
           <SelectField
             label="Categoria"
             value={category}
@@ -184,6 +191,7 @@ function TemplateForm({ template, onClose }: { template: ConsentTemplate | null;
         <TextAreaField
           label="Texto"
           required
+          error={form.errors.body}
           rows={16}
           maxLength={30000}
           value={body}

@@ -65,7 +65,6 @@ export function AppointmentDetail({ appointmentId, onClose, onEdit }: Props) {
   });
   const clinic = useQuery({ queryKey: ["clinic-settings"], queryFn: api.clinic.settings, staleTime: 60_000 });
 
-  /** Lembrete com data, hora, profissional e o link para o paciente confirmar ou cancelar. */
   const reminder = async () => {
     if (!a) return "";
     const { path } = await api.appointments.patientLink(a.id);

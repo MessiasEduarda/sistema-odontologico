@@ -20,6 +20,7 @@ import type { PlatformClinic, PlatformEvent, PlatformPlan } from "@/lib/api/type
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { FEATURE_LABELS, SUBSCRIPTION_STATUS } from "@/lib/labels";
 import { useAction } from "@/lib/mutations";
+import { EMAIL_PATTERN, useRequiredFields } from "@/lib/useRequiredFields";
 
 const CLINIC_STATUS: Record<string, { label: string; tone: "success" | "danger" | "neutral" }> = {
   ACTIVE: { label: "Ativa", tone: "success" },
@@ -27,7 +28,6 @@ const CLINIC_STATUS: Record<string, { label: string; tone: "success" | "danger" 
   CANCELLED: { label: "Cancelada", tone: "neutral" },
 };
 
-/** Administração do SaaS: só para administradores da plataforma; não acessa dados de pacientes. */
 export function PlatformPage() {
   const { data: me } = useMe();
   const [tab, setTab] = useState("clinicas");
@@ -196,14 +196,16 @@ function ClinicsTab() {
   );
 }
 
-/** Reenvia o convite do responsável (e-mail não chegou, foi para o spam ou estava errado). */
 function ResendOwnerInvite({ clinic, onClose }: { clinic: PlatformClinic; onClose: () => void }) {
   const [email, setEmail] = useState("");
   const resend = useAction(() => api.platform.resendOwnerInvite(clinic.id, email), {
     success: `Convite reenviado com sucesso! O link anterior deixou de valer.`,
     onSuccess: onClose,
   });
-  const valid = /^\S+@\S+\.\S+$/.test(email);
+  const form = useRequiredFields({
+    email:
+      (!email && "Informe o e-mail do responsável.") || (!EMAIL_PATTERN.test(email) && "Informe um e-mail válido."),
+  });
   return (
     <Modal
       open
@@ -215,7 +217,7 @@ function ResendOwnerInvite({ clinic, onClose }: { clinic: PlatformClinic; onClos
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => resend.mutate(undefined)} loading={resend.isPending} disabled={!valid}>
+          <Button onClick={() => form.check() && resend.mutate(undefined)} loading={resend.isPending}>
             Reenviar
           </Button>
         </>
@@ -225,6 +227,8 @@ function ResendOwnerInvite({ clinic, onClose }: { clinic: PlatformClinic; onClos
         <TextField
           label="E-mail do responsável"
           type="email"
+          required
+          error={form.errors.email}
           autoComplete="off"
           value={email}
           onChange={(e) => setEmail(e.target.value.trim())}
@@ -243,6 +247,13 @@ function NewClinic({ onClose }: { onClose: () => void }) {
     invalidate: [["platform-clinics"], ["platform-metrics"]],
     onSuccess: onClose,
   });
+  const form = useRequiredFields({
+    name: !v.name.trim() && "Informe o nome da clínica.",
+    slug: v.slug.length < 3 && "O identificador precisa ter pelo menos 3 caracteres.",
+    ownerEmail:
+      (!v.ownerEmail.trim() && "Informe o e-mail do responsável.") ||
+      (!EMAIL_PATTERN.test(v.ownerEmail.trim()) && "Informe um e-mail válido."),
+  });
   const slugify = (s: string) =>
     s
       .normalize("NFD")
@@ -260,11 +271,7 @@ function NewClinic({ onClose }: { onClose: () => void }) {
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => create.mutate(undefined)}
-            loading={create.isPending}
-            disabled={!v.name.trim() || v.slug.length < 3 || !/^\S+@\S+\.\S+$/.test(v.ownerEmail)}
-          >
+          <Button onClick={() => form.check() && create.mutate(undefined)} loading={create.isPending}>
             Criar clínica
           </Button>
         </>
@@ -274,6 +281,7 @@ function NewClinic({ onClose }: { onClose: () => void }) {
         <TextField
           label="Nome"
           required
+          error={form.errors.name}
           maxLength={160}
           value={v.name}
           onChange={(e) => setV({ ...v, name: e.target.value, slug: slugify(e.target.value) })}
@@ -281,6 +289,7 @@ function NewClinic({ onClose }: { onClose: () => void }) {
         <TextField
           label="Identificador"
           required
+          error={form.errors.slug}
           maxLength={60}
           value={v.slug}
           onChange={(e) => setV({ ...v, slug: slugify(e.target.value) })}
@@ -290,6 +299,7 @@ function NewClinic({ onClose }: { onClose: () => void }) {
           label="E-mail do responsável"
           type="email"
           required
+          error={form.errors.ownerEmail}
           value={v.ownerEmail}
           onChange={(e) => setV({ ...v, ownerEmail: e.target.value })}
         />
@@ -489,6 +499,10 @@ function PlanForm({ plan, onClose }: { plan: PlatformPlan | null; onClose: () =>
   const toggle = (f: string) =>
     setV((s) => ({ ...s, features: s.features.includes(f) ? s.features.filter((x) => x !== f) : [...s.features, f] }));
   const limit = (value: string) => (value === "" ? null : Math.max(1, Number(value)));
+  const form = useRequiredFields({
+    code: !/^[A-Z0-9_]{2,40}$/.test(v.code) && "Informe um código de 2 a 40 caracteres (letras, números e _).",
+    name: !v.name.trim() && "Informe o nome do plano.",
+  });
   return (
     <Modal
       open
@@ -500,11 +514,7 @@ function PlanForm({ plan, onClose }: { plan: PlatformPlan | null; onClose: () =>
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={!v.name.trim() || !/^[A-Z0-9_]{2,40}$/.test(v.code)}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -514,12 +524,14 @@ function PlanForm({ plan, onClose }: { plan: PlatformPlan | null; onClose: () =>
         <TextField
           label="Código"
           required
+          error={form.errors.code}
           value={v.code}
           onChange={(e) => setV({ ...v, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "") })}
         />
         <TextField
           label="Nome"
           required
+          error={form.errors.name}
           maxLength={80}
           value={v.name}
           onChange={(e) => setV({ ...v, name: e.target.value })}

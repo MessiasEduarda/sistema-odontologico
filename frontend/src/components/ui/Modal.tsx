@@ -13,17 +13,9 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
-  /**
-   * Se a pessoa começou a preencher algo e tenta fechar (X, Esc, clique fora ou botão com `data-modal-cancel`),
-   * pede confirmação antes de descartar. Padrão: ligado (só pergunta quando algo foi de fato alterado).
-   */
   confirmDiscard?: boolean;
 }
 
-/**
- * Janela modal sobre o elemento nativo <dialog>: o navegador cuida do foco preso, da tecla Esc e da camada acima da
- * página (sem sobreposição incorreta de elementos). Fecha também ao clicar fora.
- */
 export function Modal({ open, title, onClose, children, footer, size = "md", confirmDiscard = true }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -52,7 +44,6 @@ export function Modal({ open, title, onClose, children, footer, size = "md", con
     dirty.current = true;
   };
 
-  // Escolha em listas personalizadas (SelectField) e cliques em "Cancelar" com alterações pendentes.
   const onClickCapture = (event: SyntheticEvent) => {
     const target = event.target as HTMLElement;
     if (target.closest('[role="option"]')) markDirty();
@@ -95,9 +86,7 @@ export function Modal({ open, title, onClose, children, footer, size = "md", con
 
 interface ConfirmDialogProps {
   open: boolean;
-  /** Pergunta principal, ex.: "Tem certeza que deseja inativar este paciente?". */
   question: ReactNode;
-  /** Explicação do que acontece ao confirmar. */
   message?: ReactNode;
   confirmLabel?: string;
   tone?: "primary" | "danger";
@@ -106,7 +95,6 @@ interface ConfirmDialogProps {
   onClose: () => void;
 }
 
-/** Confirmação "Atenção!" no modelo de avisos do sistema (Voltar | Continuar). */
 export function ConfirmDialog({
   open,
   question,
@@ -192,7 +180,6 @@ const Foot = styled.div`
   padding: ${({ theme }) => `${theme.space[4]} ${theme.space[6]}`};
   border-top: 1px solid ${({ theme }) => theme.colors.border};
 
-  /* Celular: botões dividem a largura em vez de ficarem espremidos num canto. */
   @media (max-width: ${({ theme }) => theme.breakpoints.sm}px) {
     padding: ${({ theme }) => `${theme.space[3]} ${theme.space[4]}`};
     & > * {

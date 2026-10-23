@@ -6,8 +6,6 @@ import type { ReactNode } from "react";
 import styled, { type DefaultTheme } from "styled-components";
 import { Button } from "./Button";
 
-/* ---------------------------------------------------------------- Badge */
-
 export type BadgeTone = "neutral" | "primary" | "success" | "warning" | "danger" | "info";
 
 const badgePalette = (theme: DefaultTheme, tone: BadgeTone) =>
@@ -20,7 +18,6 @@ const badgePalette = (theme: DefaultTheme, tone: BadgeTone) =>
     info: { bg: theme.colors.infoSoft, fg: theme.colors.info },
   })[tone];
 
-/** Etiqueta em pílula. O texto sempre carrega o significado (não depende só da cor). */
 export const Badge = styled.span<{ $tone?: BadgeTone }>`
   display: inline-flex;
   align-items: center;
@@ -33,8 +30,6 @@ export const Badge = styled.span<{ $tone?: BadgeTone }>`
   background: ${({ theme, $tone = "neutral" }) => badgePalette(theme, $tone).bg};
   color: ${({ theme, $tone = "neutral" }) => badgePalette(theme, $tone).fg};
 `;
-
-/* ---------------------------------------------------------------- Card */
 
 export const Card = styled.section<{ $padding?: boolean }>`
   background: ${({ theme }) => theme.colors.surface};
@@ -54,8 +49,6 @@ export const CardTitle = styled.h2`
   gap: ${({ theme }) => theme.space[2]};
 `;
 
-/* ---------------------------------------------------------------- KPI */
-
 interface KpiCardProps {
   icon: LucideIcon;
   label: string;
@@ -64,7 +57,6 @@ interface KpiCardProps {
   tone?: "neutral" | "danger" | "success";
 }
 
-/** Indicador: ícone em quadrado arredondado + rótulo + número em destaque (padrão das referências). */
 export function KpiCard({ icon: Icon, label, value, hint, tone = "neutral" }: KpiCardProps) {
   return (
     <KpiBox>
@@ -123,8 +115,6 @@ export const KpiGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 `;
 
-/* ---------------------------------------------------------------- Page header */
-
 interface PageHeaderProps {
   title: string;
   description?: ReactNode;
@@ -174,10 +164,8 @@ const Actions = styled.div`
   gap: ${({ theme }) => theme.space[2]};
 `;
 
-/** Pilha vertical padrão do conteúdo de uma página. */
 export const Stack = styled.div<{ $gap?: keyof DefaultTheme["space"] }>`
   display: grid;
-  /* Coluna presa à largura disponível: conteúdo largo (abas, tabelas) rola dentro dele, sem empurrar a página. */
   grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme, $gap = 6 }) => theme.space[$gap]};
   min-width: 0;
@@ -190,16 +178,11 @@ export const Row = styled.div<{ $gap?: keyof DefaultTheme["space"]; $wrap?: bool
   justify-content: ${({ $justify = "flex-start" }) => $justify};
   gap: ${({ theme, $gap = 3 }) => theme.space[$gap]};
 
-  /* No celular, uma barra de botões alinhada à direita quebraria em degraus: alinha à esquerda, como o título. */
   @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
     ${({ $justify, $wrap = true }) => ($justify === "flex-end" && $wrap ? "justify-content: flex-start;" : "")}
   }
 `;
 
-/**
- * Barra de filtros: busca, seleções e botões alinhados pela base. Campos com rótulo em cima (Situação, Categoria)
- * e campos sem rótulo (busca) ficam na mesma linha; caixas de marcar se centram na altura dos campos.
- */
 export const FilterBar = styled.div<{ $justify?: string }>`
   display: flex;
   flex-wrap: wrap;
@@ -222,8 +205,6 @@ export const Mono = styled.span`
   font-family: ${({ theme }) => theme.fonts.mono};
   font-size: ${({ theme }) => theme.fontSizes.sm};
 `;
-
-/* ---------------------------------------------------------------- States */
 
 interface StateProps {
   title: string;
@@ -292,8 +273,6 @@ const StateTitle = styled.p`
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   color: ${({ theme }) => theme.colors.text};
 `;
-
-/* ---------------------------------------------------------------- Description list */
 
 export const DetailList = styled.dl`
   margin: 0;

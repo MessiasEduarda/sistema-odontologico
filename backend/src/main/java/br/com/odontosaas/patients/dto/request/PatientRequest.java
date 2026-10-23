@@ -2,23 +2,37 @@ package br.com.odontosaas.patients.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record PatientRequest(
-        @NotBlank @Size(max = 160) String fullName,
+        @NotBlank(message = "Informe o nome completo.") @Size(max = 160)
+        String fullName,
+
         @Size(max = 160) String socialName,
-        @Past LocalDate birthDate,
-        @Size(max = 14) String cpf,
+
+        @NotNull(message = "Informe a data de nascimento.")
+        @Past(message = "A data de nascimento não pode ser no futuro.")
+        LocalDate birthDate,
+
+        @NotBlank(message = "Informe o CPF.") @Size(max = 14)
+        String cpf,
+
         @Size(max = 20) String rg,
 
         @Pattern(regexp = "FEMALE|MALE|OTHER|NOT_INFORMED") String sex,
 
         @Size(max = 20) String phone,
-        @Size(max = 20) String mobile,
-        @Email @Size(max = 254) String email,
+
+        @NotBlank(message = "Informe o celular.") @Size(max = 20)
+        String mobile,
+
+        @NotBlank(message = "Informe o e-mail.") @Email(message = "E-mail inválido.") @Size(max = 254)
+        String email,
+
         @Size(max = 9) String zipCode,
         @Size(max = 160) String street,
         @Size(max = 20) String number,

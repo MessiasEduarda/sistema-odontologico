@@ -18,7 +18,6 @@ interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
-/** Feedback rápido de sucesso/erro. Anunciado a leitores de tela; some sozinho em 5s. */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 

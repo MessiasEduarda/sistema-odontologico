@@ -1,10 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { ExportButton } from "@/components/domain/ExportButton";
 import { DataTable } from "@/components/ui/DataTable";
 import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import {
@@ -23,6 +22,9 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { api } from "@/lib/api/endpoints";
+import { fileSlug } from "@/lib/download";
+import { loadReportTable, REPORT_TITLES, type ReportType } from "@/lib/export/reportData";
+import { useExport } from "@/lib/export/useExport";
 import { formatDate, formatMoney, formatPercent, toDateInput } from "@/lib/format";
 import { APPOINTMENT_STATUS } from "@/lib/labels";
 import { useCan } from "@/lib/mutations";
@@ -44,7 +46,8 @@ export function ReportsPage() {
   ].filter(Boolean) as { id: string; label: string; content: React.ReactNode }[];
 
   const exportable = ["agenda", "producao", "financeiro"].includes(tab);
-  const type = tab === "agenda" ? "agenda" : tab === "producao" ? "production" : "financial";
+  const type: ReportType = tab === "agenda" ? "agenda" : tab === "producao" ? "production" : "financial";
+  const exportAs = useExport();
 
   return (
     <Stack>
@@ -52,9 +55,19 @@ export function ReportsPage() {
         title="Relatórios"
         actions={
           exportable && (
-            <Button variant="outline" onClick={() => window.location.assign(api.reports.exportUrl(type, from, to))}>
-              <Download size={16} aria-hidden /> Exportar CSV
-            </Button>
+            <ExportButton
+              title="Exportar relatório"
+              description={`${REPORT_TITLES[type]}, de ${formatDate(from)} a ${formatDate(to)}.`}
+              onExport={async (format) => {
+                const table = await loadReportTable(type, from, to);
+                await exportAs(format, {
+                  title: `Relatório — ${REPORT_TITLES[type]}`,
+                  subtitle: `Período: ${formatDate(from)} a ${formatDate(to)}`,
+                  tables: [table],
+                  filename: `relatorio-${fileSlug(REPORT_TITLES[type])}-${from}-a-${to}`,
+                });
+              }}
+            />
           )
         }
       />

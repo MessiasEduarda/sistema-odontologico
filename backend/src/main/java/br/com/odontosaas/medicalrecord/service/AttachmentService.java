@@ -118,6 +118,51 @@ public class AttachmentService {
     }
 
     @Transactional
+    public AttachmentView update(UUID patientId, UUID attachmentId, String category, String description) {
+        UUID tenantId = TenantContext.requireTenantId();
+        if (!CATEGORIES.contains(category)) throw ApiException.invalidField("category", "Categoria inválida.");
+        String text = description == null || description.isBlank() ? null : description.strip();
+        if (attachments.updateDetails(tenantId, patientId, attachmentId, category, text) == 0) {
+            throw ApiException.notFound("Anexo");
+        }
+        audit.record(AuditAction.RECORD_UPDATED, "attachment", attachmentId, Map.of("category", category));
+        return list(patientId).stream()
+                .filter(a -> a.id().equals(attachmentId))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    @Transactional
+    public AttachmentView setSharing(UUID patientId, UUID attachmentId, boolean shared) {
+        UUID tenantId = TenantContext.requireTenantId();
+        if (attachments.updateSharing(tenantId, patientId, attachmentId, shared) == 0) {
+            throw ApiException.notFound("Anexo");
+        }
+        audit.record(AuditAction.RECORD_UPDATED, "attachment", attachmentId, Map.of("sharedWithPatient", shared));
+        return list(patientId).stream()
+                .filter(a -> a.id().equals(attachmentId))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttachmentView> listShared(UUID patientId) {
+        return attachments.findSharedByPatient(TenantContext.requireTenantId(), patientId);
+    }
+
+    @Transactional
+    public StoredFile downloadShared(UUID patientId, UUID attachmentId) {
+        UUID tenantId = TenantContext.requireTenantId();
+        AttachmentFileRow row = attachments
+                .findSharedFile(tenantId, patientId, attachmentId)
+                .orElseThrow(() -> ApiException.notFound("Anexo"));
+        Path path = resolve(row.storageKey());
+        if (!Files.exists(path)) throw ApiException.notFound("Arquivo do anexo");
+        audit.record(AuditAction.ATTACHMENT_DOWNLOADED, "attachment", attachmentId, Map.of("via", "portal"));
+        return new StoredFile(row.filename(), row.contentType(), path);
+    }
+
+    @Transactional
     public void delete(UUID patientId, UUID attachmentId) {
         int updated = attachments.softDelete(
                 TenantContext.requireTenantId(),

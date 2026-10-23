@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Link2, Printer } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import styled from "styled-components";
 import { PdfButton } from "@/components/domain/PdfButton";
@@ -25,11 +26,8 @@ import { CONSENT_CATEGORIES, CONSENT_STATUS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
 import { printSheet } from "@/lib/print";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
-/**
- * Termos de consentimento do paciente: emissão a partir de modelo, assinatura presencial (desenhada na tela) ou por
- * link enviado ao paciente, revogação e impressão com os dados da assinatura.
- */
 export function ConsentsSection({ patientId, patientName }: { patientId: string; patientName: string }) {
   const can = useCan();
   const writable = can(P.CLINICAL_WRITE, P.PATIENTS_WRITE);
@@ -115,6 +113,7 @@ export function IssueConsent({
   const [templateId, setTemplateId] = useState("");
   const [professionalId, setProfessionalId] = useState("");
   const [procedure, setProcedure] = useState("");
+  const form = useRequiredFields({ templateId: !templateId && "Selecione o modelo do termo." });
   const issue = useAction(
     () =>
       api.clinical.issueConsent(patientId, {
@@ -143,7 +142,7 @@ export function IssueConsent({
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => issue.mutate(undefined)} loading={issue.isPending} disabled={!templateId}>
+          <Button onClick={() => form.check() && issue.mutate(undefined)} loading={issue.isPending}>
             Emitir
           </Button>
         </>
@@ -156,6 +155,7 @@ export function IssueConsent({
           <SelectField
             label="Modelo"
             required
+            error={form.errors.templateId}
             placeholder="Selecione…"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
@@ -216,6 +216,11 @@ export function ConsentDetail({
   });
 
   const invalidate = [["consents", patientId], ["consent", consentId], ["record", patientId], ["all-consents"]];
+  const signForm = useRequiredFields({
+    name: !signer.name.trim() && "Informe o nome de quem assina.",
+    image: !signer.image && "Faça a assinatura no quadro ou use o nome digitado.",
+    accepted: !signer.accepted && "É necessário declarar que leu e concorda com o termo.",
+  });
   const sign = useAction(
     () =>
       api.clinical.signConsent(patientId, consentId, {
@@ -259,7 +264,14 @@ export function ConsentDetail({
                   <Button variant="outline" onClick={() => setRevoking(true)}>
                     Revogar
                   </Button>
-                  <Button onClick={() => setSigning(true)}>Assinar agora (na clínica)</Button>
+                  <Button
+                    onClick={() => {
+                      signForm.reset();
+                      setSigning(true);
+                    }}
+                  >
+                    Assinar agora (na clínica)
+                  </Button>
                 </>
               )}
             </>
@@ -313,9 +325,15 @@ export function ConsentDetail({
               footer={
                 c.status === "SIGNED" ? (
                   <SignatureBlock>
-                    {/* Assinatura em data URL (PNG gerado no navegador); next/image não se aplica. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {c.signatureImage && <img src={c.signatureImage} alt={`Assinatura de ${c.signerName}`} />}
+                    {c.signatureImage && (
+                      <Image
+                        src={c.signatureImage}
+                        alt={`Assinatura de ${c.signerName}`}
+                        width={320}
+                        height={120}
+                        unoptimized
+                      />
+                    )}
                     <p>
                       <strong>{c.signerName}</strong>
                       {c.signerDocument && ` · Doc.: ${c.signerDocument}`}
@@ -346,11 +364,7 @@ export function ConsentDetail({
             <Button data-modal-cancel variant="outline" onClick={() => setSigning(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={() => sign.mutate(undefined)}
-              loading={sign.isPending}
-              disabled={!signer.image || !signer.accepted || !signer.name.trim()}
-            >
+            <Button onClick={() => signForm.check() && sign.mutate(undefined)} loading={sign.isPending}>
               Confirmar assinatura
             </Button>
           </>
@@ -362,6 +376,7 @@ export function ConsentDetail({
             <TextField
               label="Nome de quem assina"
               required
+              error={signForm.errors.name}
               value={signer.name}
               onChange={(e) => setSigner((s) => ({ ...s, name: e.target.value }))}
             />
@@ -371,12 +386,13 @@ export function ConsentDetail({
               onChange={(e) => setSigner((s) => ({ ...s, document: e.target.value }))}
             />
             <FullRow>
-              <SignaturePad onChange={(image) => setSigner((s) => ({ ...s, image }))} />
+              <SignaturePad error={signForm.errors.image} onChange={(image) => setSigner((s) => ({ ...s, image }))} />
             </FullRow>
             <FullRow>
               <CheckboxField
                 label="Declaro que li e compreendi o termo, tive minhas dúvidas esclarecidas e concordo com o seu conteúdo."
                 checked={signer.accepted}
+                error={signForm.errors.accepted}
                 onChange={(e) => setSigner((s) => ({ ...s, accepted: e.target.checked }))}
               />
             </FullRow>
@@ -418,6 +434,8 @@ const SignatureBlock = styled.div`
   gap: 4px;
 
   img {
+    width: auto;
+    height: auto;
     max-width: 320px;
     max-height: 120px;
     border-bottom: 1px solid #333;

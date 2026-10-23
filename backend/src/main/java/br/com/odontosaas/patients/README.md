@@ -18,6 +18,7 @@ Cadastro, importação em massa e exportação LGPD de pacientes.
 ## API para outros módulos
 
 - Classes do pacote raiz (`patients`)
+- `patients.event` (interface `event`)
 
 ## Dependências permitidas
 

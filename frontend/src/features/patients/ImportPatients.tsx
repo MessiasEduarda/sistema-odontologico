@@ -11,12 +11,14 @@ import { Badge, Muted, Stack } from "@/components/ui/display";
 import { Modal } from "@/components/ui/Modal";
 import { api } from "@/lib/api/endpoints";
 import type { PatientImportResult, PatientImportRow } from "@/lib/api/types";
-import { normalizeHeader, parseCsv, readCsvFile, toCsv } from "@/lib/csv";
+import { normalizeHeader, parseCsv, readCsvFile } from "@/lib/csv";
+import { downloadBlob } from "@/lib/download";
 import { useAction } from "@/lib/mutations";
+import { buildXlsx } from "@/lib/xlsx";
+import { readXlsxTable } from "@/lib/xlsxRead";
 
 type Field = Exclude<keyof PatientImportRow, "line">;
 
-/** Colunas aceitas: nome do modelo (primeiro) e outros nomes comuns em planilhas de clínicas. */
 const COLUMNS: { field: Field; header: string; aliases: string[] }[] = [
   { field: "fullName", header: "Nome completo", aliases: ["nome", "nome do paciente", "paciente"] },
   { field: "socialName", header: "Nome social", aliases: [] },
@@ -50,7 +52,6 @@ const HEADER_TO_FIELD = new Map<string, Field>(
   COLUMNS.flatMap((c) => [c.header, ...c.aliases].map((h) => [normalizeHeader(h), c.field] as const)),
 );
 
-/** Converte a planilha em linhas para a API. Retorna também as colunas que não foram reconhecidas. */
 export function toImportRows(table: string[][]): { rows: PatientImportRow[]; unknown: string[] } {
   const [header = [], ...body] = table;
   const fields = header.map((h) => HEADER_TO_FIELD.get(normalizeHeader(h)));
@@ -94,16 +95,10 @@ function downloadTemplate() {
     "sim",
     "sim",
   ];
-  const blob = new Blob([toCsv([COLUMNS.map((c) => c.header), example])], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "modelo-importacao-pacientes.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+  const workbook = buildXlsx([{ name: "Pacientes", rows: [COLUMNS.map((c) => c.header), example], textColumns: true }]);
+  downloadBlob(workbook, "modelo-importacao-pacientes.xlsx");
 }
 
-/** Importação de pacientes: modelo, leitura da planilha, prévia com problemas por linha e confirmação. */
 export function ImportPatients({ onClose }: { onClose: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>();
@@ -127,11 +122,19 @@ export function ImportPatients({ onClose }: { onClose: () => void }) {
     setPreview(undefined);
     if (!file) return;
     setFileName(file.name);
-    if (!/\.(csv|txt)$/i.test(file.name)) {
-      setLocalError("Envie a planilha em CSV. No Excel: Arquivo › Salvar como › CSV (separado por ponto e vírgula).");
+    const excel = /\.xlsx$/i.test(file.name);
+    if (!excel && !/\.(csv|txt)$/i.test(file.name)) {
+      setLocalError("Envie a planilha do Excel (.xlsx) ou um arquivo CSV.");
       return;
     }
-    const parsed = toImportRows(parseCsv(await readCsvFile(file)));
+    let table: string[][];
+    try {
+      table = excel ? await readXlsxTable(file) : parseCsv(await readCsvFile(file));
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : "Não foi possível ler a planilha.");
+      return;
+    }
+    const parsed = toImportRows(table);
     if (!parsed.rows.length) {
       setLocalError("A planilha está vazia ou só tem o cabeçalho.");
       return;
@@ -169,8 +172,8 @@ export function ImportPatients({ onClose }: { onClose: () => void }) {
     >
       <Stack $gap={4}>
         <Muted>
-          Traga os pacientes que a clínica já tem. Use o modelo (abre no Excel), preencha uma linha por paciente e salve
-          como CSV. Só o nome é obrigatório; menores de 18 anos precisam do responsável. CPFs já cadastrados não são
+          Traga os pacientes que a clínica já tem. Baixe o modelo, preencha uma linha por paciente no Excel e envie o
+          arquivo. Só o nome é obrigatório; menores de 18 anos precisam do responsável. CPFs já cadastrados não são
           duplicados.
         </Muted>
         <Actions>
@@ -180,7 +183,7 @@ export function ImportPatients({ onClose }: { onClose: () => void }) {
           <input
             ref={input}
             type="file"
-            accept=".csv,text/csv"
+            accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
             hidden
             onChange={(e) => {
               void pick(e.target.files?.[0]);

@@ -1,7 +1,5 @@
 import type { BadgeTone } from "@/components/ui/display";
 
-/** Rótulos em português e tons de etiqueta para códigos da API. */
-
 type Labeled = Record<string, { label: string; tone: BadgeTone }>;
 
 export const APPOINTMENT_STATUS: Labeled = {
@@ -14,7 +12,6 @@ export const APPOINTMENT_STATUS: Labeled = {
   CANCELLED: { label: "Cancelado", tone: "neutral" },
 };
 
-/** Próximos status permitidos (espelha a máquina de estados do servidor) e rótulo da ação. */
 export const APPOINTMENT_ACTIONS: Record<string, { status: string; label: string }[]> = {
   SCHEDULED: [
     { status: "CONFIRMED", label: "Confirmar" },
@@ -239,7 +236,6 @@ export const AESTHETIC_UNITS: Record<string, string> = {
   MG: "mg",
 };
 
-/** Regiões da face mais usadas (a pessoa pode digitar outra). */
 export const FACE_REGIONS = [
   "Fronte (testa)",
   "Glabela",

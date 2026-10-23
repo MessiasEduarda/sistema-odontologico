@@ -15,18 +15,15 @@ interface TabsProps {
   active: string;
   onChange: (id: string) => void;
   label: string;
-  /** "sub": abas dentro de outra aba, em pílulas, para não se confundirem com o menu principal da página. */
   variant?: "primary" | "sub";
 }
 
-/** Abas acessíveis (padrão WAI-ARIA): setas esquerda/direita, Home e End. */
 export function Tabs({ items, active, onChange, label, variant = "primary" }: TabsProps) {
   const base = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const listRef = useRef<HTMLDivElement | null>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
 
-  /** Mostra as setas só quando há abas escondidas daquele lado. */
   const updateEdges = useCallback(() => {
     const el = listRef.current;
     if (!el) return;
@@ -38,7 +35,6 @@ export function Tabs({ items, active, onChange, label, variant = "primary" }: Ta
   useEffect(() => {
     const el = listRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-    // Observa a faixa e cada aba: a largura das abas muda quando a fonte termina de carregar.
     const observer = new ResizeObserver(updateEdges);
     observer.observe(el);
     Array.from(el.children).forEach((child) => observer.observe(child));
@@ -68,7 +64,6 @@ export function Tabs({ items, active, onChange, label, variant = "primary" }: Ta
   const current = items.find((i) => i.id === active) ?? items[0];
   const currentIndex = items.findIndex((i) => i.id === current?.id);
 
-  // A aba ativa sempre fica visível (por exemplo, ao abrir direto em "Anexos" numa tela estreita).
   useEffect(() => {
     refs.current[currentIndex]?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [currentIndex]);
@@ -124,7 +119,6 @@ const Bar = styled.div`
   position: relative;
 `;
 
-/** Seta que aparece na ponta quando há abas escondidas; o fundo esmaece o texto que fica embaixo. */
 const ScrollButton = styled.button<{ $side: "left" | "right" }>`
   position: absolute;
   top: 0;
@@ -145,7 +139,6 @@ const ScrollButton = styled.button<{ $side: "left" | "right" }>`
   cursor: pointer;
 `;
 
-/** Em telas estreitas as abas deslizam para o lado, sem barra de rolagem visível. */
 const List = styled.div<{ $variant: "primary" | "sub" }>`
   display: flex;
   gap: ${({ theme }) => theme.space[1]};

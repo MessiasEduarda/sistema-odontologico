@@ -1,4 +1,3 @@
-/** Códigos de permissão (espelham o enum Permission do back-end). A autorização real é feita na API. */
 export const P = {
   CLINIC_SETTINGS_MANAGE: "clinic:settings:manage",
   USERS_READ: "users:read",

@@ -20,8 +20,8 @@ import type { ClinicalNote, PerformedProcedure } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
-/** Evoluções clínicas: somente inclusão. Correções são feitas com uma nova evolução de retificação. */
 export function NotesSection({ patientId }: { patientId: string }) {
   const can = useCan();
   const [amending, setAmending] = useState<ClinicalNote | null>(null);
@@ -92,6 +92,9 @@ function NoteForm({
   const professionals = useQuery({ queryKey: ["professionals", true], queryFn: () => api.clinic.professionals(true) });
   const [content, setContent] = useState("");
   const [professionalId, setProfessionalId] = useState(amends?.professionalId ?? "");
+  const form = useRequiredFields({
+    content: !content.trim() && (amends ? "Escreva o texto da retificação." : "Descreva o atendimento."),
+  });
   const save = useAction(
     () =>
       api.clinical.addNote(patientId, {
@@ -119,7 +122,7 @@ function NoteForm({
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!content.trim()}>
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Registrar
           </Button>
         </>
@@ -141,6 +144,7 @@ function NoteForm({
         <TextAreaField
           label={amends ? "Texto da retificação" : "Evolução"}
           required
+          error={form.errors.content}
           rows={8}
           maxLength={20000}
           value={content}
@@ -153,7 +157,6 @@ function NoteForm({
   );
 }
 
-/** Procedimentos realizados (baixam itens de orçamento aprovado quando vinculados). */
 export function PerformedSection({ patientId }: { patientId: string }) {
   const can = useCan();
   const [adding, setAdding] = useState(false);
@@ -264,6 +267,10 @@ function PerformedForm({ patientId, onClose }: { patientId: string; onClose: () 
     notes: "",
   });
   const set = (k: keyof typeof v, value: string) => setV((s) => ({ ...s, [k]: value }));
+  const form = useRequiredFields({
+    professionalId: !v.professionalId && "Selecione o profissional.",
+    description: !v.description.trim() && "Informe a descrição do procedimento.",
+  });
   const save = useAction(
     () =>
       api.clinical.addPerformed(patientId, {
@@ -305,11 +312,7 @@ function PerformedForm({ patientId, onClose }: { patientId: string; onClose: () 
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={!v.professionalId || !v.description.trim()}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Registrar
           </Button>
         </>
@@ -333,6 +336,7 @@ function PerformedForm({ patientId, onClose }: { patientId: string; onClose: () 
         <SelectField
           label="Profissional"
           required
+          error={form.errors.professionalId}
           placeholder="Selecione…"
           value={v.professionalId}
           onChange={(e) => set("professionalId", e.target.value)}
@@ -352,6 +356,7 @@ function PerformedForm({ patientId, onClose }: { patientId: string; onClose: () 
           <TextField
             label="Descrição"
             required
+            error={form.errors.description}
             maxLength={200}
             value={v.description}
             onChange={(e) => set("description", e.target.value)}

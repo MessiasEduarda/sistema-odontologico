@@ -246,6 +246,91 @@ class ClinicalFlowTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void portalShowsOnlyDocumentsAndAttachmentsReleasedByTheClinic() {
+        byte[] png = new byte[] {(byte) 0x89, 'P', 'N', 'G', 13, 10, 26, 10, 0, 0, 0, 1};
+        String shared = json(upload(owner, "radiografia.png", png, "XRAY"), "$.id");
+        String internal = json(upload(owner, "foto-interna.png", png, "PHOTO"), "$.id");
+        String prescription = json(
+                owner.post(
+                        "/api/v1/patients/" + patient + "/documents",
+                        "{\"professionalId\":\"%s\",\"type\":\"PRESCRIPTION\",\"title\":\"Receituário\",\"content\":\"Uso oral\"}"
+                                .formatted(professional)),
+                "$.id");
+        owner.post(
+                "/api/v1/patients/" + patient + "/documents",
+                "{\"professionalId\":\"%s\",\"type\":\"CERTIFICATE\",\"title\":\"Atestado interno\",\"content\":\"Texto\"}"
+                        .formatted(professional));
+        assertThat(owner.put(
+                        "/api/v1/patients/" + patient + "/documents/" + prescription + "/sharing", "{\"shared\":true}"))
+                .hasStatusOk();
+
+        MvcTestResult released =
+                owner.put("/api/v1/patients/" + patient + "/attachments/" + shared + "/sharing", "{\"shared\":true}");
+        assertThat(released).hasStatusOk();
+        assertThat((Boolean) json(released, "$.sharedWithPatient")).isTrue();
+
+        Browser portal = portalPatient(owner, patient);
+
+        MvcTestResult records = portal.get("/api/v1/public/portal/records");
+        assertThat(records).hasStatusOk();
+        assertThat((List<String>) json(records, "$.documents[*].title")).containsExactly("Receituário");
+        assertThat((List<String>) json(records, "$.attachments[*].id")).containsExactly(shared);
+
+        MvcTestResult file = portal.get("/api/v1/public/portal/attachments/" + shared + "/download");
+        assertThat(file).hasStatusOk();
+        assertThat(file.getResponse().getContentAsByteArray()).isEqualTo(png);
+
+        assertThat(portal.get("/api/v1/public/portal/attachments/" + internal + "/download"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+
+        owner.put("/api/v1/patients/" + patient + "/attachments/" + shared + "/sharing", "{\"shared\":false}");
+        assertThat(portal.get("/api/v1/public/portal/attachments/" + shared + "/download"))
+                .hasStatus(HttpStatus.NOT_FOUND);
+        assertThat(browser().get("/api/v1/public/portal/records")).hasStatus(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void documentsCanBeCorrectedKeepingHistoryOrVoidedWithReason() {
+        String doc = json(
+                owner.post(
+                        "/api/v1/patients/" + patient + "/documents",
+                        "{\"professionalId\":\"%s\",\"type\":\"CERTIFICATE\",\"title\":\"Atestdo\",\"content\":\"Repouso por 2 dais\",\"sharedWithPatient\":true}"
+                                .formatted(professional)),
+                "$.id");
+
+        MvcTestResult fixed = owner.put(
+                "/api/v1/patients/" + patient + "/documents/" + doc,
+                "{\"title\":\"Atestado\",\"content\":\"Repouso por 2 dias\"}");
+        assertThat(fixed).hasStatusOk();
+        assertThat((String) json(fixed, "$.title")).isEqualTo("Atestado");
+        assertThat((String) json(fixed, "$.updatedAt")).isNotBlank();
+        assertThat(superuserJdbc()
+                        .queryForObject(
+                                "select title from clinical_document_revisions where document_id = ?::uuid",
+                                String.class,
+                                doc))
+                .isEqualTo("Atestdo");
+
+        assertThat(owner.post(
+                        "/api/v1/patients/" + patient + "/documents/" + doc + "/void",
+                        "{\"reason\":\"Emitido para o paciente errado\"}"))
+                .hasStatus(HttpStatus.NO_CONTENT);
+        List<String> voided =
+                json(owner.get("/api/v1/patients/" + patient + "/documents"), "$[?(@.voidedAt)].voidReason");
+        assertThat(voided).containsExactly("Emitido para o paciente errado");
+        assertThat(owner.put(
+                        "/api/v1/patients/" + patient + "/documents/" + doc,
+                        "{\"title\":\"Outro\",\"content\":\"Outro\"}"))
+                .hasStatus(HttpStatus.CONFLICT);
+        assertThat(superuserJdbc()
+                        .queryForObject(
+                                "select shared_with_patient from clinical_documents where id = ?::uuid",
+                                Boolean.class,
+                                doc))
+                .isFalse();
+    }
+
+    @Test
     void documentsAreIssuedWithProfessionalData() {
         MvcTestResult doc = owner.post(
                 "/api/v1/patients/" + patient + "/documents",

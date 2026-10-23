@@ -11,4 +11,8 @@ public record DocumentView(
         String type,
         String title,
         String content,
-        Instant issuedAt) {}
+        Instant issuedAt,
+        boolean sharedWithPatient,
+        Instant updatedAt,
+        Instant voidedAt,
+        String voidReason) {}

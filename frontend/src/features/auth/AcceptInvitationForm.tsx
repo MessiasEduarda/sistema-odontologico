@@ -1,27 +1,26 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useId, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { applyServerErrors } from "@/lib/forms";
+import { errorMessage } from "@/lib/forms";
 import { useHashToken } from "@/lib/useHashToken";
 import { authApi } from "./api";
 import { AuthLayout, Form, FormFooter } from "./AuthLayout";
-import { TextLink } from "./LoginForm";
-import { newPasswordSchema, PASSWORD_HINT } from "./passwordSchema";
-
-interface Values {
-  name: string;
-  password: string;
-}
+import { ErrorMessage, TextLink } from "./LoginForm";
+import { passwordProblem } from "./passwordSchema";
 
 export function AcceptInvitationForm() {
   const token = useHashToken();
+  const messageId = useId();
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [message, setMessage] = useState<string>();
+  const [pending, setPending] = useState(false);
   const [accepted, setAccepted] = useState(false);
-  const [formError, setFormError] = useState<string>();
 
   const preview = useQuery({
     queryKey: ["invitation", token],
@@ -30,30 +29,26 @@ export function AcceptInvitationForm() {
     retry: false,
   });
 
-  const {
-    register,
-    handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<Values>();
-
   const existing = preview.data?.existingAccount ?? false;
 
-  const onSubmit = handleSubmit(async ({ name, password }) => {
-    setFormError(undefined);
-    if (!existing) {
-      if (!name?.trim()) return setError("name", { message: "Informe seu nome." });
-      const check = newPasswordSchema.safeParse(password);
-      if (!check.success) return setError("password", { message: check.error.issues[0]?.message });
-    }
+  const submit = async () => {
+    const problem = existing
+      ? !password && "Informe a sua senha atual."
+      : (!name.trim() && "Informe seu nome.") || passwordProblem(password, confirm);
+    if (problem) return setMessage(problem);
+    setMessage(undefined);
+    setPending(true);
     try {
-      await authApi.acceptInvitation(token ?? "", password, existing ? undefined : name);
+      await authApi.acceptInvitation(token ?? "", password, existing ? undefined : name.trim());
       setAccepted(true);
     } catch (error) {
-      setFormError(applyServerErrors(error, setError, ["name", "password"]));
+      setMessage(errorMessage(error, "Não foi possível aceitar o convite."));
+    } finally {
+      setPending(false);
     }
-  });
+  };
 
+  const invalid = message ? { "aria-invalid": true, "aria-describedby": messageId } : {};
   const subtitle = preview.data
     ? `Você foi convidado(a) para a ${preview.data.clinicName} como ${preview.data.roleName}.`
     : undefined;
@@ -71,23 +66,49 @@ export function AcceptInvitationForm() {
         </Alert>
       ) : (
         preview.data && (
-          <Form onSubmit={onSubmit} noValidate>
-            {formError && <Alert tone="danger">{formError}</Alert>}
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+            noValidate
+          >
             <TextField label="E-mail" value={preview.data.email} disabled readOnly />
             {existing ? (
               <Alert tone="info">Este e-mail já tem uma conta. Confirme com a senha atual para aceitar.</Alert>
             ) : (
-              <TextField label="Seu nome" autoComplete="name" error={errors.name?.message} {...register("name")} />
+              <TextField
+                label="Seu nome"
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                {...invalid}
+              />
             )}
             <TextField
               label={existing ? "Senha atual" : "Crie uma senha"}
               type="password"
               autoComplete={existing ? "current-password" : "new-password"}
-              hint={existing ? undefined : PASSWORD_HINT}
-              error={errors.password?.message}
-              {...register("password", { required: "Informe a senha." })}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              {...invalid}
             />
-            <Button type="submit" loading={isSubmitting} fullWidth>
+            {!existing && (
+              <TextField
+                label="Repita a senha"
+                type="password"
+                autoComplete="new-password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                {...invalid}
+              />
+            )}
+            {message && (
+              <ErrorMessage id={messageId} role="alert">
+                {message}
+              </ErrorMessage>
+            )}
+            <Button type="submit" loading={pending} fullWidth>
               Aceitar convite
             </Button>
           </Form>

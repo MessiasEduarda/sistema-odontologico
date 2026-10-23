@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Download, FileText, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Download, FileText, Image as ImageIcon, Pencil, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
-import { ConfirmDialog } from "@/components/ui/Modal";
+import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { Badge, Card, EmptyState, ErrorState, Muted, Row, Stack } from "@/components/ui/display";
-import { FileField, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
+import { CheckboxField, FileField, FormGrid, FullRow, SelectField } from "@/components/ui/fields";
 import { IconButton } from "@/components/ui/IconButton";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { TextField } from "@/components/ui/TextField";
@@ -19,10 +19,10 @@ import { formatDateTime } from "@/lib/format";
 import { ATTACHMENT_CATEGORIES } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 const MAX_MB = 15;
 
-/** Radiografias, fotos, exames e documentos digitalizados. Cada download é registrado na auditoria. */
 export function AttachmentsSection({ patientId }: { patientId: string }) {
   const can = useCan();
   const input = useRef<HTMLInputElement>(null);
@@ -31,7 +31,9 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
   const [description, setDescription] = useState("");
   const [localError, setLocalError] = useState<string>();
   const [removing, setRemoving] = useState<Attachment | null>(null);
+  const [editing, setEditing] = useState<Attachment | null>(null);
   const list = useQuery({ queryKey: ["attachments", patientId], queryFn: () => api.clinical.attachments(patientId) });
+  const form = useRequiredFields({ file: !file && "Escolha o arquivo a enviar." });
 
   const upload = useAction(
     () => {
@@ -48,6 +50,7 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
         ["record", patientId],
       ],
       onSuccess: () => {
+        form.reset();
         setFile(null);
         setDescription("");
         if (input.current) input.current.value = "";
@@ -59,6 +62,14 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
     invalidate: [["attachments", patientId]],
     onSuccess: () => setRemoving(null),
   });
+  const share = useAction(
+    (v: { id: string; shared: boolean }) => api.clinical.setAttachmentSharing(patientId, v.id, v.shared),
+    {
+      success: (a) =>
+        a.sharedWithPatient ? "Anexo liberado no portal do paciente." : "Anexo escondido do portal do paciente.",
+      invalidate: [["attachments", patientId]],
+    },
+  );
 
   const choose = (f: File | null) => {
     setLocalError(undefined);
@@ -82,6 +93,7 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
                 hint={`PDF, JPG, PNG ou WEBP, até ${MAX_MB} MB`}
                 accept="application/pdf,image/jpeg,image/png,image/webp"
                 fileName={file?.name ?? null}
+                error={localError ?? form.errors.file}
                 onChange={choose}
               />
               <SelectField
@@ -99,10 +111,9 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
                 />
               </FullRow>
             </FormGrid>
-            {localError && <Alert tone="danger">{localError}</Alert>}
             {upload.error && <Alert tone="danger">{upload.error.message}</Alert>}
             <Row $justify="flex-end">
-              <Button onClick={() => upload.mutate(undefined)} loading={upload.isPending} disabled={!file}>
+              <Button onClick={() => form.check() && upload.mutate(undefined)} loading={upload.isPending}>
                 Enviar arquivo
               </Button>
             </Row>
@@ -127,6 +138,16 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
                   <Badge $tone="primary">{ATTACHMENT_CATEGORIES.find((c) => c.value === a.category)?.label}</Badge> ·{" "}
                   {(a.sizeBytes / 1024).toFixed(0)} KB · {formatDateTime(a.createdAt)}
                 </Muted>
+                {can(P.CLINICAL_WRITE) ? (
+                  <CheckboxField
+                    label="Mostrar ao paciente no portal"
+                    checked={a.sharedWithPatient}
+                    disabled={share.isPending && share.variables?.id === a.id}
+                    onChange={(e) => share.mutate({ id: a.id, shared: e.target.checked })}
+                  />
+                ) : (
+                  a.sharedWithPatient && <Badge $tone="success">Visível no portal do paciente</Badge>
+                )}
               </div>
               <Row $gap={2} $wrap={false}>
                 <IconLink
@@ -138,6 +159,9 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
                 >
                   <Download size={18} aria-hidden />
                 </IconLink>
+                {can(P.CLINICAL_WRITE) && (
+                  <IconButton icon={Pencil} label={`Editar ${a.filename}`} onClick={() => setEditing(a)} />
+                )}
                 {can(P.CLINICAL_WRITE) && (
                   <IconButton
                     icon={Trash2}
@@ -151,6 +175,7 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
           ))}
         </Grid>
       )}
+      {editing && <AttachmentEditForm patientId={patientId} attachment={editing} onClose={() => setEditing(null)} />}
       <ConfirmDialog
         open={Boolean(removing)}
         question="Tem certeza que deseja remover este anexo?"
@@ -162,6 +187,62 @@ export function AttachmentsSection({ patientId }: { patientId: string }) {
         onClose={() => setRemoving(null)}
       />
     </Stack>
+  );
+}
+
+function AttachmentEditForm({
+  patientId,
+  attachment,
+  onClose,
+}: {
+  patientId: string;
+  attachment: Attachment;
+  onClose: () => void;
+}) {
+  const [category, setCategory] = useState<string>(attachment.category);
+  const [description, setDescription] = useState(attachment.description ?? "");
+  const save = useAction(
+    () =>
+      api.clinical.updateAttachment(patientId, attachment.id, { category, description: description.trim() || null }),
+    {
+      success: "Anexo atualizado com sucesso!",
+      invalidate: [["attachments", patientId]],
+      onSuccess: onClose,
+    },
+  );
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Editar anexo"
+      footer={
+        <>
+          <Button data-modal-cancel variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={() => save.mutate(undefined)} loading={save.isPending}>
+            Salvar
+          </Button>
+        </>
+      }
+    >
+      <FormGrid $columns={1}>
+        <SelectField
+          label="Categoria"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          options={ATTACHMENT_CATEGORIES}
+        />
+        <TextField
+          label="Descrição"
+          maxLength={300}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <Muted>O arquivo em si não muda. Para trocar o arquivo, remova este anexo e envie o novo.</Muted>
+        {save.error && <Alert tone="danger">{save.error.message}</Alert>}
+      </FormGrid>
+    </Modal>
   );
 }
 

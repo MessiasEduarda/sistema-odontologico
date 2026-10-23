@@ -23,7 +23,6 @@ import { FormsManager } from "./FormsManager";
 
 const KIND_OPTIONS = Object.entries(FORM_KINDS).map(([value, k]) => ({ value, label: k.label }));
 
-/** Página Anamnese: preencher fichas, acompanhar preenchimentos com alerta e editar as fichas da clínica. */
 export function AnamnesisPage() {
   const can = useCan();
   const [tab, setTab] = useState<string | null>(null);

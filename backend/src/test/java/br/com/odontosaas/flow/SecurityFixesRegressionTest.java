@@ -14,8 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 /**
- * Regressões da rodada de correções do QA E2E: contato do portal com campos omitidos, paginação extrema e links de
- * acesso do paciente fora da exportação.
+ * Regressões da rodada de correções do QA E2E: contato do portal com campos omitidos, paginação extrema e convite do
+ * portal fora da exportação e da fila de mensagens.
  */
 class SecurityFixesRegressionTest extends PostgresIntegrationTest {
 
@@ -31,21 +31,12 @@ class SecurityFixesRegressionTest extends PostgresIntegrationTest {
         owner = browser().login(data.member(clinic, "OWNER").email(), TestData.PASSWORD);
     }
 
-    private String portalToken(String patient, boolean sendEmail) {
-        MvcTestResult grant =
-                owner.post("/api/v1/patients/" + patient + "/portal-access", "{\"sendEmail\":%s}".formatted(sendEmail));
-        assertThat(grant).hasStatusOk();
-        String url = json(grant, "$.url");
-        return url.substring(url.indexOf("token=") + "token=".length());
-    }
-
     @Test
     void portalContactUpdateKeepsFieldsThatWereOmitted() {
         String patient = createPatient(owner, "Contato Parcial");
-        String token = portalToken(patient, false);
+        Browser portal = portalPatient(owner, patient);
 
-        MvcTestResult update = browser()
-                .post("/api/v1/public/portal/contact", "{\"token\":\"%s\",\"phone\":\"1133334444\"}".formatted(token));
+        MvcTestResult update = portal.post("/api/v1/public/portal/contact", "{\"phone\":\"1133334444\"}");
         assertThat(update).hasStatusOk();
 
         MvcTestResult after = owner.get("/api/v1/patients/" + patient);
@@ -56,18 +47,17 @@ class SecurityFixesRegressionTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void portalContactUpdateStillAllowsClearingAndChangingConsent() {
+    void portalContactUpdateKeepsTheRequiredMobileButChangesConsent() {
         String patient = createPatient(owner, "Contato Total");
-        String token = portalToken(patient, false);
+        Browser portal = portalPatient(owner, patient);
 
-        MvcTestResult update = browser()
-                .post(
-                        "/api/v1/public/portal/contact",
-                        "{\"token\":\"%s\",\"mobile\":\"\",\"allowEmail\":false}".formatted(token));
+        MvcTestResult update =
+                portal.post("/api/v1/public/portal/contact", "{\"mobile\":\"\",\"phone\":\"\",\"allowEmail\":false}");
         assertThat(update).hasStatusOk();
 
         MvcTestResult after = owner.get("/api/v1/patients/" + patient);
-        assertThat((Object) json(after, "$.mobile")).isNull();
+        assertThat((String) json(after, "$.mobile")).isEqualTo("11999990000");
+        assertThat((Object) json(after, "$.phone")).isNull();
         assertThat((Boolean) json(after, "$.allowEmail")).isFalse();
         assertThat((String) json(after, "$.email")).startsWith("paciente");
     }
@@ -80,13 +70,18 @@ class SecurityFixesRegressionTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void exportMasksPatientAccessLinksStoredInQueuedMessages() {
-        String patient = createPatient(owner, "Export Mascarado");
-        String token = portalToken(patient, true);
+    void exportNeverContainsThePortalInviteToken() {
+        String patient = createPatient(owner, "Export Sem Token");
+        String token = portalActivationToken(json(owner.get("/api/v1/patients/" + patient), "$.email"));
 
         MvcTestResult export = owner.get("/api/v1/patients/" + patient + "/export");
         assertThat(export).hasStatusOk();
-        String body = Browser.body(export);
-        assertThat(body).contains("#token=[removido]").doesNotContain(token);
+        assertThat(Browser.body(export)).doesNotContain(token);
+        assertThat((Integer) superuserJdbc()
+                        .queryForObject(
+                                "select count(*) from outbound_messages where body like ?",
+                                Integer.class,
+                                "%" + token + "%"))
+                .isZero();
     }
 }

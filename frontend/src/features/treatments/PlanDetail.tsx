@@ -24,6 +24,7 @@ import { PLAN_STATUS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
 import { printSheet } from "@/lib/print";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 import { PlanEditor } from "./PlanEditor";
 
 const ITEM_STATUS: Record<string, { label: string; tone: "neutral" | "success" | "warning" }> = {
@@ -276,6 +277,7 @@ function ApproveDialog({
   onClose: () => void;
 }) {
   const [name, setName] = useState(patientName);
+  const form = useRequiredFields({ name: !name.trim() && "Informe quem aprovou o orçamento." });
   const [generate, setGenerate] = useState(true);
   const [installments, setInstallments] = useState(1);
   const [firstDue, setFirstDue] = useState(toDateInput(new Date()));
@@ -303,14 +305,20 @@ function ApproveDialog({
           <Button variant="outline" onClick={onClose}>
             Voltar
           </Button>
-          <Button onClick={() => approve.mutate(undefined)} loading={approve.isPending} disabled={!name.trim()}>
+          <Button onClick={() => form.check() && approve.mutate(undefined)} loading={approve.isPending}>
             Confirmar aprovação
           </Button>
         </>
       }
     >
       <FormGrid $columns={2}>
-        <TextField label="Aprovado por" required value={name} onChange={(e) => setName(e.target.value)} />
+        <TextField
+          label="Aprovado por"
+          required
+          error={form.errors.name}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <div />
         <CheckboxField
           label="Gerar conta a receber no Financeiro"

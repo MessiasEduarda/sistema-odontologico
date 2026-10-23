@@ -29,7 +29,6 @@ const STATUS_OPTIONS: { value: WaitlistStatus; label: string }[] = [
   { value: "REMOVED", label: "Removidos" },
 ];
 
-/** Quantos pacientes aguardam vaga (para o botão da agenda). */
 export function useWaitlistCount() {
   const can = useCan();
   const query = useQuery({
@@ -40,7 +39,6 @@ export function useWaitlistCount() {
   return query.data?.length ?? 0;
 }
 
-/** Mensagem para oferecer um horário que abriu. */
 export function offerMessage(entry: WaitlistEntry, clinicName: string | undefined): string {
   const who = entry.professionalName ? ` com ${entry.professionalName}` : "";
   return [
@@ -50,10 +48,6 @@ export function offerMessage(entry: WaitlistEntry, clinicName: string | undefine
   ].join("\n\n");
 }
 
-/**
- * Lista de espera: quem quer adiantar a consulta ou não achou vaga. Quando abre um horário, a recepção chama pelo
- * WhatsApp e agenda dali mesmo (a entrada sai da lista ao salvar o agendamento).
- */
 export function WaitlistPanel({
   onClose,
   onSchedule,
@@ -199,7 +193,6 @@ export function WaitlistPanel({
   );
 }
 
-/** Adicionar ou editar uma entrada da lista de espera. */
 function WaitlistForm({ entry, onClose }: { entry: WaitlistEntry | null; onClose: () => void }) {
   const professionals = useQuery({ queryKey: ["professionals", true], queryFn: () => api.clinic.professionals(true) });
   const procedures = useQuery({

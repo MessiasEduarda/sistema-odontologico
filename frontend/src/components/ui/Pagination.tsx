@@ -4,21 +4,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import styled from "styled-components";
 
 export interface PaginationProps {
-  /** Página atual, começando em 0. */
   page: number;
   totalPages: number;
   totalItems: number;
-  /** Quantos itens aparecem nesta página (para "Mostrando X de Y"). */
   shownItems: number;
   onChange: (page: number) => void;
 }
 
 type Slot = number | "gap";
 
-/**
- * Números visíveis: sempre a primeira e a última página, a atual e suas vizinhas; o resto vira "…".
- * Ex.: [1] 2 3 … 10 · 1 … 4 [5] 6 … 10 · 1 … 8 9 [10].
- */
 export function pageSlots(page: number, totalPages: number): Slot[] {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i);
   const near = new Set([0, totalPages - 1, page - 1, page, page + 1]);
@@ -35,7 +29,6 @@ export function pageSlots(page: number, totalPages: number): Slot[] {
   return slots;
 }
 
-/** Paginador padrão das tabelas: "Mostrando X de Y", setas e números (página atual em círculo caramelo). */
 export function Pagination({ page, totalPages, totalItems, shownItems, onChange }: PaginationProps) {
   if (totalItems === 0) return null;
   const last = Math.max(totalPages - 1, 0);

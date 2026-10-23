@@ -17,10 +17,6 @@ import { FORM_KINDS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
 
-/**
- * Anamnese do paciente: uma aba para cada ficha da clínica (odontológica, harmonização...). Cada preenchimento gera
- * uma nova versão; nada é sobrescrito. Alertas ("sim" em perguntas marcadas) aparecem em destaque.
- */
 export function AnamnesisSection({ patientId }: { patientId: string }) {
   const can = useCan();
   const forms = useQuery({ queryKey: ["anamnesis-forms", false], queryFn: () => api.clinic.anamnesisForms() });
@@ -30,7 +26,6 @@ export function AnamnesisSection({ patientId }: { patientId: string }) {
   const [viewing, setViewing] = useState<Anamnesis | null>(null);
 
   if (history.isPending || forms.isPending) return <LoadingState />;
-  // Falha de carga nunca pode parecer "ainda não preenchida": os alertas de saúde (alergia, anticoagulante) sumiriam.
   const failed = history.isError ? history : forms.isError ? forms : null;
   if (failed) {
     return (
@@ -44,7 +39,6 @@ export function AnamnesisSection({ patientId }: { patientId: string }) {
     );
   }
 
-  // Fichas ativas + fichas antigas que já têm preenchimento (para não esconder histórico).
   const all = history.data ?? [];
   const tabs: { key: string; name: string; kind: string; form?: FormDef }[] = (forms.data ?? []).map((f) => ({
     key: f.id,
@@ -190,7 +184,6 @@ export function AnswersView({ anamnesis }: { anamnesis: Anamnesis }) {
   );
 }
 
-/** Preenchimento de uma ficha. As respostas da versão anterior (se houver) vêm preenchidas para revisão. */
 export function AnamnesisForm({
   patientId,
   form,
@@ -359,7 +352,6 @@ const AlertMark = styled.span`
   color: ${({ theme }) => theme.colors.danger};
 `;
 
-/** Sim/Não em pílulas: o rádio nativo fica invisível (teclado e leitor de tela continuam funcionando). */
 const YesNo = styled.div`
   display: inline-flex;
   gap: ${({ theme }) => theme.space[2]};
@@ -435,7 +427,6 @@ const FormSwitch = styled.div`
     box-shadow: inset 0 0 0 1px ${({ theme }) => theme.colors.primary};
   }
 
-  /* No celular, cada ficha ocupa a largura do conteúdo, alinhadas entre si. */
   @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
     button {
       flex: 1 1 100%;

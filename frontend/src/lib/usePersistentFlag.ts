@@ -13,7 +13,6 @@ function read(key: string, fallback: boolean): boolean {
   }
 }
 
-/** Preferência de interface (ex.: menu recolhido) guardada no navegador. Falhas de armazenamento são ignoradas. */
 export function usePersistentFlag(key: string, fallback: boolean): [boolean, (value: boolean) => void] {
   const subscribe = useCallback((cb: () => void) => {
     listeners.add(cb);
@@ -28,9 +27,7 @@ export function usePersistentFlag(key: string, fallback: boolean): [boolean, (va
     (next: boolean) => {
       try {
         window.localStorage.setItem(key, next ? "1" : "0");
-      } catch {
-        // armazenamento indisponível (modo privado): mantém só nesta renderização
-      }
+      } catch {}
       listeners.forEach((l) => l());
     },
     [key],

@@ -19,7 +19,9 @@ Orçamentos e planos de tratamento (rascunho, apresentado, aprovado).
 ## API para outros módulos
 
 - Classes do pacote raiz (`treatment`)
+- `treatment.dto.response` (interface `dto`)
 - `treatment.event` (interface `event`)
+- `treatment.service` (interface `service`)
 
 ## Eventos publicados
 

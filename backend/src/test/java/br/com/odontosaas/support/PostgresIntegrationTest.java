@@ -79,6 +79,36 @@ public abstract class PostgresIntegrationTest {
         return matcher.group(1);
     }
 
+    /** Token do último convite do portal enviado para o e-mail informado. */
+    protected String portalActivationToken(String email) {
+        org.mockito.ArgumentCaptor<org.springframework.mail.SimpleMailMessage> captor =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.mail.SimpleMailMessage.class);
+        org.mockito.Mockito.verify(mailSender, org.mockito.Mockito.atLeastOnce())
+                .send(captor.capture());
+        String token = null;
+        for (org.springframework.mail.SimpleMailMessage message : captor.getAllValues()) {
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+                            "/portal/ativar#token=([A-Za-z0-9_-]{43})")
+                    .matcher(message.getText());
+            if (java.util.Arrays.asList(message.getTo()).contains(email) && matcher.find()) token = matcher.group(1);
+        }
+        if (token == null) throw new AssertionError("Nenhum convite do portal para " + email);
+        return token;
+    }
+
+    /** Ativa a conta do portal do paciente (convite enviado no cadastro) e devolve o navegador já logado. */
+    protected Browser portalPatient(Browser clinic, String patientId) {
+        String email = Browser.json(clinic.get("/api/v1/patients/" + patientId), "$.email");
+        Browser patient = browser();
+        org.assertj.core.api.Assertions.assertThat(patient.post(
+                        "/api/v1/public/portal/activation",
+                        ("{\"token\":\"%s\",\"birthDate\":\"1990-05-10\",\"password\":\"%s\","
+                                        + "\"acceptedTerms\":true}")
+                                .formatted(portalActivationToken(email), TestData.PASSWORD)))
+                .hasStatusOk();
+        return patient;
+    }
+
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);

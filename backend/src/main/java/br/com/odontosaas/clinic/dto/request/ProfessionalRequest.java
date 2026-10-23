@@ -12,8 +12,11 @@ import java.util.UUID;
 public record ProfessionalRequest(
         UUID userId,
         @NotBlank @Size(max = 160) String name,
-        @Size(max = 20) String cro,
 
+        @NotBlank(message = "Informe o CRO.") @Size(max = 20)
+        String cro,
+
+        @NotBlank(message = "Informe a UF do CRO.")
         @Pattern(regexp = "^[A-Z]{2}$", message = "use a sigla do estado (ex.: SP)")
         String croState,
 
@@ -23,7 +26,10 @@ public record ProfessionalRequest(
         String color,
 
         @Size(max = 20) String phone,
-        @Email @Size(max = 254) String email,
+
+        @NotBlank(message = "Informe o e-mail.") @Email(message = "E-mail inválido.") @Size(max = 254)
+        String email,
+
         @DecimalMin("0") @DecimalMax("100") BigDecimal commissionPercent,
         Boolean active,
         Long version) {}

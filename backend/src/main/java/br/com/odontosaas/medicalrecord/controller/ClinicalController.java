@@ -4,9 +4,11 @@ import br.com.odontosaas.medicalrecord.dto.request.ActiveRequest;
 import br.com.odontosaas.medicalrecord.dto.request.AnamnesisRequest;
 import br.com.odontosaas.medicalrecord.dto.request.ChartEntryRequest;
 import br.com.odontosaas.medicalrecord.dto.request.DocumentRequest;
+import br.com.odontosaas.medicalrecord.dto.request.DocumentUpdateRequest;
 import br.com.odontosaas.medicalrecord.dto.request.FormRequest;
 import br.com.odontosaas.medicalrecord.dto.request.NoteRequest;
 import br.com.odontosaas.medicalrecord.dto.request.PerformedRequest;
+import br.com.odontosaas.medicalrecord.dto.request.SharingRequest;
 import br.com.odontosaas.medicalrecord.dto.response.AnamnesisView;
 import br.com.odontosaas.medicalrecord.dto.response.ChartEntryView;
 import br.com.odontosaas.medicalrecord.dto.response.DocumentView;
@@ -182,6 +184,33 @@ public class ClinicalController {
     @Operation(summary = "Emite receituário, atestado, encaminhamento ou outro documento")
     public DocumentView addDocument(@PathVariable UUID patientId, @Valid @RequestBody DocumentRequest request) {
         return clinical.addDocument(patientId, request);
+    }
+
+    @PutMapping(BASE + "/documents/{documentId}")
+    @PreAuthorize(WRITE)
+    @Operation(summary = "Corrige título e texto do documento (a versão anterior fica no histórico)")
+    public DocumentView updateDocument(
+            @PathVariable UUID patientId,
+            @PathVariable UUID documentId,
+            @Valid @RequestBody DocumentUpdateRequest request) {
+        return clinical.updateDocument(patientId, documentId, request);
+    }
+
+    @PostMapping(BASE + "/documents/{documentId}/void")
+    @PreAuthorize(WRITE)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Anula documento com motivo (não apaga; some do portal do paciente)")
+    public void voidDocument(
+            @PathVariable UUID patientId, @PathVariable UUID documentId, @Valid @RequestBody VoidRequest request) {
+        clinical.voidDocument(patientId, documentId, request.reason());
+    }
+
+    @PutMapping(BASE + "/documents/{documentId}/sharing")
+    @PreAuthorize(WRITE)
+    @Operation(summary = "Mostra ou esconde o documento no portal do paciente")
+    public DocumentView documentSharing(
+            @PathVariable UUID patientId, @PathVariable UUID documentId, @Valid @RequestBody SharingRequest request) {
+        return clinical.setDocumentSharing(patientId, documentId, request.shared());
     }
 
     @GetMapping("/api/v1/clinical-documents")

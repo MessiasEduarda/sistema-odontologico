@@ -6,10 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { useFeedback } from "@/components/ui/Feedback";
 import { whatsappNumber } from "@/lib/whatsapp";
 
-/**
- * Abre o WhatsApp com a mensagem pronta para o paciente. Respeita o consentimento do cadastro ("Aceita WhatsApp") e
- * exige celular válido. `message` pode ser assíncrona (ex.: gerar o link de confirmação antes de abrir).
- */
 export function WhatsAppButton({
   phone,
   allowed,
@@ -18,7 +14,6 @@ export function WhatsAppButton({
   variant = "outline",
 }: {
   phone: string | null | undefined;
-  /** Consentimento do paciente para contato por WhatsApp. */
   allowed: boolean;
   message: () => string | Promise<string>;
   label?: string;
@@ -35,7 +30,6 @@ export function WhatsAppButton({
 
   const open = async () => {
     if (!number) return;
-    // A janela é aberta já no clique (o navegador bloqueia pop-ups abertos depois de uma espera).
     const tab = window.open("about:blank", "_blank");
     setPending(true);
     try {

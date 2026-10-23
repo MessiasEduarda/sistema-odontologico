@@ -16,13 +16,10 @@ import styled, { css } from "styled-components";
 type Kind = "attention" | "success" | "error";
 
 interface ConfirmOptions {
-  /** Linha principal (pergunta). */
   message: ReactNode;
-  /** Linha secundária, mais discreta. */
   detail?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  /** Ação destrutiva (excluir, inativar, descartar): o botão de confirmar fica vermelho. */
   danger?: boolean;
 }
 
@@ -32,15 +29,11 @@ interface Request extends ConfirmOptions {
 }
 
 export interface FeedbackApi {
-  /** Pede confirmação ("Atenção!"). Resolve true em "Continuar" e false em "Voltar"/Esc. */
   confirm: (options: ConfirmOptions) => Promise<boolean>;
-  /** Avisa que algo deu certo ("Sucesso!"). */
   success: (message: ReactNode, detail?: ReactNode) => void;
-  /** Avisa que algo não pôde ser feito ("Erro!"). */
   error: (message: ReactNode, detail?: ReactNode) => void;
 }
 
-/** Aviso padrão ao sair de um formulário com dados preenchidos. */
 export const DISCARD_CHANGES: ConfirmOptions = {
   message: "Caso voltar, você irá perder todos os dados preenchidos.",
   detail: "Tem certeza que deseja continuar?",
@@ -49,7 +42,6 @@ export const DISCARD_CHANGES: ConfirmOptions = {
 
 const FeedbackContext = createContext<FeedbackApi | null>(null);
 
-/** Uma janela de aviso por vez, acima de qualquer outro modal (camada superior do <dialog> nativo). */
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<Request | null>(null);
 
@@ -107,14 +99,11 @@ function FeedbackDialog({ request, onFinish }: { request: Request; onFinish: (co
 
 export interface AlertDialogProps extends ConfirmOptions {
   kind: Kind;
-  /** Só em "attention": botão de confirmar. */
   onConfirm?: () => void;
   onClose: () => void;
-  /** Confirmação em andamento: botões desabilitados. */
   loading?: boolean;
 }
 
-/** Aviso no modelo do sistema: cabeçalho colorido, mensagem e botões de texto separados por linha. */
 export function AlertDialog({
   kind,
   message,
@@ -199,7 +188,6 @@ const Dialog = styled.dialog`
   }
 `;
 
-/** Cabeçalho na cor do tipo: caramelo (atenção), verde (sucesso), vermelho (erro). */
 const Head = styled.header<{ $kind: Kind }>`
   padding: ${({ theme }) => `${theme.space[3]} ${theme.space[5]}`};
   background: ${({ theme, $kind }) =>

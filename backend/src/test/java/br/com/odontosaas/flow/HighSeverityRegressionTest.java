@@ -97,7 +97,9 @@ class HighSeverityRegressionTest extends PostgresIntegrationTest {
         StringBuilder rows = new StringBuilder();
         for (int i = 0; i < names.length; i++) {
             if (i > 0) rows.append(',');
-            rows.append("{\"line\":%d,\"fullName\":\"%s\",\"birthDate\":\"1990-01-01\"}".formatted(i + 1, names[i]));
+            rows.append(("{\"line\":%d,\"fullName\":\"%s\",\"birthDate\":\"1990-01-01\",\"cpf\":\"%s\","
+                            + "\"mobile\":\"11999990000\",\"email\":\"imp%s@teste.example\"}")
+                    .formatted(i + 1, names[i], TestData.cpf(), TestData.unique()));
         }
         return "{\"dryRun\":%s,\"rows\":[%s]}".formatted(dryRun, rows);
     }
@@ -108,10 +110,9 @@ class HighSeverityRegressionTest extends PostgresIntegrationTest {
         createPatient(owner, "Paciente Dois");
         limitPatientsTo(3); // 2 ativos, resta 1 vaga
 
-        MvcTestResult create =
-                owner.post("/api/v1/patients", "{\"fullName\":\"Terceiro\",\"birthDate\":\"1990-01-01\"}");
+        MvcTestResult create = owner.post("/api/v1/patients", TestData.patientJson("Terceiro", null));
         assertThat(create).hasStatus(HttpStatus.CREATED);
-        MvcTestResult full = owner.post("/api/v1/patients", "{\"fullName\":\"Quarto\",\"birthDate\":\"1990-01-01\"}");
+        MvcTestResult full = owner.post("/api/v1/patients", TestData.patientJson("Quarto", null));
         assertThat(full).hasStatus(HttpStatus.FORBIDDEN);
         assertThat((String) json(full, "$.code")).isEqualTo("PLAN_LIMIT_REACHED");
 
@@ -217,8 +218,9 @@ class HighSeverityRegressionTest extends PostgresIntegrationTest {
     private String professionalFor(Person person, String name) {
         MvcTestResult r = owner.post(
                 "/api/v1/clinic/professionals",
-                "{\"userId\":\"%s\",\"name\":\"%s\",\"color\":\"#9C7A5B\",\"active\":true}"
-                        .formatted(person.id(), name));
+                ("{\"userId\":\"%s\",\"name\":\"%s\",\"cro\":\"123\",\"croState\":\"SP\","
+                                + "\"email\":\"%s\",\"color\":\"#9C7A5B\",\"active\":true}")
+                        .formatted(person.id(), name, person.email()));
         assertThat(r).hasStatus(HttpStatus.CREATED);
         return json(r, "$.id");
     }
@@ -227,16 +229,19 @@ class HighSeverityRegressionTest extends PostgresIntegrationTest {
 
     @Test
     void omittedBooleansKeepTheCurrentValueInsteadOfResettingIt() {
+        String required =
+                "\"birthDate\":\"1990-01-01\",\"cpf\":\"%s\",\"mobile\":\"11999990000\",\"email\":\"c%s@teste.example\","
+                        .formatted(TestData.cpf(), TestData.unique());
         MvcTestResult created = owner.post(
                 "/api/v1/patients",
-                "{\"fullName\":\"Consentimento\",\"birthDate\":\"1990-01-01\","
+                "{\"fullName\":\"Consentimento\"," + required
                         + "\"allowEmail\":true,\"allowSms\":true,\"allowWhatsapp\":true}");
         String id = json(created, "$.id");
         long version = ((Number) json(created, "$.version")).longValue();
 
         MvcTestResult updated = owner.put(
                 "/api/v1/patients/" + id,
-                "{\"fullName\":\"Consentimento Editado\",\"birthDate\":\"1990-01-01\",\"version\":" + version + "}");
+                "{\"fullName\":\"Consentimento Editado\"," + required + "\"version\":" + version + "}");
         assertThat(updated).hasStatusOk();
         assertThat((Boolean) json(updated, "$.allowEmail")).isTrue();
         assertThat((Boolean) json(updated, "$.allowSms")).isTrue();
@@ -245,13 +250,12 @@ class HighSeverityRegressionTest extends PostgresIntegrationTest {
         // Explícito continua valendo: o paciente pode revogar.
         MvcTestResult revoked = owner.put(
                 "/api/v1/patients/" + id,
-                "{\"fullName\":\"Consentimento Editado\",\"birthDate\":\"1990-01-01\",\"allowEmail\":false}");
+                "{\"fullName\":\"Consentimento Editado\"," + required + "\"allowEmail\":false}");
         assertThat((Boolean) json(revoked, "$.allowEmail")).isFalse();
         assertThat((Boolean) json(revoked, "$.allowSms")).isTrue();
 
         // Cadastro novo sem a escolha: sem consentimento.
-        MvcTestResult plain =
-                owner.post("/api/v1/patients", "{\"fullName\":\"Sem Escolha\",\"birthDate\":\"1990-01-01\"}");
+        MvcTestResult plain = owner.post("/api/v1/patients", TestData.patientJson("Sem Escolha", null));
         assertThat((Boolean) json(plain, "$.allowEmail")).isFalse();
     }
 
@@ -278,7 +282,8 @@ class HighSeverityRegressionTest extends PostgresIntegrationTest {
         String professional = createProfessional(owner, "Dr. Ativo");
         MvcTestResult prof = owner.put(
                 "/api/v1/clinic/professionals/" + professional,
-                "{\"name\":\"Dr. Ativo Editado\",\"color\":\"#9C7A5B\"}");
+                "{\"name\":\"Dr. Ativo Editado\",\"cro\":\"123\",\"croState\":\"SP\",\"email\":\"ativo@teste.example\","
+                        + "\"color\":\"#9C7A5B\"}");
         assertThat(prof).hasStatusOk();
         assertThat((Boolean) json(prof, "$.active")).isTrue();
     }

@@ -22,7 +22,8 @@ public class TenantAwareDataSource extends DelegatingDataSource {
             + " set_config('app.user_id', ?, false),"
             + " set_config('app.invitation_token_hash', ?, false),"
             + " set_config('app.access_token_hash', ?, false),"
-            + " set_config('app.platform_admin', ?, false)";
+            + " set_config('app.platform_admin', ?, false),"
+            + " set_config('app.portal_account_id', ?, false)";
 
     private static final Set<String> STATEMENT_METHODS = Set.of("createStatement", "prepareStatement", "prepareCall");
 
@@ -101,7 +102,10 @@ public class TenantAwareDataSource extends DelegatingDataSource {
                     state.tenantId() == null ? "" : state.tenantId().toString(),
                     state.userId() == null ? "" : state.userId().toString(),
                     state.accessTokenHash() == null ? "" : state.accessTokenHash(),
-                    state.platformAdmin() ? "true" : "");
+                    state.platformAdmin() ? "true" : "",
+                    state.portalAccountId() == null
+                            ? ""
+                            : state.portalAccountId().toString());
             appliedKey = key;
             dirty = true;
         }
@@ -114,7 +118,7 @@ public class TenantAwareDataSource extends DelegatingDataSource {
                     if (manualCommit) {
                         target.rollback();
                     }
-                    apply("", "", "", "");
+                    apply("", "", "", "", "");
                     if (manualCommit) {
                         target.commit();
                     }
@@ -126,13 +130,15 @@ public class TenantAwareDataSource extends DelegatingDataSource {
             dirty = false;
         }
 
-        private void apply(String tenantId, String userId, String tokenHash, String platformAdmin) throws SQLException {
+        private void apply(String tenantId, String userId, String tokenHash, String platformAdmin, String portalAccount)
+                throws SQLException {
             try (PreparedStatement ps = target.prepareStatement(APPLY_SQL)) {
                 ps.setString(1, tenantId);
                 ps.setString(2, userId);
                 ps.setString(3, tokenHash);
                 ps.setString(4, tokenHash);
                 ps.setString(5, platformAdmin);
+                ps.setString(6, portalAccount);
                 ps.execute();
             }
         }

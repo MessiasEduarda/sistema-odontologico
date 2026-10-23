@@ -10,5 +10,6 @@ public record AttachmentView(
         String filename,
         String contentType,
         long sizeBytes,
+        boolean sharedWithPatient,
         String uploadedByName,
         Instant createdAt) {}

@@ -2,7 +2,6 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-/** Imagens importadas viram o mesmo formato do Next ({ src, width, height }), exigido pelo next/image. */
 const staticImages = {
   name: "next-static-images",
   enforce: "pre" as const,
@@ -17,9 +16,22 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   test: {
-    environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
     css: false,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: ["src/**/*.test.{ts,tsx}"],
+          exclude: ["src/lib/pdf/**"],
+        },
+      },
+      {
+        extends: true,
+        test: { name: "pdf", environment: "node", include: ["src/lib/pdf/**/*.test.{ts,tsx}"] },
+      },
+    ],
   },
 });

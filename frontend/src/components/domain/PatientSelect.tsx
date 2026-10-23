@@ -18,10 +18,6 @@ interface PatientSelectProps {
   disabled?: boolean;
 }
 
-/**
- * Busca de paciente com autocompletar (padrão ARIA combobox): digite nome, CPF ou telefone; setas navegam, Enter
- * seleciona, Esc fecha. A lista fica numa camada própria, com fundo opaco (sem sobrepor texto de outros campos).
- */
 export function PatientSelect({ label = "Paciente", value, onChange, error, required, disabled }: PatientSelectProps) {
   const id = useId();
   const listId = `${id}-list`;

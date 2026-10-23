@@ -7,6 +7,7 @@ import br.com.odontosaas.medicalrecord.dto.request.AnamnesisRequest;
 import br.com.odontosaas.medicalrecord.dto.request.Answer;
 import br.com.odontosaas.medicalrecord.dto.request.ChartEntryRequest;
 import br.com.odontosaas.medicalrecord.dto.request.DocumentRequest;
+import br.com.odontosaas.medicalrecord.dto.request.DocumentUpdateRequest;
 import br.com.odontosaas.medicalrecord.dto.request.FormRequest;
 import br.com.odontosaas.medicalrecord.dto.request.NoteRequest;
 import br.com.odontosaas.medicalrecord.dto.request.PerformedRequest;
@@ -434,12 +435,64 @@ public class ClinicalService {
                 r.type(),
                 r.title().strip(),
                 r.content().strip(),
+                Boolean.TRUE.equals(r.sharedWithPatient()),
                 actor());
         audit.record(AuditAction.RECORD_CREATED, "clinical_document", id, Map.of("type", r.type()));
+        return document(patientId, id);
+    }
+
+    @Transactional
+    public DocumentView updateDocument(UUID patientId, UUID documentId, DocumentUpdateRequest r) {
+        UUID tenantId = tenantFor(patientId);
+        ClinicalDocumentRepository.DocumentHeadRow head = clinicalDocuments
+                .findHead(tenantId, patientId, documentId)
+                .orElseThrow(() -> ApiException.notFound("Documento"));
+        if (head.voided()) {
+            throw ApiException.conflict("DOCUMENT_VOIDED", "Documento anulado não pode ser corrigido.");
+        }
+        authorship.require(tenantId, head.professionalId());
+        clinicalDocuments.insertRevision(Ids.newId(), tenantId, documentId, head.title(), head.content(), actor());
+        clinicalDocuments.updateContent(
+                tenantId, documentId, r.title().strip(), r.content().strip(), actor());
+        audit.record(AuditAction.RECORD_UPDATED, "clinical_document", documentId, Map.of());
+        return document(patientId, documentId);
+    }
+
+    @Transactional
+    public void voidDocument(UUID patientId, UUID documentId, String reason) {
+        UUID tenantId = tenantFor(patientId);
+        ClinicalDocumentRepository.DocumentHeadRow head = clinicalDocuments
+                .findHead(tenantId, patientId, documentId)
+                .orElseThrow(() -> ApiException.notFound("Documento"));
+        authorship.require(tenantId, head.professionalId());
+        if (clinicalDocuments.voidDocument(tenantId, patientId, documentId, reason.strip(), actor()) == 0) {
+            throw ApiException.conflict("DOCUMENT_VOIDED", "Este documento já foi anulado.");
+        }
+        audit.record(AuditAction.RECORD_VOIDED, "clinical_document", documentId, Map.of());
+    }
+
+    @Transactional
+    public DocumentView setDocumentSharing(UUID patientId, UUID documentId, boolean shared) {
+        UUID tenantId = tenantFor(patientId);
+        if (clinicalDocuments.updateSharing(tenantId, patientId, documentId, shared) == 0) {
+            throw ApiException.notFound("Documento");
+        }
+        audit.record(AuditAction.RECORD_UPDATED, "clinical_document", documentId, Map.of("sharedWithPatient", shared));
+        return document(patientId, documentId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DocumentView> sharedDocuments(UUID patientId) {
         return documents(patientId).stream()
-                .filter(d -> d.id().equals(id))
+                .filter(d -> d.sharedWithPatient() && d.voidedAt() == null)
+                .toList();
+    }
+
+    private DocumentView document(UUID patientId, UUID documentId) {
+        return documents(patientId).stream()
+                .filter(d -> d.id().equals(documentId))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> ApiException.notFound("Documento"));
     }
 
     @Transactional(readOnly = true)

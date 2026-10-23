@@ -13,4 +13,5 @@ public record DocumentRequest(
         String type,
 
         @NotBlank @Size(max = 160) String title,
-        @NotBlank @Size(max = 20000) String content) {}
+        @NotBlank @Size(max = 20000) String content,
+        Boolean sharedWithPatient) {}

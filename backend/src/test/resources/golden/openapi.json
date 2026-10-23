@@ -3096,6 +3096,49 @@
           }
         },
         "tags" : [ "Prontuário" ]
+      },
+      "put" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "attachmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "patientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachmentUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttachmentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Corrige categoria e descrição do anexo",
+        "tags" : [ "Prontuário" ]
       }
     },
     "/api/v1/patients/{patientId}/attachments/{attachmentId}/download" : {
@@ -3131,6 +3174,51 @@
           }
         },
         "summary" : "Baixa o anexo (auditado)",
+        "tags" : [ "Prontuário" ]
+      }
+    },
+    "/api/v1/patients/{patientId}/attachments/{attachmentId}/sharing" : {
+      "put" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "attachmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "patientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SharingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttachmentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Mostra ou esconde o anexo no portal do paciente",
         "tags" : [ "Prontuário" ]
       }
     },
@@ -3568,6 +3656,134 @@
         "tags" : [ "Prontuário" ]
       }
     },
+    "/api/v1/patients/{patientId}/documents/{documentId}" : {
+      "put" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "patientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Corrige título e texto do documento (a versão anterior fica no histórico)",
+        "tags" : [ "Prontuário" ]
+      }
+    },
+    "/api/v1/patients/{patientId}/documents/{documentId}/sharing" : {
+      "put" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "patientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SharingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Mostra ou esconde o documento no portal do paciente",
+        "tags" : [ "Prontuário" ]
+      }
+    },
+    "/api/v1/patients/{patientId}/documents/{documentId}/void" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "documentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "patientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VoidRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Anula documento com motivo (não apaga; some do portal do paciente)",
+        "tags" : [ "Prontuário" ]
+      }
+    },
     "/api/v1/patients/{patientId}/notes" : {
       "get" : {
         "parameters" : [ {
@@ -3734,8 +3950,8 @@
         "tags" : [ "Prontuário" ]
       }
     },
-    "/api/v1/patients/{patientId}/portal-access" : {
-      "post" : {
+    "/api/v1/patients/{patientId}/portal-account" : {
+      "get" : {
         "parameters" : [ {
           "in" : "path",
           "name" : "patientId",
@@ -3745,32 +3961,23 @@
             "type" : "string"
           }
         } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/GrantRequest"
-              }
-            }
-          }
-        },
         "responses" : {
           "200" : {
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/AccessView"
+                  "$ref" : "#/components/schemas/PortalAccountStatus"
                 }
               }
             },
             "description" : "OK"
           }
         },
-        "summary" : "Gera link do portal (30 dias); revoga links anteriores",
+        "summary" : "Situação do acesso do paciente ao portal",
         "tags" : [ "Portal do paciente" ]
       }
     },
-    "/api/v1/patients/{patientId}/portal-access/revoke" : {
+    "/api/v1/patients/{patientId}/portal-account/block" : {
       "post" : {
         "parameters" : [ {
           "in" : "path",
@@ -3782,10 +3989,72 @@
           }
         } ],
         "responses" : {
-          "204" : {
-            "description" : "No Content"
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PortalAccountStatus"
+                }
+              }
+            },
+            "description" : "OK"
           }
         },
+        "summary" : "Bloqueia o acesso do paciente ao portal desta clínica (encerra as sessões)",
+        "tags" : [ "Portal do paciente" ]
+      }
+    },
+    "/api/v1/patients/{patientId}/portal-account/invite" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "patientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PortalAccountStatus"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Envia (ou reenvia) o convite para o paciente criar a senha do portal",
+        "tags" : [ "Portal do paciente" ]
+      }
+    },
+    "/api/v1/patients/{patientId}/portal-account/unblock" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "patientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PortalAccountStatus"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Libera novamente o acesso do paciente ao portal",
         "tags" : [ "Portal do paciente" ]
       }
     },
@@ -4322,8 +4591,72 @@
         "tags" : [ "Convites (público)" ]
       }
     },
+    "/api/v1/public/portal/activation" : {
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ActivationBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PortalMe"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Público: confirma a data de nascimento e cria a senha do portal",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/activation/lookup" : {
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TokenBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ActivationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Público: dados do convite para criar a senha",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
     "/api/v1/public/portal/appointments/respond" : {
       "post" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -4346,12 +4679,55 @@
             "description" : "OK"
           }
         },
-        "summary" : "Público: confirmar/cancelar consulta",
+        "summary" : "Paciente logado: confirmar/cancelar consulta",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/attachments/{attachmentId}/download" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "attachmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Paciente logado: baixa um anexo liberado (auditado)",
         "tags" : [ "Público", "Portal do paciente" ]
       }
     },
     "/api/v1/public/portal/consents/sign" : {
       "post" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -4374,12 +4750,20 @@
             "description" : "OK"
           }
         },
-        "summary" : "Público: assinar termo pendente",
+        "summary" : "Paciente logado: assinar termo pendente",
         "tags" : [ "Público", "Portal do paciente" ]
       }
     },
     "/api/v1/public/portal/contact" : {
       "post" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -4402,22 +4786,129 @@
             "description" : "OK"
           }
         },
-        "summary" : "Público: atualizar contato e preferências",
+        "summary" : "Paciente logado: atualizar celular, telefone e preferências",
         "tags" : [ "Público", "Portal do paciente" ]
       }
     },
-    "/api/v1/public/portal/overview" : {
+    "/api/v1/public/portal/login" : {
       "post" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal_device",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/TokenBody"
+                "$ref" : "#/components/schemas/PortalLoginBody"
               }
             }
           },
           "required" : true
         },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Público: login do paciente (pede código por e-mail em aparelho novo)",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/login/verify" : {
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VerifyCodeBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LoginResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Público: confirma o código enviado por e-mail",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/logout" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Público: encerra a sessão do paciente",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/me" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PortalMe"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Paciente logado: e-mail e perfis (clínica e paciente) disponíveis",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/overview" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
@@ -4430,7 +4921,111 @@
             "description" : "OK"
           }
         },
-        "summary" : "Público: dados do portal",
+        "summary" : "Paciente logado: consultas, termos pendentes e contato",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/password/forgot" : {
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmailBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Público: envia o link de redefinição de senha (sempre responde igual)",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/password/reset" : {
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResetBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Público: cria nova senha a partir do link; encerra as sessões abertas",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/profile" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProfileBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PortalMe"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Paciente logado: escolhe a clínica/paciente ativo",
+        "tags" : [ "Público", "Portal do paciente" ]
+      }
+    },
+    "/api/v1/public/portal/records" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "cookie",
+          "name" : "odonto_portal",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PortalRecords"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Paciente logado: documentos, termos assinados, orçamentos, recibos e anexos liberados",
         "tags" : [ "Público", "Portal do paciente" ]
       }
     },
@@ -5209,16 +5804,38 @@
       "required" : [ "version" ],
       "type" : "object"
     },
-    "AccessView" : {
+    "ActivationBody" : {
       "properties" : {
-        "emailQueued" : {
+        "acceptedTerms" : {
           "type" : "boolean"
         },
-        "expiresAt" : {
-          "format" : "date-time",
+        "birthDate" : {
+          "format" : "date",
           "type" : "string"
         },
-        "url" : {
+        "password" : {
+          "maxLength" : 128,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "token" : {
+          "maxLength" : 64,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "birthDate", "password", "token" ],
+      "type" : "object"
+    },
+    "ActivationView" : {
+      "properties" : {
+        "clinicName" : {
+          "type" : "string"
+        },
+        "email" : {
+          "type" : "string"
+        },
+        "firstName" : {
           "type" : "string"
         }
       },
@@ -5730,6 +6347,22 @@
       "required" : [ "approvedByName" ],
       "type" : "object"
     },
+    "AttachmentUpdateRequest" : {
+      "properties" : {
+        "category" : {
+          "minLength" : 1,
+          "pattern" : "XRAY|PHOTO|EXAM|DOCUMENT|OTHER",
+          "type" : "string"
+        },
+        "description" : {
+          "maxLength" : 300,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "category" ],
+      "type" : "object"
+    },
     "AttachmentView" : {
       "properties" : {
         "category" : {
@@ -5751,6 +6384,9 @@
         "id" : {
           "format" : "uuid",
           "type" : "string"
+        },
+        "sharedWithPatient" : {
+          "type" : "boolean"
         },
         "sizeBytes" : {
           "format" : "int64",
@@ -5843,6 +6479,9 @@
           "type" : "string"
         },
         "sendEmail" : {
+          "type" : "boolean"
+        },
+        "sharedWithPatient" : {
           "type" : "boolean"
         },
         "title" : {
@@ -6257,12 +6896,6 @@
         "allowWhatsapp" : {
           "type" : "boolean"
         },
-        "email" : {
-          "format" : "email",
-          "maxLength" : 254,
-          "minLength" : 0,
-          "type" : "string"
-        },
         "mobile" : {
           "maxLength" : 20,
           "minLength" : 0,
@@ -6272,14 +6905,8 @@
           "maxLength" : 20,
           "minLength" : 0,
           "type" : "string"
-        },
-        "token" : {
-          "maxLength" : 64,
-          "minLength" : 0,
-          "type" : "string"
         }
       },
-      "required" : [ "token" ],
       "type" : "object"
     },
     "CreateInvitationRequest" : {
@@ -6416,6 +7043,9 @@
           "format" : "uuid",
           "type" : "string"
         },
+        "sharedWithPatient" : {
+          "type" : "boolean"
+        },
         "title" : {
           "maxLength" : 160,
           "minLength" : 0,
@@ -6428,6 +7058,22 @@
         }
       },
       "required" : [ "content", "professionalId", "title", "type" ],
+      "type" : "object"
+    },
+    "DocumentUpdateRequest" : {
+      "properties" : {
+        "content" : {
+          "maxLength" : 20000,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "title" : {
+          "maxLength" : 160,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "content", "title" ],
       "type" : "object"
     },
     "DocumentView" : {
@@ -6453,13 +7099,39 @@
         "professionalName" : {
           "type" : "string"
         },
+        "sharedWithPatient" : {
+          "type" : "boolean"
+        },
         "title" : {
           "type" : "string"
         },
         "type" : {
           "type" : "string"
+        },
+        "updatedAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "voidReason" : {
+          "type" : "string"
+        },
+        "voidedAt" : {
+          "format" : "date-time",
+          "type" : "string"
         }
       },
+      "type" : "object"
+    },
+    "EmailBody" : {
+      "properties" : {
+        "email" : {
+          "format" : "email",
+          "maxLength" : 254,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "email" ],
       "type" : "object"
     },
     "ExamplesRequest" : {
@@ -6626,14 +7298,6 @@
         "startsAt" : {
           "format" : "date-time",
           "type" : "string"
-        }
-      },
-      "type" : "object"
-    },
-    "GrantRequest" : {
-      "properties" : {
-        "sendEmail" : {
-          "type" : "boolean"
         }
       },
       "type" : "object"
@@ -7047,6 +7711,24 @@
         }
       },
       "required" : [ "email", "password" ],
+      "type" : "object"
+    },
+    "LoginResult" : {
+      "properties" : {
+        "challengeId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "maskedEmail" : {
+          "type" : "string"
+        },
+        "me" : {
+          "$ref" : "#/components/schemas/PortalMe"
+        },
+        "status" : {
+          "type" : "string"
+        }
+      },
       "type" : "object"
     },
     "LogoResult" : {
@@ -7555,7 +8237,7 @@
           "type" : "string"
         }
       },
-      "required" : [ "fullName" ],
+      "required" : [ "birthDate", "cpf", "email", "fullName", "mobile" ],
       "type" : "object"
     },
     "PatientSummary" : {
@@ -8169,6 +8851,29 @@
       },
       "type" : "object"
     },
+    "PortalAccountStatus" : {
+      "properties" : {
+        "activatedAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "email" : {
+          "type" : "string"
+        },
+        "invitedAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "lastLoginAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "status" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
     "PortalAppointment" : {
       "properties" : {
         "canRespond" : {
@@ -8190,6 +8895,38 @@
           "type" : "string"
         },
         "status" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "PortalClinic" : {
+      "properties" : {
+        "address" : {
+          "type" : "string"
+        },
+        "city" : {
+          "type" : "string"
+        },
+        "document" : {
+          "type" : "string"
+        },
+        "email" : {
+          "type" : "string"
+        },
+        "legalName" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "phone" : {
+          "type" : "string"
+        },
+        "state" : {
+          "type" : "string"
+        },
+        "zipCode" : {
           "type" : "string"
         }
       },
@@ -8243,6 +8980,45 @@
       },
       "type" : "object"
     },
+    "PortalLoginBody" : {
+      "properties" : {
+        "email" : {
+          "format" : "email",
+          "maxLength" : 254,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "password" : {
+          "maxLength" : 128,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "email", "password" ],
+      "type" : "object"
+    },
+    "PortalMe" : {
+      "properties" : {
+        "activePatientId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "activeTenantId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "email" : {
+          "type" : "string"
+        },
+        "profiles" : {
+          "items" : {
+            "$ref" : "#/components/schemas/PortalProfile"
+          },
+          "type" : "array"
+        }
+      },
+      "type" : "object"
+    },
     "PortalOverview" : {
       "properties" : {
         "clinicName" : {
@@ -8263,6 +9039,96 @@
         "upcoming" : {
           "items" : {
             "$ref" : "#/components/schemas/PortalAppointment"
+          },
+          "type" : "array"
+        }
+      },
+      "type" : "object"
+    },
+    "PortalPatient" : {
+      "properties" : {
+        "birthDate" : {
+          "format" : "date",
+          "type" : "string"
+        },
+        "cpf" : {
+          "type" : "string"
+        },
+        "fullName" : {
+          "type" : "string"
+        },
+        "guardianCpf" : {
+          "type" : "string"
+        },
+        "guardianName" : {
+          "type" : "string"
+        },
+        "mobile" : {
+          "type" : "string"
+        },
+        "phone" : {
+          "type" : "string"
+        },
+        "socialName" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "PortalProfile" : {
+      "properties" : {
+        "clinicName" : {
+          "type" : "string"
+        },
+        "patientId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "patientName" : {
+          "type" : "string"
+        },
+        "tenantId" : {
+          "format" : "uuid",
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "PortalRecords" : {
+      "properties" : {
+        "attachments" : {
+          "items" : {
+            "$ref" : "#/components/schemas/AttachmentView"
+          },
+          "type" : "array"
+        },
+        "clinic" : {
+          "$ref" : "#/components/schemas/PortalClinic"
+        },
+        "consents" : {
+          "items" : {
+            "$ref" : "#/components/schemas/ConsentView"
+          },
+          "type" : "array"
+        },
+        "documents" : {
+          "items" : {
+            "$ref" : "#/components/schemas/DocumentView"
+          },
+          "type" : "array"
+        },
+        "patient" : {
+          "$ref" : "#/components/schemas/PortalPatient"
+        },
+        "plans" : {
+          "items" : {
+            "$ref" : "#/components/schemas/PlanView"
+          },
+          "type" : "array"
+        },
+        "receivables" : {
+          "items" : {
+            "$ref" : "#/components/schemas/ReceivableView"
           },
           "type" : "array"
         }
@@ -8532,6 +9398,7 @@
           "type" : "string"
         },
         "croState" : {
+          "minLength" : 1,
           "pattern" : "^[A-Z]{2}$",
           "type" : "string"
         },
@@ -8565,7 +9432,7 @@
           "type" : "integer"
         }
       },
-      "required" : [ "color", "name" ],
+      "required" : [ "color", "cro", "croState", "email", "name" ],
       "type" : "object"
     },
     "ProfessionalView" : {
@@ -8610,6 +9477,20 @@
           "type" : "integer"
         }
       },
+      "type" : "object"
+    },
+    "ProfileBody" : {
+      "properties" : {
+        "patientId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "tenantId" : {
+          "format" : "uuid",
+          "type" : "string"
+        }
+      },
+      "required" : [ "patientId", "tenantId" ],
       "type" : "object"
     },
     "PublicAppointmentView" : {
@@ -9010,6 +9891,22 @@
       "required" : [ "ownerEmail" ],
       "type" : "object"
     },
+    "ResetBody" : {
+      "properties" : {
+        "password" : {
+          "maxLength" : 128,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "token" : {
+          "maxLength" : 64,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "password", "token" ],
+      "type" : "object"
+    },
     "ResetPasswordRequest" : {
       "properties" : {
         "newPassword" : {
@@ -9035,14 +9932,9 @@
         "appointmentId" : {
           "format" : "uuid",
           "type" : "string"
-        },
-        "token" : {
-          "maxLength" : 64,
-          "minLength" : 0,
-          "type" : "string"
         }
       },
-      "required" : [ "action", "appointmentId", "token" ],
+      "required" : [ "action", "appointmentId" ],
       "type" : "object"
     },
     "RoleView" : {
@@ -9335,6 +10227,15 @@
       },
       "type" : "object"
     },
+    "SharingRequest" : {
+      "properties" : {
+        "shared" : {
+          "type" : "boolean"
+        }
+      },
+      "required" : [ "shared" ],
+      "type" : "object"
+    },
     "SignBody" : {
       "properties" : {
         "accepted" : {
@@ -9359,14 +10260,9 @@
           "maxLength" : 160,
           "minLength" : 0,
           "type" : "string"
-        },
-        "token" : {
-          "maxLength" : 64,
-          "minLength" : 0,
-          "type" : "string"
         }
       },
-      "required" : [ "consentId", "signatureImage", "signerName", "token" ],
+      "required" : [ "consentId", "signatureImage", "signerName" ],
       "type" : "object"
     },
     "SignRequest" : {
@@ -9787,6 +10683,21 @@
           "type" : "string"
         }
       },
+      "type" : "object"
+    },
+    "VerifyCodeBody" : {
+      "properties" : {
+        "challengeId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "code" : {
+          "minLength" : 1,
+          "pattern" : "^[0-9]{6}$",
+          "type" : "string"
+        }
+      },
+      "required" : [ "challengeId", "code" ],
       "type" : "object"
     },
     "VoidRequest" : {

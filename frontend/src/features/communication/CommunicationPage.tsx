@@ -19,6 +19,7 @@ import type { MessageTemplate, OutboundMessage } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { MESSAGE_STATUS, MESSAGE_TYPES } from "@/lib/labels";
 import { useAction } from "@/lib/mutations";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 export function CommunicationPage() {
   const [tab, setTab] = useState("historico");
@@ -141,6 +142,10 @@ function TemplateEditor({ template }: { template: MessageTemplate }) {
     invalidate: [["message-templates"]],
   });
   const dirty = subject !== template.subject || body !== template.body || active !== template.active;
+  const form = useRequiredFields({
+    subject: !subject.trim() && "Informe o assunto.",
+    body: !body.trim() && "Escreva a mensagem.",
+  });
   return (
     <Card>
       <CardTitle>
@@ -150,20 +155,25 @@ function TemplateEditor({ template }: { template: MessageTemplate }) {
         <CheckboxField label="Ativo" checked={active} onChange={(e) => setActive(e.target.checked)} />
       </CardTitle>
       <Stack $gap={3}>
-        <TextField label="Assunto" maxLength={200} value={subject} onChange={(e) => setSubject(e.target.value)} />
+        <TextField
+          label="Assunto"
+          required
+          maxLength={200}
+          error={form.errors.subject}
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+        />
         <TextAreaField
           label="Mensagem"
+          required
+          error={form.errors.body}
           rows={6}
           maxLength={5000}
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />
         <Row $justify="flex-end">
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={!dirty || !subject.trim() || !body.trim()}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending} disabled={!dirty}>
             Salvar modelo
           </Button>
         </Row>

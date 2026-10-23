@@ -6,31 +6,22 @@ import { LEGAL_NOTICE, LEGAL_UPDATED_AT, PRIVACY, TERMS, type LegalSection } fro
 
 export type LegalTab = "terms" | "privacy";
 
-/** Tamanho único do modal (o mesmo dentro do sistema e no cartão do login); em telas menores, ele encolhe. */
 const DIALOG_WIDTH = 600;
 const DIALOG_HEIGHT = 608;
 
 interface LegalDialogProps {
   subtitle: string;
   initialTab?: LegalTab;
-  /** Rodapé (aceite ou botão de fechar). */
   footer: ReactNode;
-  /** Quando informado, o modal pode ser fechado (X, Esc e clique fora). Sem ele, só sai pelo rodapé. */
   onClose?: () => void;
-  /**
-   * Abre dentro do elemento pai (que precisa ter `position: relative`), cobrindo só ele e nunca maior que ele —
-   * usado no cartão do login. Sem isso, cobre a tela toda.
-   */
   contained?: boolean;
 }
 
-/** Modal dos Termos de uso e da Política de privacidade: cabeçalho caramelo, abas e texto com rolagem. */
 export function LegalDialog({ subtitle, initialTab = "terms", footer, onClose, contained = false }: LegalDialogProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<LegalTab>(initialTab);
 
-  // Foco no diálogo, página de trás travada e foco devolvido a quem abriu ao fechar.
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     dialogRef.current?.focus();
@@ -136,7 +127,6 @@ const Dialog = styled.div<{ $contained: boolean }>`
   }
 `;
 
-/** Cabeçalho colorido com título e instrução, como no modelo de referência. */
 const Header = styled.header`
   display: flex;
   align-items: flex-start;
@@ -231,7 +221,6 @@ const Footer = styled.footer`
   border-top: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-/** Botão principal do rodapé: cinza quando desabilitado, caramelo quando liberado. */
 export const DialogButton = styled.button`
   min-height: 44px;
   border: 0;

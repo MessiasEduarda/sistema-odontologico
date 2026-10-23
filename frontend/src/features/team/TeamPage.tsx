@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Badge, FilterBar, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
-import { CheckboxField, FormGrid, SelectField } from "@/components/ui/fields";
+import { CheckboxField, FieldError, FormGrid, SelectField } from "@/components/ui/fields";
 import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
@@ -20,6 +20,7 @@ import { formatDateTime, toDateInput } from "@/lib/format";
 import { ROLE_LABELS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { EMAIL_PATTERN, useRequiredFields } from "@/lib/useRequiredFields";
 
 const PERMISSION_LABELS: Record<string, string> = {
   "clinic:settings:manage": "Configurações e cadastros",
@@ -164,6 +165,9 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
   const roles = useQuery({ queryKey: ["roles"], queryFn: api.clinic.roles });
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("DENTIST");
+  const form = useRequiredFields({
+    email: (!email.trim() && "Informe o e-mail.") || (!EMAIL_PATTERN.test(email.trim()) && "Informe um e-mail válido."),
+  });
   const invite = useAction(() => api.clinic.invite(email, role), {
     success: "Convite enviado por e-mail com sucesso!",
     invalidate: [["invitations"]],
@@ -179,18 +183,21 @@ function InviteDialog({ onClose }: { onClose: () => void }) {
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => invite.mutate(undefined)}
-            loading={invite.isPending}
-            disabled={!/^\S+@\S+\.\S+$/.test(email)}
-          >
+          <Button onClick={() => form.check() && invite.mutate(undefined)} loading={invite.isPending}>
             Enviar convite
           </Button>
         </>
       }
     >
       <FormGrid $columns={1}>
-        <TextField label="E-mail" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <TextField
+          label="E-mail"
+          type="email"
+          required
+          error={form.errors.email}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
         <SelectField
           label="Papel"
           value={role}
@@ -215,6 +222,7 @@ function RolesDialog({ member, onClose }: { member: Member; onClose: () => void 
     onSuccess: onClose,
   });
   const toggle = (code: string) => setSelected((s) => (s.includes(code) ? s.filter((c) => c !== code) : [...s, code]));
+  const form = useRequiredFields({ roles: selected.length === 0 && "Selecione pelo menos um papel." });
   return (
     <Modal
       open
@@ -225,7 +233,7 @@ function RolesDialog({ member, onClose }: { member: Member; onClose: () => void 
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={selected.length === 0}>
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -240,6 +248,7 @@ function RolesDialog({ member, onClose }: { member: Member; onClose: () => void 
             onChange={() => toggle(r.code)}
           />
         ))}
+        {form.errors.roles && <FieldError>{form.errors.roles}</FieldError>}
         <Muted>
           As permissões somam-se quando a pessoa tem mais de um papel. As mudanças valem na próxima ação dela.
         </Muted>
@@ -251,7 +260,6 @@ function RolesDialog({ member, onClose }: { member: Member; onClose: () => void 
 
 function InvitationsTab() {
   const invitations = useQuery({ queryKey: ["invitations"], queryFn: api.clinic.invitations });
-  // Reenviar = convidar de novo o mesmo e-mail: o link anterior deixa de valer e um novo é enviado.
   const resend = useAction((i: Invitation) => api.clinic.invite(i.email, i.roleCode), {
     success: "Convite reenviado com sucesso! O link anterior deixou de valer.",
     invalidate: [["invitations"]],

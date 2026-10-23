@@ -1,5 +1,3 @@
-/** Formatação no padrão brasileiro. Datas da API chegam em ISO-8601 (UTC) e são exibidas no fuso local. */
-
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dateFmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const dateTimeFmt = new Intl.DateTimeFormat("pt-BR", {
@@ -14,8 +12,6 @@ const timeFmt = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-d
 export const formatMoney = (value: number | string | null | undefined) =>
   value === null || value === undefined || value === "" ? "—" : money.format(Number(value));
 
-/** Datas sem hora ("2026-10-13") são interpretadas como data local, sem deslocamento de fuso. */
-/** Arredonda para centavos: a API recusa mais de 2 casas e a subtração em ponto flutuante gera 0,30000000000000004. */
 export const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export function parseDateOnly(value: string): Date {
@@ -31,7 +27,6 @@ export const formatDate = (value: string | null | undefined) => {
 export const formatDateTime = (value: string | null | undefined) => (value ? dateTimeFmt.format(new Date(value)) : "—");
 export const formatTime = (value: string | null | undefined) => (value ? timeFmt.format(new Date(value)) : "—");
 
-/** "2026-10-13" no fuso local (para inputs type=date). */
 export function toDateInput(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -39,12 +34,10 @@ export function toDateInput(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** "14:30" no fuso local (para inputs type=time). */
 export function toTimeInput(date: Date): string {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-/** Junta data e hora locais em ISO-8601 com fuso (o servidor guarda em UTC). */
 export function localDateTimeToIso(date: string, time: string): string {
   return new Date(`${date}T${time}:00`).toISOString();
 }
@@ -66,7 +59,6 @@ export function formatPhone(value: string | null | undefined): string {
   return value || "—";
 }
 
-/** Idade em anos completos a partir de "AAAA-MM-DD". */
 export function ageFrom(birthDate: string | null | undefined, today = new Date()): number | null {
   if (!birthDate) return null;
   const b = parseDateOnly(birthDate);
@@ -77,7 +69,6 @@ export function ageFrom(birthDate: string | null | undefined, today = new Date()
   return age;
 }
 
-/** Validação de CPF (dígitos verificadores). */
 export function isValidCpf(value: string): boolean {
   const d = onlyDigits(value);
   if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
@@ -90,7 +81,6 @@ export function isValidCpf(value: string): boolean {
   return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
 }
 
-/** Percentual no padrão brasileiro: 2.1 → "2,1%"; até uma casa decimal. */
 export function formatPercent(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "—";
   return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
@@ -112,7 +102,6 @@ const HUNDREDS = [
   "novecentos",
 ];
 
-/** 0–999 por extenso ("cento e vinte e três"). */
 function hundredsInWords(n: number): string {
   if (n === 100) return "cem";
   const parts: string[] = [];
@@ -129,7 +118,6 @@ function hundredsInWords(n: number): string {
   return parts.join(" e ");
 }
 
-/** Inteiro por extenso até 999.999.999 ("mil e duzentos", "dois milhões e trinta mil"). */
 export function numberInWords(value: number): string {
   const n = Math.floor(Math.abs(value));
   if (n === 0) return "zero";
@@ -140,7 +128,6 @@ export function numberInWords(value: number): string {
   if (millions) groups.push(millions === 1 ? "um milhão" : `${hundredsInWords(millions)} milhões`);
   if (thousands) groups.push(thousands === 1 ? "mil" : `${hundredsInWords(thousands)} mil`);
   if (units) groups.push(hundredsInWords(units));
-  // "e" antes do último grupo quando ele é menor que 100 ou centena exata (ex.: "mil e cem", "mil e cinquenta").
   if (groups.length > 1 && (units < 100 || units % 100 === 0) && units > 0) {
     const last = groups.pop() ?? "";
     return `${groups.join(" ")} e ${last}`;
@@ -148,7 +135,6 @@ export function numberInWords(value: number): string {
   return groups.join(groups.length > 1 && units >= 100 ? " " : " e ");
 }
 
-/** Valor em reais por extenso para recibos: 150.3 → "cento e cinquenta reais e trinta centavos". */
 export function moneyInWords(value: number | string): string {
   const cents = Math.round(Number(value) * 100);
   const reais = Math.floor(cents / 100);

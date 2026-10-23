@@ -10,6 +10,7 @@ import type {
   AppointmentDetail,
   AppointmentInput,
   Attachment,
+  PortalAccountStatus,
   AuditEvent,
   CareTemplate,
   CareTemplateInput,
@@ -72,7 +73,6 @@ import type {
   WaitlistStatus,
 } from "./types";
 
-/** Monta query string ignorando valores vazios. */
 export function qs(params: Record<string, string | number | boolean | null | undefined>): string {
   const entries = Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "");
   if (entries.length === 0) return "";
@@ -140,7 +140,6 @@ export const api = {
     search: (params: { q?: string; active?: boolean; page?: number; size?: number }) =>
       apiFetch<Page<PatientSummary>>(`/api/v1/patients${qs(params)}`),
     get: (id: Uuid) => apiFetch<Patient>(`/api/v1/patients/${id}`),
-    /** Todos os dados do paciente (portabilidade LGPD), em JSON. */
     exportData: (id: Uuid) => apiFetch<Record<string, unknown>>(`/api/v1/patients/${id}/export`),
     create: (body: PatientInput) => apiPost<Patient>("/api/v1/patients", body),
     importRows: (rows: PatientImportRow[], dryRun: boolean) =>
@@ -148,11 +147,10 @@ export const api = {
     update: (id: Uuid, body: PatientInput) => apiPut<Patient>(`/api/v1/patients/${id}`, body),
     setActive: (id: Uuid, active: boolean) =>
       apiPost<Patient>(`/api/v1/patients/${id}/${active ? "activate" : "deactivate"}`),
-    portalAccess: (id: Uuid, sendEmail: boolean) =>
-      apiPost<{ url: string; expiresAt: string; emailQueued: boolean }>(`/api/v1/patients/${id}/portal-access`, {
-        sendEmail,
-      }),
-    revokePortal: (id: Uuid) => apiPost<void>(`/api/v1/patients/${id}/portal-access/revoke`),
+    portalAccount: (id: Uuid) => apiFetch<PortalAccountStatus>(`/api/v1/patients/${id}/portal-account`),
+    portalInvite: (id: Uuid) => apiPost<PortalAccountStatus>(`/api/v1/patients/${id}/portal-account/invite`),
+    portalBlock: (id: Uuid, blocked: boolean) =>
+      apiPost<PortalAccountStatus>(`/api/v1/patients/${id}/portal-account/${blocked ? "block" : "unblock"}`),
   },
 
   scheduleBlocks: {
@@ -174,7 +172,6 @@ export const api = {
     list: (params: { from?: string; to?: string; professionalId?: string; patientId?: string; status?: string }) =>
       apiFetch<Appointment[]>(`/api/v1/appointments${qs(params)}`),
     detail: (id: Uuid) => apiFetch<AppointmentDetail>(`/api/v1/appointments/${id}`),
-    /** Link do paciente (confirmar/cancelar), para enviar por WhatsApp. Renova o anterior. */
     patientLink: (id: Uuid) => apiPost<{ path: string }>(`/api/v1/appointments/${id}/patient-link`),
     create: (body: AppointmentInput) => apiPost<Appointment>("/api/v1/appointments", body),
     update: (id: Uuid, body: AppointmentInput) => apiPut<Appointment>(`/api/v1/appointments/${id}`, body),
@@ -198,8 +195,10 @@ export const api = {
     allConsents: (params: { status?: string; category?: string; q?: string }) =>
       apiFetch<ConsentListItem[]>(`/api/v1/consents${qs(params)}`),
     recentDocuments: (type?: string) => apiFetch<IssuedDocument[]>(`/api/v1/clinical-documents${qs({ type })}`),
-    issueCare: (patientId: Uuid, body: { professionalId: Uuid; title: string; content: string; sendEmail: boolean }) =>
-      apiPost<ClinicalDocument>(`/api/v1/patients/${patientId}/care-instructions`, body),
+    issueCare: (
+      patientId: Uuid,
+      body: { professionalId: Uuid; title: string; content: string; sendEmail: boolean; sharedWithPatient: boolean },
+    ) => apiPost<ClinicalDocument>(`/api/v1/patients/${patientId}/care-instructions`, body),
     aesthetics: (patientId: Uuid) => apiFetch<AestheticRecord[]>(`/api/v1/patients/${patientId}/aesthetic-procedures`),
     addAesthetic: (patientId: Uuid, body: AestheticInput) =>
       apiPost<AestheticRecord>(`/api/v1/patients/${patientId}/aesthetic-procedures`, body),
@@ -234,11 +233,23 @@ export const api = {
     voidPerformed: (patientId: Uuid, id: Uuid, reason: string) =>
       apiPost<void>(`/api/v1/patients/${patientId}/performed-procedures/${id}/void`, { reason }),
     documents: (patientId: Uuid) => apiFetch<ClinicalDocument[]>(`/api/v1/patients/${patientId}/documents`),
-    addDocument: (patientId: Uuid, body: { professionalId: Uuid; type: string; title: string; content: string }) =>
-      apiPost<ClinicalDocument>(`/api/v1/patients/${patientId}/documents`, body),
+    addDocument: (
+      patientId: Uuid,
+      body: { professionalId: Uuid; type: string; title: string; content: string; sharedWithPatient: boolean },
+    ) => apiPost<ClinicalDocument>(`/api/v1/patients/${patientId}/documents`, body),
+    updateDocument: (patientId: Uuid, id: Uuid, body: { title: string; content: string }) =>
+      apiPut<ClinicalDocument>(`/api/v1/patients/${patientId}/documents/${id}`, body),
+    voidDocument: (patientId: Uuid, id: Uuid, reason: string) =>
+      apiPost<void>(`/api/v1/patients/${patientId}/documents/${id}/void`, { reason }),
+    setDocumentSharing: (patientId: Uuid, id: Uuid, shared: boolean) =>
+      apiPut<ClinicalDocument>(`/api/v1/patients/${patientId}/documents/${id}/sharing`, { shared }),
+    updateAttachment: (patientId: Uuid, id: Uuid, body: { category: string; description: string | null }) =>
+      apiPut<Attachment>(`/api/v1/patients/${patientId}/attachments/${id}`, body),
     attachments: (patientId: Uuid) => apiFetch<Attachment[]>(`/api/v1/patients/${patientId}/attachments`),
     attachmentUrl: (patientId: Uuid, id: Uuid) => `/api/v1/patients/${patientId}/attachments/${id}/download`,
     deleteAttachment: (patientId: Uuid, id: Uuid) => apiDelete<void>(`/api/v1/patients/${patientId}/attachments/${id}`),
+    setAttachmentSharing: (patientId: Uuid, id: Uuid, shared: boolean) =>
+      apiPut<Attachment>(`/api/v1/patients/${patientId}/attachments/${id}/sharing`, { shared }),
     consents: (patientId: Uuid) => apiFetch<Consent[]>(`/api/v1/patients/${patientId}/consents`),
     consent: (patientId: Uuid, id: Uuid) => apiFetch<Consent>(`/api/v1/patients/${patientId}/consents/${id}`),
     issueConsent: (

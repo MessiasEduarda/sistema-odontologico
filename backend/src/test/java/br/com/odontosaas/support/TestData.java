@@ -70,6 +70,31 @@ public class TestData {
         tx.executeWithoutResult(s -> provisioning.addMember(clinicId, person.id(), roleCode));
     }
 
+    public static String cpf() {
+        int[] d = new int[11];
+        long seed = Math.abs(System.nanoTime() + SEQ.incrementAndGet() * 7919L);
+        for (int i = 0; i < 9; i++) {
+            d[i] = (int) (seed % 10);
+            seed /= 10;
+        }
+        if (d[0] == d[1] && d[1] == d[2]) d[0] = (d[0] + 1) % 10;
+        for (int k = 9; k <= 10; k++) {
+            int sum = 0;
+            for (int i = 0; i < k; i++) sum += d[i] * (k + 1 - i);
+            int r = (sum * 10) % 11;
+            d[k] = r == 10 ? 0 : r;
+        }
+        StringBuilder s = new StringBuilder();
+        for (int x : d) s.append(x);
+        return s.toString();
+    }
+
+    public static String patientJson(String name, String extra) {
+        return ("{\"fullName\":\"%s\",\"birthDate\":\"1990-05-10\",\"cpf\":\"%s\",\"mobile\":\"11999990000\","
+                        + "\"email\":\"paciente%s@teste.example\"%s}")
+                .formatted(name, cpf(), unique(), extra == null || extra.isEmpty() ? "" : "," + extra);
+    }
+
     public static String unique() {
         return System.nanoTime() % 1_000_000_000 + "-" + SEQ.incrementAndGet();
     }

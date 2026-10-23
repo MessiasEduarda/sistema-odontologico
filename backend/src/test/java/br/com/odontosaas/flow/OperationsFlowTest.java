@@ -100,7 +100,9 @@ class OperationsFlowTest extends PostgresIntegrationTest {
         String patient = json(
                 owner.post(
                         "/api/v1/patients",
-                        "{\"fullName\":\"Sem Consentimento\",\"email\":\"x@teste.example\"," + "\"allowEmail\":false}"),
+                        ("{\"fullName\":\"Sem Consentimento\",\"birthDate\":\"1990-05-10\",\"cpf\":\"%s\","
+                                        + "\"mobile\":\"11999990000\",\"email\":\"x@teste.example\",\"allowEmail\":false}")
+                                .formatted(TestData.cpf())),
                 "$.id");
         createAppointment(owner, patient, professional, slot(2));
         List<String> recipients = json(owner.get("/api/v1/communication/messages"), "$[*].toAddress");
@@ -115,38 +117,32 @@ class OperationsFlowTest extends PostgresIntegrationTest {
         String mine = createAppointment(owner, patient, professional, slot(3));
         String notMine = createAppointment(owner, other, professional, slot(4));
 
-        MvcTestResult grant = owner.post("/api/v1/patients/" + patient + "/portal-access", "{\"sendEmail\":false}");
-        assertThat(grant).hasStatusOk();
-        String url = json(grant, "$.url");
-        String token = url.substring(url.indexOf("#token=") + 7);
+        Browser portal = portalPatient(owner, patient);
 
-        MvcTestResult overview = browser().post("/api/v1/public/portal/overview", "{\"token\":\"" + token + "\"}");
+        MvcTestResult overview = portal.get("/api/v1/public/portal/overview");
         assertThat(overview).hasStatusOk();
         assertThat((List<String>) json(overview, "$.upcoming[*].id")).containsExactly(mine);
 
-        assertThat(browser()
-                        .post(
-                                "/api/v1/public/portal/appointments/respond",
-                                "{\"token\":\"%s\",\"appointmentId\":\"%s\",\"action\":\"CANCEL\"}"
-                                        .formatted(token, notMine)))
-                .hasStatus(HttpStatus.NOT_FOUND);
-        MvcTestResult confirmed = browser()
-                .post(
+        assertThat(portal.post(
                         "/api/v1/public/portal/appointments/respond",
-                        "{\"token\":\"%s\",\"appointmentId\":\"%s\",\"action\":\"CONFIRM\"}".formatted(token, mine));
+                        "{\"appointmentId\":\"%s\",\"action\":\"CANCEL\"}".formatted(notMine)))
+                .hasStatus(HttpStatus.NOT_FOUND);
+        MvcTestResult confirmed = portal.post(
+                "/api/v1/public/portal/appointments/respond",
+                "{\"appointmentId\":\"%s\",\"action\":\"CONFIRM\"}".formatted(mine));
         assertThat((String) json(confirmed, "$.upcoming[0].status")).isEqualTo("CONFIRMED");
 
-        MvcTestResult contact = browser()
-                .post(
-                        "/api/v1/public/portal/contact",
-                        "{\"token\":\"%s\",\"email\":\"novo@teste.example\",\"mobile\":\"11911112222\",\"allowEmail\":true}"
-                                .formatted(token));
-        assertThat((String) json(contact, "$.patient.email")).isEqualTo("novo@teste.example");
+        MvcTestResult contact = portal.post(
+                "/api/v1/public/portal/contact", "{\"mobile\":\"11911112222\",\"phone\":\"\",\"allowEmail\":true}");
+        assertThat((String) json(contact, "$.patient.mobile")).isEqualTo("11911112222");
 
-        // Novo link revoga o anterior.
-        owner.post("/api/v1/patients/" + patient + "/portal-access", "{\"sendEmail\":false}");
-        assertThat(browser().post("/api/v1/public/portal/overview", "{\"token\":\"" + token + "\"}"))
-                .hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(portal.post("/api/v1/public/portal/contact", "{\"mobile\":\"\"}"))
+                .hasStatusOk();
+        assertThat((String) json(portal.get("/api/v1/public/portal/overview"), "$.patient.mobile"))
+                .isEqualTo("11911112222");
+
+        assertThat(portal.post("/api/v1/public/portal/logout", null)).hasStatus(HttpStatus.NO_CONTENT);
+        assertThat(portal.get("/api/v1/public/portal/overview")).hasStatus(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -193,7 +189,9 @@ class OperationsFlowTest extends PostgresIntegrationTest {
         createProfessional(owner, "Prof 1");
         createProfessional(owner, "Prof 2");
         MvcTestResult limit = owner.post(
-                "/api/v1/clinic/professionals", "{\"name\":\"Prof 3\",\"color\":\"#000000\",\"active\":true}");
+                "/api/v1/clinic/professionals",
+                "{\"name\":\"%s\",\"cro\":\"999\",\"croState\":\"SP\",\"email\":\"p%s@teste.example\",\"color\":\"#000000\",\"active\":true}"
+                        .formatted("Prof 3", TestData.unique()));
         assertThat(limit).hasStatus(HttpStatus.FORBIDDEN);
         assertThat((String) json(limit, "$.code")).isEqualTo("PLAN_LIMIT_REACHED");
 

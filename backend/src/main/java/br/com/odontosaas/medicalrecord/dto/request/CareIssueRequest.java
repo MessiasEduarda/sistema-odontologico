@@ -9,4 +9,5 @@ public record CareIssueRequest(
         @NotNull UUID professionalId,
         @NotBlank @Size(max = 160) String title,
         @NotBlank @Size(max = 20000) String content,
-        boolean sendEmail) {}
+        boolean sendEmail,
+        Boolean sharedWithPatient) {}

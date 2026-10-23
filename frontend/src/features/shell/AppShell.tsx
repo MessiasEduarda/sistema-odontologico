@@ -12,10 +12,6 @@ import { api } from "@/lib/api/endpoints";
 import { usePersistentFlag } from "@/lib/usePersistentFlag";
 import { visibleNav, type NavItem } from "./navigation";
 
-/**
- * Layout da área logada: menu lateral escuro que recolhe (só ícones) ou expande (ícones + rótulos), como nas
- * referências. No celular/tablet o menu abre como gaveta sobre o conteúdo.
- */
 export function AppShell({ children }: { children: ReactNode }) {
   const { data: me } = useMe();
   const logout = useLogout();
@@ -120,7 +116,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     <Layout $collapsed={collapsed}>
       <SkipLink href="#conteudo">Pular para o conteúdo</SkipLink>
 
-      {/* Desktop */}
       <Sidebar $collapsed={collapsed} aria-label="Menu principal">
         <Toggle
           type="button"
@@ -137,7 +132,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         {footer(collapsed)}
       </Sidebar>
 
-      {/* Celular / tablet */}
       <MobileBar>
         <Toggle type="button" onClick={() => setMobileOpen(true)} aria-label="Abrir menu" aria-expanded={mobileOpen}>
           <Menu size={22} aria-hidden />
@@ -284,7 +278,6 @@ const ClinicHeader = styled.div`
   gap: ${({ theme }) => theme.space[2]};
 `;
 
-/** Logo alinhada ao topo do nome da clínica (não ao centro do bloco nome + saudação). */
 const Brand = styled.div`
   display: flex;
   align-items: flex-start;
@@ -298,7 +291,6 @@ const BrandText = styled.div`
   min-width: 0;
 `;
 
-/** Nome com no máximo duas linhas ao lado da logo; além disso termina em "…" (nome completo ao passar o mouse). */
 const ClinicName = styled.p`
   font-family: ${({ theme }) => theme.fonts.display};
   font-size: 0.9375rem;

@@ -1,7 +1,15 @@
-import { apiPost } from "@/lib/api/client";
-import type { IsoInstant, Uuid } from "@/lib/api/types";
-
-/** Contratos das páginas públicas do paciente (acesso pelo token do link, sem sessão). */
+import { apiFetch, apiPost } from "@/lib/api/client";
+import type {
+  Attachment,
+  ClinicalDocument,
+  ClinicSettings,
+  Consent,
+  IsoInstant,
+  Patient,
+  Plan,
+  Receivable,
+  Uuid,
+} from "@/lib/api/types";
 
 export interface PublicAppointment {
   clinicName: string;
@@ -54,6 +62,53 @@ export interface PortalOverview {
   pendingConsents: { id: Uuid; title: string; body: string; status: string; createdAt: IsoInstant }[];
 }
 
+export type PortalClinic = Pick<
+  ClinicSettings,
+  "name" | "legalName" | "document" | "phone" | "email" | "zipCode" | "address" | "city" | "state"
+>;
+
+export type PortalPatient = Pick<
+  Patient,
+  "fullName" | "socialName" | "cpf" | "birthDate" | "mobile" | "phone" | "guardianName" | "guardianCpf"
+>;
+
+export interface PortalRecords {
+  clinic: PortalClinic;
+  patient: PortalPatient;
+  documents: ClinicalDocument[];
+  consents: Consent[];
+  plans: Plan[];
+  receivables: Receivable[];
+  attachments: Attachment[];
+}
+
+export interface PortalProfile {
+  tenantId: Uuid;
+  patientId: Uuid;
+  clinicName: string;
+  patientName: string;
+}
+
+export interface PortalMe {
+  email: string;
+  profiles: PortalProfile[];
+  activeTenantId: Uuid | null;
+  activePatientId: Uuid | null;
+}
+
+export interface PortalLoginResult {
+  status: "AUTHENTICATED" | "CODE_REQUIRED";
+  challengeId: Uuid | null;
+  maskedEmail: string | null;
+  me: PortalMe | null;
+}
+
+export interface PortalActivation {
+  firstName: string;
+  clinicName: string;
+  email: string;
+}
+
 export type PatientAction = "CONFIRM" | "CANCEL";
 
 export const publicApi = {
@@ -63,11 +118,28 @@ export const publicApi = {
   consent: (token: string) => apiPost<PublicConsent>("/api/v1/public/consents/lookup", { token }),
   signConsent: (token: string, body: SignatureInput) =>
     apiPost<PublicConsent>("/api/v1/public/consents/sign", { token, ...body }),
-  portal: (token: string) => apiPost<PortalOverview>("/api/v1/public/portal/overview", { token }),
-  portalRespond: (token: string, appointmentId: Uuid, action: PatientAction) =>
-    apiPost<PortalOverview>("/api/v1/public/portal/appointments/respond", { token, appointmentId, action }),
-  portalSign: (token: string, consentId: Uuid, body: SignatureInput) =>
-    apiPost<PortalOverview>("/api/v1/public/portal/consents/sign", { token, consentId, ...body }),
-  portalContact: (token: string, body: Omit<PortalContact, "fullName">) =>
-    apiPost<PortalOverview>("/api/v1/public/portal/contact", { token, ...body }),
+  portal: () => apiFetch<PortalOverview>("/api/v1/public/portal/overview"),
+  portalRespond: (appointmentId: Uuid, action: PatientAction) =>
+    apiPost<PortalOverview>("/api/v1/public/portal/appointments/respond", { appointmentId, action }),
+  portalSign: (consentId: Uuid, body: SignatureInput) =>
+    apiPost<PortalOverview>("/api/v1/public/portal/consents/sign", { consentId, ...body }),
+  portalContact: (body: Pick<PortalContact, "mobile" | "phone" | "allowEmail" | "allowSms" | "allowWhatsapp">) =>
+    apiPost<PortalOverview>("/api/v1/public/portal/contact", body),
+  portalRecords: () => apiFetch<PortalRecords>("/api/v1/public/portal/records"),
+  portalAttachmentUrl: (attachmentId: Uuid) => `/api/v1/public/portal/attachments/${attachmentId}/download`,
+  portalMe: () => apiFetch<PortalMe>("/api/v1/public/portal/me"),
+  portalSelectProfile: (tenantId: Uuid, patientId: Uuid) =>
+    apiPost<PortalMe>("/api/v1/public/portal/profile", { tenantId, patientId }),
+  portalLogin: (email: string, password: string) =>
+    apiPost<PortalLoginResult>("/api/v1/public/portal/login", { email, password }),
+  portalVerifyCode: (challengeId: Uuid, code: string) =>
+    apiPost<PortalLoginResult>("/api/v1/public/portal/login/verify", { challengeId, code }),
+  portalLogout: () => apiPost<void>("/api/v1/public/portal/logout"),
+  portalActivationLookup: (token: string) =>
+    apiPost<PortalActivation>("/api/v1/public/portal/activation/lookup", { token }),
+  portalActivate: (body: { token: string; birthDate: string; password: string; acceptedTerms: boolean }) =>
+    apiPost<PortalMe>("/api/v1/public/portal/activation", body),
+  portalForgotPassword: (email: string) => apiPost<void>("/api/v1/public/portal/password/forgot", { email }),
+  portalResetPassword: (token: string, password: string) =>
+    apiPost<void>("/api/v1/public/portal/password/reset", { token, password }),
 };

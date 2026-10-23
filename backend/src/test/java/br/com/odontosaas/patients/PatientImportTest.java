@@ -29,12 +29,14 @@ class PatientImportTest extends PostgresIntegrationTest {
     }
 
     private static String row(int line, String name, String birth, String cpf, String extra) {
-        return ("{\"line\":%d,\"fullName\":%s,\"birthDate\":%s,\"cpf\":%s%s}")
+        return ("{\"line\":%d,\"fullName\":%s,\"birthDate\":%s,\"cpf\":%s,\"mobile\":\"11999990000\","
+                        + "\"email\":\"imp%s@teste.example\"%s}")
                 .formatted(
                         line,
                         name == null ? "null" : "\"" + name + "\"",
-                        birth == null ? "null" : "\"" + birth + "\"",
-                        cpf == null ? "null" : "\"" + cpf + "\"",
+                        birth == null ? "\"1990-01-01\"" : "\"" + birth + "\"",
+                        "\"" + (cpf == null ? TestData.cpf() : cpf) + "\"",
+                        TestData.unique(),
                         extra);
     }
 

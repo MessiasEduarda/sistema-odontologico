@@ -43,7 +43,6 @@ export function ChartSection({ patientId }: { patientId: string }) {
   });
 
   if (chart.isPending) return <LoadingState />;
-  // Falha de carga nunca pode parecer "odontograma vazio": o dentista decidiria sem ver o histórico.
   if (chart.isError) return <ErrorState error={chart.error} onRetry={() => chart.refetch()} />;
   const entries = chart.data ?? [];
   const toothEntries = tooth ? entries.filter((e) => e.tooth === tooth) : entries;
@@ -252,7 +251,6 @@ const Swatch = styled.span`
   border-radius: 3px;
 `;
 
-/* No celular, a escolha de dentição ocupa a largura do cartão, com os dois botões do mesmo tamanho. */
 const DentitionSwitch = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.space[2]};

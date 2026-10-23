@@ -63,8 +63,6 @@ function isNarrowScreen() {
 export function AgendaPage() {
   const params = useSearchParams();
   const can = useCan();
-  // Sem escolha da pessoa, a visão segue a tela (lista no celular). Decidido após a hidratação, para o HTML do
-  // servidor e o do navegador serem iguais.
   const [chosenView, setView] = useState<View | null>(null);
   const isNarrow = useSyncExternalStore(subscribeNarrow, isNarrowScreen, () => false);
   const view: View = chosenView ?? (isNarrow ? "list" : "day");
@@ -78,7 +76,6 @@ export function AgendaPage() {
   const [form, setForm] = useState<{
     draft: AppointmentDraft;
     editing: Appointment | null;
-    /** Agendamento feito a partir da lista de espera: a entrada sai da lista ao salvar. */
     fromWaitlist?: WaitlistEntry;
   } | null>(() => (params.get("novo") ? { draft: emptyDraft(new Date(), "", 30), editing: null } : null));
 
@@ -309,8 +306,6 @@ function rangeFor(view: View, date: Date) {
   };
 }
 
-/* ------------------------------------------------------------------ Grade de horários (dia/semana) */
-
 interface Column {
   key: string;
   label: string;
@@ -319,7 +314,6 @@ interface Column {
   color?: string;
 }
 
-/** Parte de um bloqueio que cai num dia, recortada ao horário visível da grade. */
 function blockSegment(block: ScheduleBlock, day: Date) {
   const gridStart = new Date(day);
   gridStart.setHours(START_HOUR, 0, 0, 0);
@@ -475,7 +469,6 @@ function minutesFromStart(d: Date) {
   return (d.getHours() - START_HOUR) * 60 + d.getMinutes();
 }
 
-/** Distribui eventos sobrepostos lado a lado (faixas). */
 function layoutLanes(events: Appointment[]) {
   const sorted = [...events].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const result = new Map<string, { index: number; total: number }>();
@@ -509,8 +502,6 @@ function layoutLanes(events: Appointment[]) {
   flush();
   return result;
 }
-
-/* ------------------------------------------------------------------ Mês */
 
 function MonthView({
   date,
@@ -559,8 +550,6 @@ function MonthView({
     </GridCard>
   );
 }
-
-/* ------------------------------------------------------------------ Lista */
 
 function ListView({
   appointments,
@@ -624,8 +613,6 @@ function ListView({
   );
 }
 
-/* ------------------------------------------------------------------ Estilos */
-
 const Toolbar = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -676,7 +663,6 @@ const ViewSwitch = styled.div`
   padding: 3px;
   height: 44px;
 
-  /* No celular, a troca de visualização ocupa a largura do conteúdo, com as opções repartindo o espaço. */
   @media (max-width: ${({ theme }) => theme.breakpoints.md - 1}px) {
     display: flex;
     width: 100%;
@@ -781,7 +767,6 @@ const HourLine = styled.div`
   pointer-events: none;
 `;
 
-/** Período bloqueado na grade: faixa cinza com o motivo; atendimentos aparecem por cima. */
 const BlockArea = styled.button`
   position: absolute;
   left: 0;

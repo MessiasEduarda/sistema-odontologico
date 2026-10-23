@@ -28,7 +28,6 @@ export const theme = {
 
 export type AppTheme = typeof theme;
 
-/** Media query "a partir de" um breakpoint (mobile-first). */
 export const media = {
   sm: `@media (min-width: ${breakpoints.sm}px)`,
   md: `@media (min-width: ${breakpoints.md}px)`,

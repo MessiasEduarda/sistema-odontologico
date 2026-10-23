@@ -25,7 +25,7 @@ describe("csv", () => {
   });
 
   it("lê arquivo em Windows-1252 (acentos do Excel)", async () => {
-    const bytes = new Uint8Array([0x4a, 0x6f, 0xe3, 0x6f]); // "João" em Windows-1252
+    const bytes = new Uint8Array([0x4a, 0x6f, 0xe3, 0x6f]);
     expect(await readCsvFile(new Blob([bytes]))).toBe("João");
   });
 

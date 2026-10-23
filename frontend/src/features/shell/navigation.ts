@@ -22,9 +22,7 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Exibido se o usuário tiver QUALQUER uma destas permissões (vazio = todos). */
   anyOf: PermissionCode[];
-  /** Só aparece se a clínica ativou o recurso (ex.: harmonização orofacial em Configurações). */
   requires?: "aesthetics";
 }
 
@@ -32,7 +30,6 @@ export interface NavFlags {
   aesthetics: boolean;
 }
 
-/** Menu da clínica. Itens sem permissão ficam ocultos; a API bloqueia de qualquer forma. */
 export const CLINIC_NAV: NavItem[] = [
   { href: "/inicio", label: "Dashboard", icon: LayoutGrid, anyOf: [] },
   { href: "/agenda", label: "Agenda", icon: CalendarDays, anyOf: [P.SCHEDULE_READ] },

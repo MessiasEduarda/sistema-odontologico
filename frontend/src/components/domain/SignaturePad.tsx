@@ -3,17 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { Button } from "@/components/ui/Button";
+import { FieldError } from "@/components/ui/fields";
 
 interface SignaturePadProps {
   onChange: (dataUrl: string | null) => void;
   label?: string;
+  error?: string;
 }
 
-/**
- * Área para assinatura desenhada com dedo, caneta ou mouse (Pointer Events). Gera PNG em data URL.
- * Alternativa acessível: quem não consegue desenhar pode assinar digitando o nome (gera imagem do nome).
- */
-export function SignaturePad({ onChange, label = "Assinatura" }: SignaturePadProps) {
+export function SignaturePad({ onChange, label = "Assinatura", error }: SignaturePadProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const [empty, setEmpty] = useState(true);
@@ -103,6 +101,7 @@ export function SignaturePad({ onChange, label = "Assinatura" }: SignaturePadPro
         onPointerLeave={finish}
       />
       <Hint>{empty ? "Assine no quadro acima com o dedo, caneta ou mouse." : "Assinatura registrada."}</Hint>
+      {error && <FieldError>{error}</FieldError>}
       <Row>
         <TypedInput
           aria-label="Ou digite o nome para gerar a assinatura"

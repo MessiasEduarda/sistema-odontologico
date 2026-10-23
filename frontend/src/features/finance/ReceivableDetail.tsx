@@ -19,10 +19,10 @@ import { formatDate, formatDateTime, formatMoney, roundMoney } from "@/lib/forma
 import { FINANCE_STATUS, methodLabel, PAYMENT_METHODS } from "@/lib/labels";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 const INV = [["receivables"], ["installments"], ["finance-summary"], ["cash-flow"], ["dashboard"]];
 
-/** Detalhe da conta a receber: parcelas, recebimentos, estornos e cancelamento. */
 export function ReceivableDetail({ receivableId, onClose }: { receivableId: string | null; onClose: () => void }) {
   const can = useCan();
   const writable = can(P.FINANCE_WRITE);
@@ -172,6 +172,12 @@ export function PayDialog({
   const [amount, setAmount] = useState(Number(installment.balance));
   const [method, setMethod] = useState<PaymentMethod>("PIX");
   const [notes, setNotes] = useState("");
+  const form = useRequiredFields({
+    amount:
+      (!(amount > 0) && "Informe um valor maior que zero.") ||
+      (amount > Number(installment.balance) &&
+        `O valor não pode passar do saldo de ${formatMoney(installment.balance)}.`),
+  });
   const pay = useAction(() => api.finance.pay(installment.id, { amount, method, notes: notes || undefined }), {
     success: "Recebimento registrado com sucesso!",
     invalidate: INV,
@@ -188,11 +194,7 @@ export function PayDialog({
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => pay.mutate(undefined)}
-            loading={pay.isPending}
-            disabled={!(amount > 0) || amount > Number(installment.balance)}
-          >
+          <Button onClick={() => form.check() && pay.mutate(undefined)} loading={pay.isPending}>
             Confirmar recebimento
           </Button>
         </>
@@ -201,6 +203,8 @@ export function PayDialog({
       <FormGrid $columns={1}>
         <TextField
           label="Valor (R$)"
+          required
+          error={form.errors.amount}
           type="number"
           step="0.01"
           min={0.01}
@@ -226,6 +230,12 @@ function RefundDialog({ payment, onClose }: { payment: Payment; onClose: () => v
   const max = roundMoney(Number(payment.amount) - Number(payment.refundedAmount));
   const [amount, setAmount] = useState(max);
   const [reason, setReason] = useState("");
+  const form = useRequiredFields({
+    amount:
+      (!(amount > 0) && "Informe um valor maior que zero.") ||
+      (amount > max && `O valor não pode passar de ${formatMoney(max)}.`),
+    reason: !reason.trim() && "Informe o motivo do estorno.",
+  });
   const refund = useAction(() => api.finance.refund(payment.id, roundMoney(amount), reason), {
     success: "Estorno registrado com sucesso!",
     invalidate: INV,
@@ -242,12 +252,7 @@ function RefundDialog({ payment, onClose }: { payment: Payment; onClose: () => v
           <Button variant="outline" onClick={onClose}>
             Voltar
           </Button>
-          <Button
-            variant="danger"
-            onClick={() => refund.mutate(undefined)}
-            loading={refund.isPending}
-            disabled={!(amount > 0) || amount > max || !reason.trim()}
-          >
+          <Button variant="danger" onClick={() => form.check() && refund.mutate(undefined)} loading={refund.isPending}>
             Estornar
           </Button>
         </>
@@ -257,6 +262,8 @@ function RefundDialog({ payment, onClose }: { payment: Payment; onClose: () => v
         <Muted>O recebimento original continua registrado; o estorno fica no histórico com o motivo.</Muted>
         <TextField
           label="Valor do estorno (R$)"
+          required
+          error={form.errors.amount}
           type="number"
           step="0.01"
           min={0.01}
@@ -264,7 +271,14 @@ function RefundDialog({ payment, onClose }: { payment: Payment; onClose: () => v
           value={amount}
           onChange={(e) => setAmount(Number(e.target.value))}
         />
-        <TextField label="Motivo" required maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} />
+        <TextField
+          label="Motivo"
+          required
+          error={form.errors.reason}
+          maxLength={300}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
         {refund.error && <Alert tone="danger">{refund.error.message}</Alert>}
       </FormGrid>
     </Modal>

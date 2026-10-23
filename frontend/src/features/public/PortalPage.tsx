@@ -1,46 +1,103 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { LogOut, Repeat } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
-import { Badge, Card, CardTitle, EmptyState, Row, Stack } from "@/components/ui/display";
+import { Badge, Card, CardTitle, EmptyState, Muted, Row, Stack } from "@/components/ui/display";
 import { CheckboxField, FormGrid, FullRow } from "@/components/ui/fields";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { TextField } from "@/components/ui/TextField";
+import { ApiError } from "@/lib/api/client";
 import { formatDate, formatDateTime, formatTime } from "@/lib/format";
 import { APPOINTMENT_STATUS } from "@/lib/labels";
-import { useHashToken } from "@/lib/useHashToken";
-import { type PatientAction, type PortalContact, type PortalOverview, publicApi, type SignatureInput } from "./api";
+import { useRequiredFields } from "@/lib/useRequiredFields";
+import {
+  type PatientAction,
+  type PortalContact,
+  type PortalMe,
+  type PortalOverview,
+  publicApi,
+  type SignatureInput,
+} from "./api";
+import { PortalDocuments } from "./PortalDocuments";
+import { PORTAL_ME_KEY } from "./PortalLoginForm";
 import { ConsentText, PublicLayout } from "./PublicLayout";
 import { SignConsentForm } from "./SignConsentForm";
 
-/** Portal do paciente: próximas consultas, termos pendentes e dados de contato. */
+const isUnauthenticated = (error: unknown) => error instanceof ApiError && error.status === 401;
+
 export function PortalPage() {
-  const token = useHashToken();
-  const query = useQuery({
-    queryKey: ["portal", token],
-    queryFn: () => publicApi.portal(token ?? ""),
-    enabled: Boolean(token),
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [choosing, setChoosing] = useState(false);
+  const me = useQuery({ queryKey: PORTAL_ME_KEY, queryFn: publicApi.portalMe, retry: false });
+  const active = me.data?.activeTenantId && me.data.activePatientId ? me.data : null;
+  const overview = useQuery({
+    queryKey: ["portal", me.data?.activeTenantId, me.data?.activePatientId],
+    queryFn: publicApi.portal,
+    enabled: Boolean(active) && !choosing,
     retry: false,
   });
-  const data = query.data;
+
+  const unauthenticated = isUnauthenticated(me.error) || isUnauthenticated(overview.error);
+  useEffect(() => {
+    if (unauthenticated) router.replace("/portal/entrar");
+  }, [unauthenticated, router]);
+
+  const logout = useMutation({
+    mutationFn: publicApi.portalLogout,
+    onSettled: () => {
+      queryClient.clear();
+      router.replace("/portal/entrar");
+    },
+  });
+
+  const data = overview.data;
+  const showPicker = Boolean(me.data) && (!active || choosing);
+  const actions = me.data && (
+    <>
+      {me.data.profiles.length > 1 && !showPicker && (
+        <button type="button" onClick={() => setChoosing(true)}>
+          <Repeat size={14} aria-hidden /> Trocar perfil
+        </button>
+      )}
+      <button type="button" onClick={() => logout.mutate()} disabled={logout.isPending}>
+        <LogOut size={14} aria-hidden /> Sair
+      </button>
+    </>
+  );
+
   return (
     <PublicLayout
-      clinicName={data?.clinicName}
-      title={data ? `Olá, ${data.patient.fullName.split(" ")[0]}` : "Portal do paciente"}
+      clinicName={showPicker ? undefined : data?.clinicName}
+      title={
+        showPicker ? "Escolha o perfil" : data ? `Olá, ${data.patient.fullName.split(" ")[0]}` : "Portal do paciente"
+      }
+      actions={actions}
     >
-      {(token === "" || query.isError) && (
-        <Alert tone="danger">
-          {query.error?.message ?? "Este link de acesso é inválido ou foi revogado. Peça um novo à clínica."}
-        </Alert>
+      {me.error && !unauthenticated && <Alert tone="danger">{me.error.message}</Alert>}
+      {overview.error && !unauthenticated && <Alert tone="danger">{overview.error.message}</Alert>}
+      {(me.isPending || (active && !choosing && overview.isPending) || unauthenticated) && <LoadingState />}
+      {showPicker && me.data && (
+        <ProfilePicker
+          me={me.data}
+          onChosen={(next) => {
+            queryClient.setQueryData(PORTAL_ME_KEY, next);
+            queryClient.removeQueries({ queryKey: ["portal-records"] });
+            setChoosing(false);
+          }}
+        />
       )}
-      {(token === null || (token && query.isPending)) && <LoadingState />}
-      {data && token && (
+      {!showPicker && data && (
         <Stack>
-          <Appointments token={token} data={data} />
-          <Consents token={token} data={data} />
-          <Contact key={JSON.stringify(data.patient)} token={token} patient={data.patient} />
+          <Appointments data={data} />
+          <Consents data={data} />
+          <PortalDocuments key={`${me.data?.activeTenantId}-${me.data?.activePatientId}`} />
+          <Contact key={JSON.stringify(data.patient)} patient={data.patient} />
           {data.clinicPhone && <p>Dúvidas? Fale com a clínica pelo telefone {data.clinicPhone}.</p>}
         </Stack>
       )}
@@ -48,14 +105,60 @@ export function PortalPage() {
   );
 }
 
-function usePortalMutation<V>(token: string, fn: (v: V) => Promise<PortalOverview>) {
-  const client = useQueryClient();
-  return useMutation({ mutationFn: fn, onSuccess: (data) => client.setQueryData(["portal", token], data) });
+function ProfilePicker({ me, onChosen }: { me: PortalMe; onChosen: (me: PortalMe) => void }) {
+  const select = useMutation({
+    mutationFn: (p: { tenantId: string; patientId: string }) => publicApi.portalSelectProfile(p.tenantId, p.patientId),
+    onSuccess: onChosen,
+  });
+  if (me.profiles.length === 0) {
+    return (
+      <Card>
+        <EmptyState
+          title="Nenhum acesso disponível"
+          description="O acesso ao portal foi bloqueado pela clínica. Em caso de dúvida, fale com a clínica."
+        />
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <CardTitle>Você tem acesso a mais de um cadastro</CardTitle>
+      {select.error && <Alert tone="danger">{select.error.message}</Alert>}
+      <Profiles>
+        {me.profiles.map((p) => (
+          <li key={`${p.tenantId}-${p.patientId}`}>
+            <div>
+              <strong>{p.patientName}</strong>
+              <Muted>{p.clinicName}</Muted>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => select.mutate({ tenantId: p.tenantId, patientId: p.patientId })}
+              loading={select.isPending && select.variables?.patientId === p.patientId}
+            >
+              Entrar
+            </Button>
+          </li>
+        ))}
+      </Profiles>
+    </Card>
+  );
 }
 
-function Appointments({ token, data }: { token: string; data: PortalOverview }) {
-  const respond = usePortalMutation(token, (v: { id: string; action: PatientAction }) =>
-    publicApi.portalRespond(token, v.id, v.action),
+function usePortalMutation<V>(fn: (v: V) => Promise<PortalOverview>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: (data) => {
+      client.setQueriesData({ queryKey: ["portal"] }, data);
+      void client.invalidateQueries({ queryKey: ["portal-records"] });
+    },
+  });
+}
+
+function Appointments({ data }: { data: PortalOverview }) {
+  const respond = usePortalMutation((v: { id: string; action: PatientAction }) =>
+    publicApi.portalRespond(v.id, v.action),
   );
   return (
     <Card>
@@ -108,11 +211,9 @@ function Appointments({ token, data }: { token: string; data: PortalOverview }) 
   );
 }
 
-function Consents({ token, data }: { token: string; data: PortalOverview }) {
+function Consents({ data }: { data: PortalOverview }) {
   const [open, setOpen] = useState<string | null>(null);
-  const sign = usePortalMutation(token, (v: { id: string; input: SignatureInput }) =>
-    publicApi.portalSign(token, v.id, v.input),
-  );
+  const sign = usePortalMutation((v: { id: string; input: SignatureInput }) => publicApi.portalSign(v.id, v.input));
   if (data.pendingConsents.length === 0 && !sign.isSuccess) return null;
   return (
     <Card>
@@ -149,38 +250,35 @@ function Consents({ token, data }: { token: string; data: PortalOverview }) {
   );
 }
 
-function Contact({ token, patient }: { token: string; patient: PortalContact }) {
+function Contact({ patient }: { patient: PortalContact }) {
   const [v, setV] = useState({
-    email: patient.email ?? "",
     mobile: patient.mobile ?? "",
     phone: patient.phone ?? "",
     allowEmail: patient.allowEmail,
     allowSms: patient.allowSms,
     allowWhatsapp: patient.allowWhatsapp,
   });
-  const save = usePortalMutation(token, () =>
-    publicApi.portalContact(token, {
-      ...v,
-      email: v.email.trim() || null,
-      mobile: v.mobile.trim() || null,
-      phone: v.phone.trim() || null,
-    }),
+  const form = useRequiredFields({ mobile: !v.mobile.trim() && "Informe o celular." });
+  const save = usePortalMutation(() =>
+    publicApi.portalContact({ ...v, mobile: v.mobile.trim(), phone: v.phone.trim() || null }),
   );
   return (
     <Card>
       <CardTitle>Meus dados de contato</CardTitle>
       <FormGrid $columns={3}>
         <TextField
-          label="E-mail"
-          type="email"
-          maxLength={254}
-          value={v.email}
-          onChange={(e) => setV({ ...v, email: e.target.value })}
+          label="E-mail de acesso"
+          value={patient.email ?? ""}
+          disabled
+          readOnly
+          hint="Para trocar o e-mail de acesso, fale com a clínica."
         />
         <TextField
           label="Celular"
+          required
           maxLength={20}
           value={v.mobile}
+          error={form.errors.mobile}
           onChange={(e) => setV({ ...v, mobile: e.target.value })}
         />
         <TextField
@@ -220,10 +318,32 @@ function Contact({ token, patient }: { token: string; patient: PortalContact }) 
         )}
       </FormGrid>
       <Row $justify="flex-end" style={{ marginTop: 16 }}>
-        <Button onClick={() => save.mutate(undefined)} loading={save.isPending}>
+        <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
           Salvar contato
         </Button>
       </Row>
     </Card>
   );
 }
+
+const Profiles = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: ${({ theme }) => theme.space[2]};
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${({ theme }) => theme.space[3]};
+    padding: ${({ theme }) => theme.space[3]};
+    border: 1px solid ${({ theme }) => theme.colors.border};
+    border-radius: ${({ theme }) => theme.radii.md};
+  }
+  li div {
+    display: grid;
+    gap: 2px;
+  }
+`;

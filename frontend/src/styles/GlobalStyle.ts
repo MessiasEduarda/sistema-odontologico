@@ -20,12 +20,10 @@ export const GlobalStyle = createGlobalStyle`
 
   h1, h2, h3, h4, p { margin: 0; }
 
-  /* Títulos sempre com a fonte de destaque (Comfortaa). */
   h1, h2, h3, h4 { font-family: ${({ theme }) => theme.fonts.display}; }
 
   button, input, select, textarea { font: inherit; font-family: ${({ theme }) => theme.fonts.body}; color: inherit; }
 
-  /* Controles nativos no visual do sistema: ícones de data e hora na cor da marca, números sem setinhas. */
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
     width: 18px;
@@ -54,7 +52,6 @@ export const GlobalStyle = createGlobalStyle`
   input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 
-  /* Barras de rolagem finas, na paleta do sistema. */
   * { scrollbar-width: thin; scrollbar-color: ${({ theme }) => theme.colors.borderStrong} transparent; }
 
   .sr-only {
@@ -72,7 +69,6 @@ export const GlobalStyle = createGlobalStyle`
   @media print {
     .no-print { display: none !important; }
     body { background: #fff; }
-    /* Impressão de documento: só a folha marcada aparece (ver lib/print.ts). */
     body.print-mode * { visibility: hidden; }
     body.print-mode .print-area,
     body.print-mode .print-area * { visibility: visible; }

@@ -8,10 +8,6 @@ import { authApi, type Me } from "./api";
 
 export const ME_KEY = ["auth", "me"] as const;
 
-/**
- * Usuário autenticado. `data` é null quando não há sessão (401). Até a hidratação terminar, a consulta aparece
- * como pendente: o HTML do servidor não tem o usuário e precisa coincidir com a primeira renderização do cliente.
- */
 export function useMe() {
   const hydrated = useHydrated();
   const query = useQuery<Me | null>({
@@ -39,7 +35,6 @@ export function useSwitchClinic() {
   return useMutation({
     mutationFn: authApi.switchClinic,
     onSuccess: (me) => {
-      // Dados em cache pertencem à clínica anterior: descarta tudo antes de exibir a nova.
       queryClient.clear();
       queryClient.setQueryData(ME_KEY, me);
     },

@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -17,19 +19,32 @@ public final class Browser {
     public static final String SESSION_COOKIE = "odonto_session";
 
     private final MockMvcTester mvc;
+    private static final List<String> TRACKED = List.of(SESSION_COOKIE, "odonto_portal", "odonto_portal_device");
+
     private final String csrf = "csrf-" + UUID.randomUUID();
-    private String session;
+    private final Map<String, String> jar = new LinkedHashMap<>();
 
     public Browser(MockMvcTester mvc) {
         this.mvc = mvc;
     }
 
     public String session() {
-        return session;
+        return jar.get(SESSION_COOKIE);
+    }
+
+    public String cookie(String name) {
+        return jar.get(name);
     }
 
     public Browser useSession(String session) {
-        this.session = session;
+        if (session == null) jar.remove(SESSION_COOKIE);
+        else jar.put(SESSION_COOKIE, session);
+        return this;
+    }
+
+    public Browser withCookie(String name, String value) {
+        if (value == null) jar.remove(name);
+        else jar.put(name, value);
         return this;
     }
 
@@ -88,7 +103,7 @@ public final class Browser {
     private MvcTestResult send(HttpMethod method, Object uri, String json, boolean withCsrf) {
         List<Cookie> cookies = new ArrayList<>();
         cookies.add(new Cookie("XSRF-TOKEN", csrf));
-        if (session != null) cookies.add(new Cookie(SESSION_COOKIE, session));
+        jar.forEach((name, value) -> cookies.add(new Cookie(name, value)));
 
         var builder = mvc.method(method);
         var request = (uri instanceof java.net.URI raw ? builder.uri(raw) : builder.uri((String) uri))
@@ -104,9 +119,11 @@ public final class Browser {
 
     private void captureSession(MvcTestResult result) {
         for (String header : result.getResponse().getHeaders("Set-Cookie")) {
-            if (header.startsWith(SESSION_COOKIE + "=")) {
-                String value = header.substring(SESSION_COOKIE.length() + 1, header.indexOf(';'));
-                session = value.isEmpty() ? null : value;
+            for (String name : TRACKED) {
+                if (header.startsWith(name + "=")) {
+                    String value = header.substring(name.length() + 1, header.indexOf(';'));
+                    withCookie(name, value.isEmpty() ? null : value);
+                }
             }
         }
     }

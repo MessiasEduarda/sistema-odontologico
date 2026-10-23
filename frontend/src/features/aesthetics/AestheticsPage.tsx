@@ -22,10 +22,8 @@ import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
 import { AestheticForm } from "./AestheticForm";
 
-/** A clínica realiza harmonização orofacial? (opção em Configurações). */
 export function useAestheticsEnabled() {
   const settings = useQuery({ queryKey: ["clinic-settings"], queryFn: api.clinic.settings, staleTime: 300_000 });
-  // Mesma chave usada pelo menu lateral e pela página de Configurações.
   return { enabled: settings.data?.aestheticsEnabled ?? false, loading: settings.isPending };
 }
 
@@ -190,7 +188,6 @@ function BatchTab() {
   );
 }
 
-/** Tabela de aplicações; clique abre o detalhe (com anulação). */
 export function AestheticTable({
   rows,
   loading,
@@ -359,7 +356,6 @@ function AestheticDetail({ record: r, onClose }: { record: AestheticRecord; onCl
   );
 }
 
-/** Aba “Harmonização” na ficha do paciente. */
 export function AestheticsSection({ patientId, patientName }: { patientId: string; patientName: string }) {
   const can = useCan();
   const [creating, setCreating] = useState(false);

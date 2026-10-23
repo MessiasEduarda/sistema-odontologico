@@ -11,10 +11,6 @@ interface PrintSheetProps {
   footer?: ReactNode;
 }
 
-/**
- * Folha imprimível (orçamento, receita, atestado, termo). Use com window.print(): a regra de impressão global mostra
- * apenas o conteúdo marcado com a classe "print-area". Também serve para salvar em PDF pelo navegador.
- */
 export function PrintSheet({ clinicName, clinicInfo, title, children, footer }: PrintSheetProps) {
   return (
     <Sheet className="print-area">
@@ -79,7 +75,6 @@ const Foot = styled.footer`
   font-size: ${({ theme }) => theme.fontSizes.sm};
 `;
 
-/** Linha para assinatura impressa. */
 export const SignatureLine = styled.div`
   margin: ${({ theme }) => theme.space[12]} auto 0;
   width: min(360px, 100%);

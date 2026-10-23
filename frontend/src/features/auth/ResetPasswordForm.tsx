@@ -1,44 +1,41 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { useId, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { applyServerErrors } from "@/lib/forms";
+import { errorMessage } from "@/lib/forms";
 import { useHashToken } from "@/lib/useHashToken";
 import { authApi } from "./api";
 import { AuthLayout, Form, FormFooter } from "./AuthLayout";
-import { TextLink } from "./LoginForm";
-import { newPasswordSchema, PASSWORD_HINT } from "./passwordSchema";
-
-const schema = z
-  .object({ newPassword: newPasswordSchema, confirm: z.string() })
-  .refine((v) => v.newPassword === v.confirm, { path: ["confirm"], error: "As senhas não coincidem." });
-type Values = z.infer<typeof schema>;
+import { ErrorMessage, TextLink } from "./LoginForm";
+import { passwordProblem } from "./passwordSchema";
 
 export function ResetPasswordForm() {
   const token = useHashToken();
+  const messageId = useId();
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [message, setMessage] = useState<string>();
+  const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
-  const [formError, setFormError] = useState<string>();
-  const {
-    register,
-    handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<Values>({ resolver: zodResolver(schema) });
 
-  const onSubmit = handleSubmit(async ({ newPassword }) => {
-    setFormError(undefined);
+  const submit = async () => {
+    const problem = passwordProblem(password, confirm);
+    if (problem) return setMessage(problem);
+    setMessage(undefined);
+    setPending(true);
     try {
-      await authApi.resetPassword(token ?? "", newPassword);
+      await authApi.resetPassword(token ?? "", password);
       setDone(true);
     } catch (error) {
-      setFormError(applyServerErrors(error, setError, ["newPassword"]));
+      setMessage(errorMessage(error, "Não foi possível alterar a senha."));
+    } finally {
+      setPending(false);
     }
-  });
+  };
+
+  const invalid = message ? { "aria-invalid": true, "aria-describedby": messageId } : {};
 
   return (
     <AuthLayout title="Criar nova senha">
@@ -49,24 +46,35 @@ export function ResetPasswordForm() {
         </Alert>
       ) : (
         token && (
-          <Form onSubmit={onSubmit} noValidate>
-            {formError && <Alert tone="danger">{formError}</Alert>}
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+            noValidate
+          >
             <TextField
               label="Nova senha"
               type="password"
               autoComplete="new-password"
-              hint={PASSWORD_HINT}
-              error={errors.newPassword?.message}
-              {...register("newPassword")}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              {...invalid}
             />
             <TextField
               label="Confirme a nova senha"
               type="password"
               autoComplete="new-password"
-              error={errors.confirm?.message}
-              {...register("confirm")}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              {...invalid}
             />
-            <Button type="submit" loading={isSubmitting} fullWidth>
+            {message && (
+              <ErrorMessage id={messageId} role="alert">
+                {message}
+              </ErrorMessage>
+            )}
+            <Button type="submit" loading={pending} fullWidth>
               Salvar nova senha
             </Button>
           </Form>

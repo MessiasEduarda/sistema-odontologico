@@ -9,13 +9,8 @@ import { authApi } from "./api";
 import { ME_KEY, useMe } from "./hooks";
 import { DialogButton, LegalDialog } from "./LegalDialog";
 
-/** Tempo depois de entrar no sistema até o modal aparecer. */
 const DELAY_MS = 3000;
 
-/**
- * Pede o aceite dos Termos de uso e da Política de privacidade uma única vez por pessoa (por versão dos termos).
- * Aparece alguns segundos após entrar; não fecha por fora nem com Esc: só segue após marcar "Li e aceito".
- */
 export function TermsGate() {
   const { data: me } = useMe();
   const pending = Boolean(me && !me.termsAccepted);

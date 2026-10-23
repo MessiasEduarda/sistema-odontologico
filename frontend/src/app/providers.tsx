@@ -13,7 +13,6 @@ import { theme } from "@/styles/theme";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => {
-    // Sessão expirada ou revogada em qualquer consulta ou ação: volta ao login em vez de deixar dados clínicos na tela.
     const onUnauthenticated = (error: unknown) => {
       if (isSessionExpired(error)) redirectToLogin(() => client.clear());
     };
@@ -24,7 +23,6 @@ export function Providers({ children }: { children: ReactNode }) {
         queries: {
           staleTime: 30_000,
           refetchOnWindowFocus: false,
-          // Recusa do servidor (4xx: sem permissão, não encontrado, acesso suspenso) não melhora repetindo.
           retry: (failures, error) => !(error instanceof ApiError && error.status < 500) && failures < 3,
         },
       },

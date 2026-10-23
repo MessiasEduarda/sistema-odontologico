@@ -9,12 +9,6 @@ import { useMe } from "./hooks";
 
 const CLINIC_PICKER = "/selecionar-clinica";
 
-/**
- * Navegação da área autenticada (a proteção real é a autorização da API, em toda requisição):
- * sem sessão → login; sessão sem clínica ativa (com clínicas disponíveis) → seleção de clínica.
- * As páginas sempre são renderizadas e exibem o próprio estado de carregamento enquanto a sessão é consultada
- * (compatível com a navegação instantânea do Next.js); nenhum dado é exibido sem resposta autenticada da API.
- */
 export function SessionGuard({ children }: { children: ReactNode }) {
   const { data: me, isPending, isError, error, refetch } = useMe();
   const router = useRouter();

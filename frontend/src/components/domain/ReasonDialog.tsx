@@ -16,7 +16,6 @@ interface ReasonDialogProps {
   onClose: () => void;
 }
 
-/** Confirmação que exige motivo (cancelamentos, estornos, anulações). O motivo fica registrado no histórico. */
 export function ReasonDialog({
   open,
   title,

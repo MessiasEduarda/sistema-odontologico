@@ -1,4 +1,3 @@
-// "PdfImage": o Image do react-pdf não tem atributo alt (o PDF não é uma página web).
 import { Document, Image as PdfImage, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
 import type {
@@ -12,14 +11,9 @@ import type {
   Plan,
   Question,
 } from "@/lib/api/types";
+import type { ExportTable } from "@/lib/export/tables";
 import { ageFrom, formatCpf, formatDate, formatDateTime, formatMoney, formatPhone, moneyInWords } from "@/lib/format";
 import { AESTHETIC_TYPES, CONSENT_CATEGORIES, DOCUMENT_TYPES, methodLabel, PLAN_STATUS } from "@/lib/labels";
-
-/**
- * Modelos de PDF (gerados no navegador com @react-pdf/renderer). Texto real e selecionável, A4, cabeçalho com os
- * dados da clínica, bloco do paciente, rodapé com data de geração e paginação. Fonte Helvetica (padrão do PDF), que
- * cobre a acentuação do português.
- */
 
 const A4_HEIGHT = 841.89;
 
@@ -84,7 +78,6 @@ const s = StyleSheet.create({
     fontSize: 9,
   },
   footerLeft: { position: "absolute", bottom: 24, left: 42, fontSize: 7.5, color: COLORS.muted },
-  // Texto com `render` (paginação) precisa de `top`: com `bottom` o react-pdf 4.x o posiciona fora da folha.
   footerRight: { position: "absolute", top: A4_HEIGHT - 35, right: 42, fontSize: 7.5, color: COLORS.muted },
   th: { fontFamily: "Helvetica-Bold", fontSize: 8.5, color: "#FFFFFF" },
   thead: { flexDirection: "row", backgroundColor: COLORS.brand, paddingVertical: 4, paddingHorizontal: 4 },
@@ -106,7 +99,6 @@ const SHORT_UNITS: Record<string, string> = { U: "U", ML: "mL", UN: "un.", MG: "
 export interface PdfContext {
   clinic: ClinicSettings;
   patient: Patient;
-  /** Logo em PNG (data URL), se a clínica tiver. */
   logo?: string | null;
 }
 
@@ -131,7 +123,7 @@ function Sheet({
   subtitle,
   children,
 }: {
-  ctx: PdfContext;
+  ctx: Omit<PdfContext, "patient"> & { patient?: Patient };
   title: string;
   subtitle?: string;
   children: ReactNode;
@@ -139,7 +131,7 @@ function Sheet({
   const generated = formatDateTime(new Date().toISOString());
   return (
     <Document
-      title={`${title} — ${ctx.patient.fullName}`}
+      title={ctx.patient ? `${title} — ${ctx.patient.fullName}` : title}
       author={ctx.clinic.name}
       creator="Odonto SaaS"
       language="pt-BR"
@@ -163,10 +155,10 @@ function Sheet({
         </View>
         <Text style={s.title}>{title}</Text>
         {subtitle && <Text style={s.subtitle}>{subtitle}</Text>}
-        <PatientBox patient={ctx.patient} />
+        {ctx.patient && <PatientBox patient={ctx.patient} />}
         {children}
         <Text style={s.footerLeft} fixed>
-          {ctx.patient.fullName} · Gerado em {generated}
+          {ctx.patient?.fullName ?? title} · Gerado em {generated}
         </Text>
       </Page>
     </Document>
@@ -455,14 +447,12 @@ export function PlanPdf({ ctx, plan: p }: { ctx: PdfContext; plan: Plan }) {
   );
 }
 
-/** Recibo de pagamento: valor em número e por extenso, referência, forma de pagamento, data e assinatura. */
 export function ReceiptPdf({ ctx, receipt: r }: { ctx: PdfContext; receipt: ReceiptData }) {
   const net = Number(r.amount) - Number(r.refundedAmount);
   const payer = ctx.patient.guardianName
     ? `${ctx.patient.guardianName}, responsável por ${ctx.patient.fullName}`
     : ctx.patient.fullName;
   const cpf = ctx.patient.guardianName ? ctx.patient.guardianCpf : ctx.patient.cpf;
-  // Dia do pagamento no fuso do navegador (o mesmo usado no restante do recibo).
   const paidDay = formatDateTime(r.paidAt).split(",")[0] ?? "";
   return (
     <Sheet ctx={ctx} title="Recibo" subtitle={`Nº ${r.id.slice(0, 8).toUpperCase()} · ${formatDateTime(r.paidAt)}`}>
@@ -491,6 +481,69 @@ export function ReceiptPdf({ ctx, receipt: r }: { ctx: PdfContext; receipt: Rece
         left={`${ctx.clinic.legalName || ctx.clinic.name}${ctx.clinic.document ? ` — CNPJ/CPF ${ctx.clinic.document}` : ""}`}
         right={r.createdByName ? `Recebido por ${r.createdByName}` : undefined}
       />
+    </Sheet>
+  );
+}
+
+export function TablesPdf({
+  ctx,
+  title,
+  subtitle,
+  tables,
+  footnote,
+}: {
+  ctx: Omit<PdfContext, "patient"> & { patient?: Patient };
+  title: string;
+  subtitle?: string;
+  tables: ExportTable[];
+  footnote?: string;
+}) {
+  const cell = (value: unknown, money?: boolean) =>
+    value === null || value === undefined || value === ""
+      ? "—"
+      : typeof value === "number"
+        ? money
+          ? formatMoney(value)
+          : value.toLocaleString("pt-BR")
+        : String(value);
+  return (
+    <Sheet ctx={ctx} title={title} subtitle={subtitle}>
+      {tables.map((t) => (
+        <View key={t.title}>
+          <Text style={s.section} minPresenceAhead={48}>
+            {t.title}
+          </Text>
+          {t.note || t.rows.length === 0 ? (
+            <Text style={s.small}>{t.note ?? "Nenhum registro."}</Text>
+          ) : (
+            <>
+              <View style={s.thead}>
+                {t.columns.map((c) => (
+                  <Text
+                    key={c.header}
+                    style={[s.th, { width: `${c.width}%`, textAlign: c.align ?? "left", paddingRight: 6 }]}
+                  >
+                    {c.header}
+                  </Text>
+                ))}
+              </View>
+              {t.rows.map((row, i) => (
+                <View key={i} style={s.tr} wrap={false}>
+                  {t.columns.map((c, j) => (
+                    <Text
+                      key={c.header}
+                      style={{ width: `${c.width}%`, textAlign: c.align ?? "left", paddingRight: 6, fontSize: 9 }}
+                    >
+                      {cell(row[j], c.money)}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </>
+          )}
+        </View>
+      ))}
+      {footnote && <Text style={[s.small, { marginTop: 16 }]}>{footnote}</Text>}
     </Sheet>
   );
 }

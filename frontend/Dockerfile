@@ -1,10 +1,8 @@
-# Dependências
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-# Build (rewrites do Next são resolvidos aqui -> API_INTERNAL_URL precisa existir no build)
 FROM node:24-alpine AS build
 WORKDIR /app
 ARG API_INTERNAL_URL=http://api:8080
@@ -13,7 +11,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-# Runtime mínimo (saída standalone, usuário sem privilégios)
 FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0

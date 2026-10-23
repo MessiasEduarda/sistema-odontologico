@@ -44,11 +44,9 @@ interface Props {
   initial: AppointmentDraft;
   editing?: Appointment | null;
   onClose: () => void;
-  /** Executado depois de salvar, na mesma ação (ex.: tirar o paciente da lista de espera). */
   afterSave?: (appointment: Appointment) => Promise<unknown>;
 }
 
-/** Agendar ou remarcar. Mostra horários livres do profissional no dia escolhido. */
 export function AppointmentForm({ open, initial, editing, onClose, afterSave }: Props) {
   const [draft, setDraft] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});

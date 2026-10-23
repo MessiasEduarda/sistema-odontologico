@@ -7,10 +7,6 @@ import { IconButton } from "@/components/ui/IconButton";
 import { useFeedback } from "@/components/ui/Feedback";
 import { type PdfRequest, usePdf } from "@/lib/pdf/usePdf";
 
-/**
- * Botão "Baixar PDF": um clique gera e baixa o arquivo do paciente. `load` pode buscar os dados completos (ex.: a
- * partir de uma linha de tabela que só tem o resumo). `compact` vira ícone para colunas de ação.
- */
 export function PdfButton({
   load,
   label = "Baixar PDF",

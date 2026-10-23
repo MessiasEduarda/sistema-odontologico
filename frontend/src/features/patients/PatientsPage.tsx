@@ -35,7 +35,7 @@ export function PatientsPage() {
   });
 
   const create = useAction(api.patients.create, {
-    success: "Paciente cadastrado com sucesso!",
+    success: (p) => `Paciente cadastrado com sucesso! O convite do portal foi enviado para ${p.email}.`,
     invalidate: [["patients"]],
     onSuccess: (p) => router.push(`/pacientes/${p.id}`),
   });

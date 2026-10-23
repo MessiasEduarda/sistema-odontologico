@@ -20,6 +20,7 @@ import type { Procedure, Professional, Room, ScheduleSlot } from "@/lib/api/type
 import { formatMoney } from "@/lib/format";
 import { UF_OPTIONS, WEEKDAYS } from "@/lib/labels";
 import { useAction } from "@/lib/mutations";
+import { EMAIL_PATTERN, useRequiredFields } from "@/lib/useRequiredFields";
 
 export function RegistryPage() {
   const [tab, setTab] = useState("profissionais");
@@ -42,8 +43,6 @@ export function RegistryPage() {
     </Stack>
   );
 }
-
-/* ------------------------------------------------------------------ Profissionais */
 
 function ProfessionalsTab() {
   const [editing, setEditing] = useState<Professional | "new" | null>(null);
@@ -127,6 +126,12 @@ function ProfessionalForm({ professional, onClose }: { professional: Professiona
     commissionPercent: professional?.commissionPercent ?? "",
     active: professional?.active ?? true,
   });
+  const form = useRequiredFields({
+    name: !v.name.trim() && "Informe o nome.",
+    cro: !v.cro.trim() && "Informe o CRO.",
+    croState: !v.croState && "Informe a UF do CRO.",
+    email: !v.email.trim() ? "Informe o e-mail." : !EMAIL_PATTERN.test(v.email.trim()) && "E-mail inválido.",
+  });
   const save = useAction(
     () => {
       const body = {
@@ -159,7 +164,7 @@ function ProfessionalForm({ professional, onClose }: { professional: Professiona
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!v.name.trim()}>
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -171,13 +176,23 @@ function ProfessionalForm({ professional, onClose }: { professional: Professiona
             label="Nome de exibição"
             required
             maxLength={160}
+            error={form.errors.name}
             value={v.name}
             onChange={(e) => setV({ ...v, name: e.target.value })}
           />
         </FullRow>
-        <TextField label="CRO" maxLength={20} value={v.cro} onChange={(e) => setV({ ...v, cro: e.target.value })} />
+        <TextField
+          label="CRO"
+          required
+          maxLength={20}
+          error={form.errors.cro}
+          value={v.cro}
+          onChange={(e) => setV({ ...v, cro: e.target.value })}
+        />
         <SelectField
           label="UF do CRO"
+          required
+          error={form.errors.croState}
           placeholder="—"
           value={v.croState}
           onChange={(e) => setV({ ...v, croState: e.target.value })}
@@ -198,7 +213,9 @@ function ProfessionalForm({ professional, onClose }: { professional: Professiona
         <TextField
           label="E-mail"
           type="email"
+          required
           maxLength={254}
+          error={form.errors.email}
           value={v.email}
           onChange={(e) => setV({ ...v, email: e.target.value })}
         />
@@ -332,8 +349,6 @@ function ScheduleEditor({ professional, onClose }: { professional: Professional;
   );
 }
 
-/* ------------------------------------------------------------------ Procedimentos */
-
 function ProceduresTab() {
   const [editing, setEditing] = useState<Procedure | "new" | null>(null);
   const list = useQuery({ queryKey: ["procedures", "all"], queryFn: () => api.clinic.procedures() });
@@ -378,6 +393,7 @@ function ProcedureForm({ procedure, onClose }: { procedure: Procedure | null; on
     durationMinutes: procedure?.durationMinutes ?? 30,
     active: procedure?.active ?? true,
   });
+  const form = useRequiredFields({ name: !v.name.trim() && "Informe o nome do procedimento." });
   const save = useAction(
     () => {
       const body = { ...v, code: v.code || null, category: v.category || null };
@@ -399,7 +415,7 @@ function ProcedureForm({ procedure, onClose }: { procedure: Procedure | null; on
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate(undefined)} loading={save.isPending} disabled={!v.name.trim()}>
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -410,6 +426,7 @@ function ProcedureForm({ procedure, onClose }: { procedure: Procedure | null; on
           <TextField
             label="Nome"
             required
+            error={form.errors.name}
             maxLength={160}
             value={v.name}
             onChange={(e) => setV({ ...v, name: e.target.value })}
@@ -455,15 +472,17 @@ function ProcedureForm({ procedure, onClose }: { procedure: Procedure | null; on
   );
 }
 
-/* ------------------------------------------------------------------ Salas */
-
 function RoomsTab() {
   const rooms = useQuery({ queryKey: ["rooms"], queryFn: api.clinic.rooms });
   const [name, setName] = useState("");
+  const form = useRequiredFields({ name: !name.trim() && "Informe o nome da sala." });
   const create = useAction(() => api.clinic.createRoom({ name, active: true }), {
     success: "Sala criada com sucesso!",
     invalidate: [["rooms"]],
-    onSuccess: () => setName(""),
+    onSuccess: () => {
+      form.reset();
+      setName("");
+    },
   });
   const toggle = useAction((r: Room) => api.clinic.updateRoom(r.id, { name: r.name, active: !r.active }), {
     success: "Sala atualizada com sucesso!",
@@ -476,13 +495,15 @@ function RoomsTab() {
           <div style={{ flex: 1, minWidth: 220 }}>
             <TextField
               label="Nova sala"
+              required
+              error={form.errors.name}
               maxLength={80}
               placeholder="Ex.: Consultório 3"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <Button onClick={() => create.mutate(undefined)} loading={create.isPending} disabled={!name.trim()}>
+          <Button onClick={() => form.check() && create.mutate(undefined)} loading={create.isPending}>
             Adicionar
           </Button>
         </Row>

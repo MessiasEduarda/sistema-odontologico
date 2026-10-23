@@ -3,14 +3,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import styled from "styled-components";
-import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { Badge, Card, CardTitle, DetailList, Muted, PageHeader, Row, Stack } from "@/components/ui/display";
+import { Badge, Card, CardTitle, DetailList, PageHeader, Row, Stack } from "@/components/ui/display";
 import { TextField } from "@/components/ui/TextField";
 import { useMe } from "@/features/auth/hooks";
-import { PASSWORD_HINT } from "@/features/auth/passwordSchema";
-import { ApiError } from "@/lib/api/client";
+import { passwordProblem } from "@/features/auth/passwordSchema";
+import { errorMessage } from "@/lib/forms";
 import { api } from "@/lib/api/endpoints";
 import type { SessionInfo } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
@@ -60,6 +59,7 @@ function PasswordCard() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [message, setMessage] = useState<string>();
   const change = useAction(() => api.account.changePassword(current, next), {
     success: "Senha alterada com sucesso! As outras sessões foram encerradas.",
     invalidate: [["sessions"]],
@@ -69,20 +69,21 @@ function PasswordCard() {
       setConfirm("");
     },
   });
-  const field = (name: string) =>
-    change.error instanceof ApiError ? change.error.fieldErrors.find((f) => f.field === name)?.message : undefined;
-  const mismatch = confirm.length > 0 && confirm !== next;
+  const submit = () => {
+    const problem = (!current && "Informe a senha atual.") || passwordProblem(next, confirm);
+    setMessage(problem || undefined);
+    if (!problem) change.mutate(undefined);
+  };
+  const shown = message ?? (change.error ? errorMessage(change.error) : undefined);
   return (
     <Card>
       <CardTitle>Trocar senha</CardTitle>
-      <Muted style={{ display: "block", marginBottom: 16 }}>{PASSWORD_HINT}</Muted>
       <PasswordFields>
         <TextField
           label="Senha atual"
           type="password"
           autoComplete="current-password"
           value={current}
-          error={field("currentPassword")}
           onChange={(e) => setCurrent(e.target.value)}
         />
         <TextField
@@ -90,7 +91,6 @@ function PasswordCard() {
           type="password"
           autoComplete="new-password"
           value={next}
-          error={field("newPassword")}
           onChange={(e) => setNext(e.target.value)}
         />
         <TextField
@@ -98,25 +98,25 @@ function PasswordCard() {
           type="password"
           autoComplete="new-password"
           value={confirm}
-          error={mismatch ? "As senhas não coincidem." : undefined}
           onChange={(e) => setConfirm(e.target.value)}
         />
       </PasswordFields>
-      {change.error && !(change.error instanceof ApiError && change.error.fieldErrors.length > 0) && (
-        <Alert tone="danger">{change.error.message}</Alert>
-      )}
-      <Row style={{ marginTop: 20 }}>
-        <Button
-          onClick={() => change.mutate(undefined)}
-          loading={change.isPending}
-          disabled={!current || next.length < 10 || mismatch || !confirm}
-        >
+      {shown && <FormMessage role="alert">{shown}</FormMessage>}
+      <Row style={{ marginTop: shown ? 8 : 20 }}>
+        <Button onClick={submit} loading={change.isPending}>
           Trocar senha
         </Button>
       </Row>
     </Card>
   );
 }
+
+const FormMessage = styled.p`
+  margin-top: ${({ theme }) => theme.space[4]};
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: ${({ theme }) => theme.fontSizes.md};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+`;
 
 function SessionsCard() {
   const sessions = useQuery({ queryKey: ["sessions"], queryFn: api.account.sessions });
@@ -191,7 +191,6 @@ function describeAgent(ua: string | null): string {
   return os ? `${browser} · ${os}` : browser;
 }
 
-/** Campos de senha empilhados, todos com a mesma largura. */
 const PasswordFields = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.space[4]};

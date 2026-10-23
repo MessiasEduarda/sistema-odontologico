@@ -19,11 +19,11 @@ import { formatDateTime } from "@/lib/format";
 import { CONSENT_CATEGORIES, CONSENT_STATUS } from "@/lib/labels";
 import { useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 import { CATEGORY_OPTIONS, ConsentTemplatesManager } from "./ConsentTemplatesManager";
 
 const STATUS_OPTIONS = Object.entries(CONSENT_STATUS).map(([value, s]) => ({ value, label: s.label }));
 
-/** Página Termos: todos os termos emitidos (assinar, enviar link, imprimir) e os modelos por categoria. */
 export function ConsentsPage() {
   const can = useCan();
   const [tab, setTab] = useState<string | null>(null);
@@ -184,6 +184,7 @@ function ChoosePatient({
   onChosen: (p: { id: string; name: string }) => void;
 }) {
   const [patient, setPatient] = useState<{ id: string; name: string } | null>(null);
+  const form = useRequiredFields({ patient: !patient && "Selecione o paciente." });
   return (
     <Modal
       open={open}
@@ -194,13 +195,11 @@ function ChoosePatient({
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button disabled={!patient} onClick={() => patient && onChosen(patient)}>
-            Continuar
-          </Button>
+          <Button onClick={() => form.check() && patient && onChosen(patient)}>Continuar</Button>
         </>
       }
     >
-      <PatientSelect value={patient} onChange={setPatient} required />
+      <PatientSelect value={patient} onChange={setPatient} required error={form.errors.patient} />
     </Modal>
   );
 }

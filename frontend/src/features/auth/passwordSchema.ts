@@ -1,9 +1,9 @@
-import { z } from "zod";
+export const PASSWORD_MIN_LENGTH = 8;
 
-/** Espelha a política do back-end (PasswordPolicy). O back-end continua sendo a autoridade final. */
-export const newPasswordSchema = z
-  .string()
-  .min(10, { error: "A senha deve ter pelo menos 10 caracteres." })
-  .max(128, { error: "A senha deve ter no máximo 128 caracteres." });
-
-export const PASSWORD_HINT = "Use pelo menos 10 caracteres. Frases longas são fáceis de lembrar e seguras.";
+export function passwordProblem(password: string, confirm?: string): string | null {
+  if (password.length < PASSWORD_MIN_LENGTH) return `A senha deve ter no mínimo ${PASSWORD_MIN_LENGTH} caracteres.`;
+  if (!/\p{Lu}/u.test(password)) return "A senha deve ter pelo menos uma letra maiúscula.";
+  if (!/[^\p{L}\p{N}\s]/u.test(password)) return "A senha deve ter pelo menos um caractere especial (ex.: ! @ # $ %).";
+  if (confirm !== undefined && confirm !== password) return "As senhas não coincidem.";
+  return null;
+}

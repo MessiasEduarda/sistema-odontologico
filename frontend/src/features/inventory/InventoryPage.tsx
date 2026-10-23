@@ -21,6 +21,7 @@ import type { Product, StockMovement } from "@/lib/api/types";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { useAction, useCan } from "@/lib/mutations";
 import { P } from "@/lib/permissions";
+import { useRequiredFields } from "@/lib/useRequiredFields";
 
 const INV = [["products"], ["inventory-alerts"], ["dashboard"]];
 const qty = (n: number | string) => Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
@@ -148,6 +149,10 @@ function ProductForm({ product, onClose }: { product: Product | null; onClose: (
     supplierId: product?.supplierId ?? "",
     active: product?.active ?? true,
   });
+  const form = useRequiredFields({
+    name: !v.name.trim() && "Informe o nome do produto.",
+    unit: !v.unit.trim() && "Informe a unidade.",
+  });
   const save = useAction(
     () => {
       const body = { ...v, category: v.category || null, supplierId: v.supplierId || null };
@@ -165,11 +170,7 @@ function ProductForm({ product, onClose }: { product: Product | null; onClose: (
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={!v.name.trim() || !v.unit.trim()}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Salvar
           </Button>
         </>
@@ -180,6 +181,7 @@ function ProductForm({ product, onClose }: { product: Product | null; onClose: (
           <TextField
             label="Nome"
             required
+            error={form.errors.name}
             maxLength={160}
             value={v.name}
             onChange={(e) => setV({ ...v, name: e.target.value })}
@@ -194,6 +196,7 @@ function ProductForm({ product, onClose }: { product: Product | null; onClose: (
         <TextField
           label="Unidade"
           required
+          error={form.errors.unit}
           maxLength={20}
           placeholder="un, cx, pct, ml…"
           value={v.unit}
@@ -249,6 +252,12 @@ function MovementForm({ product, onClose }: { product: Product; onClose: () => v
     },
   );
   const adjust = v.type === "ADJUST";
+  const form = useRequiredFields({
+    quantity: adjust
+      ? v.quantity < 0 && "O saldo contado não pode ser negativo."
+      : !(v.quantity > 0) && "Informe uma quantidade maior que zero.",
+    reason: adjust && !v.reason.trim() && "Informe o motivo do ajuste.",
+  });
   return (
     <Modal
       open
@@ -259,11 +268,7 @@ function MovementForm({ product, onClose }: { product: Product; onClose: () => v
           <Button data-modal-cancel variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button
-            onClick={() => save.mutate(undefined)}
-            loading={save.isPending}
-            disabled={(!adjust && !(v.quantity > 0)) || (adjust && (v.quantity < 0 || !v.reason.trim()))}
-          >
+          <Button onClick={() => form.check() && save.mutate(undefined)} loading={save.isPending}>
             Registrar
           </Button>
         </>
@@ -287,6 +292,8 @@ function MovementForm({ product, onClose }: { product: Product; onClose: () => v
         />
         <TextField
           label={adjust ? "Saldo contado" : "Quantidade"}
+          required
+          error={form.errors.quantity}
           type="number"
           min={0}
           step="0.001"
@@ -321,6 +328,7 @@ function MovementForm({ product, onClose }: { product: Product; onClose: () => v
           <TextField
             label={adjust ? "Motivo do ajuste" : "Motivo / observação"}
             required={adjust}
+            error={form.errors.reason}
             maxLength={300}
             value={v.reason}
             onChange={(e) => setV({ ...v, reason: e.target.value })}

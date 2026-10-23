@@ -1,9 +1,3 @@
-/**
- * Leitura de planilhas CSV (como o Excel salva no Brasil: separador ";" e acentos em Windows-1252, ou UTF-8 com ",").
- * Sem dependências: aspas, aspas duplicadas e quebras de linha dentro de campos são tratadas.
- */
-
-/** Texto do arquivo: tenta UTF-8; se houver caracteres inválidos, lê como Windows-1252 (padrão do Excel no Brasil). */
 export async function readCsvFile(file: Blob): Promise<string> {
   const bytes = await file.arrayBuffer();
   const utf8 = new TextDecoder("utf-8").decode(bytes);
@@ -11,7 +5,6 @@ export async function readCsvFile(file: Blob): Promise<string> {
   return text.replace(/^﻿/, "");
 }
 
-/** Separador mais provável, olhando a primeira linha. */
 function detectDelimiter(text: string): string {
   const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
   const counts = [";", ",", "\t"].map((d) => [d, firstLine.split(d).length - 1] as const);
@@ -19,7 +12,6 @@ function detectDelimiter(text: string): string {
   return counts[0]?.[1] ? counts[0][0] : ";";
 }
 
-/** Converte o texto em linhas de células. Linhas totalmente vazias são descartadas. */
 export function parseCsv(text: string, delimiter = detectDelimiter(text)): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -56,7 +48,6 @@ export function parseCsv(text: string, delimiter = detectDelimiter(text)): strin
   return rows.filter((r) => r.some((c) => c.trim() !== ""));
 }
 
-/** Normaliza um cabeçalho para comparação: minúsculas, sem acentos e sem pontuação. */
 export function normalizeHeader(value: string): string {
   return value
     .normalize("NFD")
@@ -66,7 +57,6 @@ export function normalizeHeader(value: string): string {
     .trim();
 }
 
-/** Gera CSV (separador ";", com BOM para o Excel abrir os acentos corretamente). */
 export function toCsv(rows: string[][]): string {
   const escape = (v: string) => (/[";\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   return "﻿" + rows.map((r) => r.map(escape).join(";")).join("\r\n");

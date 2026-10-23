@@ -12,7 +12,6 @@ export interface Me {
   activeClinic: ClinicSummary | null;
   permissions: string[];
   clinics: ClinicSummary[];
-  /** Já aceitou a versão vigente dos Termos de uso e da Política de privacidade. */
   termsAccepted: boolean;
   termsVersion: string;
 }
