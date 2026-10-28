@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, LogOut, RefreshCw } from "lucide-react";
+import { CreditCard, LifeBuoy, LogOut, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
 import { Button } from "@/components/ui/Button";
@@ -48,6 +49,7 @@ function lastDay(blockedFrom: string): string {
 export function BillingGate() {
   const { data: me } = useMe();
   const queryClient = useQueryClient();
+  const pathname = usePathname();
   const tenantId = me?.activeClinic?.id;
   const sub = useQuery({
     queryKey: [...SUBSCRIPTION_KEY, tenantId],
@@ -85,6 +87,7 @@ export function BillingGate() {
   }, [state, tenantId]);
 
   if (!sub.data || !tenantId) return null;
+  if (state === "BLOCKED" && pathname.startsWith("/suporte")) return null;
   if (state === "BLOCKED") {
     return <BlockedDialog sub={sub.data} checking={sub.isFetching} onCheck={() => void sub.refetch()} />;
   }
@@ -104,7 +107,11 @@ export function BillingGate() {
 
 function PayButton({ sub }: { sub: Subscription }) {
   if (!sub.paymentUrl) {
-    return <Muted>Fale com o suporte para receber o link de pagamento.</Muted>;
+    return (
+      <Muted>
+        <Link href="/suporte">Fale com o suporte</Link> para receber o link de pagamento.
+      </Muted>
+    );
   }
   return (
     <Button onClick={() => window.open(sub.paymentUrl ?? "", "_blank", "noopener,noreferrer")}>
@@ -175,6 +182,11 @@ function BlockedDialog({ sub, checking, onCheck }: { sub: Subscription; checking
       <p>
         Seus dados continuam guardados e nada foi apagado. Assim que o pagamento for confirmado, o acesso volta
         normalmente. Se já pagou, aguarde a confirmação e clique em “Já paguei”.
+      </p>
+      <p>
+        <SwitchLink href="/suporte">
+          <LifeBuoy size={16} aria-hidden /> Falar com o suporte
+        </SwitchLink>
       </p>
       {(me?.clinics.length ?? 0) > 1 && (
         <p>
@@ -299,6 +311,9 @@ const Muted = styled.span`
 `;
 
 const SwitchLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space[2]};
   color: ${({ theme }) => theme.colors.primaryText};
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
 `;

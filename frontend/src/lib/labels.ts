@@ -258,3 +258,36 @@ export const FACE_REGIONS = [
   "Pescoço",
   "Colo",
 ];
+
+export const TICKET_STATUS: Labeled = {
+  OPEN: { label: "Aberto", tone: "info" },
+  IN_PROGRESS: { label: "Em análise", tone: "primary" },
+  WAITING_CLINIC: { label: "Aguardando clínica", tone: "warning" },
+  RESOLVED: { label: "Resolvido", tone: "success" },
+  CLOSED: { label: "Encerrado", tone: "neutral" },
+};
+
+export const TICKET_PRIORITY: Labeled = {
+  URGENT: { label: "Urgente", tone: "danger" },
+  HIGH: { label: "Alta", tone: "warning" },
+  NORMAL: { label: "Normal", tone: "info" },
+  LOW: { label: "Baixa", tone: "neutral" },
+};
+
+export const TICKET_CATEGORIES: { value: string; label: string }[] = [
+  { value: "BUG", label: "Erro no sistema" },
+  { value: "HOW_TO", label: "Dúvida de uso" },
+  { value: "ACCESS", label: "Acesso e senha" },
+  { value: "BILLING", label: "Assinatura e pagamento" },
+  { value: "SUGGESTION", label: "Sugestão" },
+  { value: "DATA_PRIVACY", label: "Dados e LGPD" },
+];
+
+export const TICKET_IMPACTS: { value: string; label: string; hint: string }[] = [
+  { value: "BLOCKING", label: "Não consigo atender pacientes", hint: "Urgente: resposta em até 2 horas úteis" },
+  { value: "DEGRADED", label: "Atrapalha, mas dá para trabalhar", hint: "Alta: resposta em até 8 horas úteis" },
+  { value: "QUESTION", label: "Dúvida ou ajuste", hint: "Normal: resposta em até 1 dia útil" },
+  { value: "SUGGESTION", label: "Sugestão de melhoria", hint: "Baixa: resposta em até 3 dias úteis" },
+];
+
+export const ticketCategoryLabel = (code: string) => TICKET_CATEGORIES.find((c) => c.value === code)?.label ?? code;

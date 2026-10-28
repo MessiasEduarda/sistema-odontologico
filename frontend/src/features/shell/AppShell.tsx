@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, Repeat, ShieldCheck, UserCog, X } from "lucide-react";
+import { LifeBuoy, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Repeat, ShieldCheck, UserCog, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useLogout, useMe } from "@/features/auth/hooks";
 import { ToothMark } from "@/components/domain/ToothMark";
 import { api } from "@/lib/api/endpoints";
+import { UnreadBadge, unreadLabel } from "@/components/ui/UnreadBadge";
+import { useClinicSupportUnread, usePlatformSupportUnread } from "@/features/support/useSupportUnread";
 import { usePersistentFlag } from "@/lib/usePersistentFlag";
 import { visibleNav, type NavItem } from "./navigation";
 
@@ -25,6 +27,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     enabled: Boolean(me?.activeClinic),
     staleTime: 300_000,
   });
+  const unreadCount = useClinicSupportUnread();
+  const platformUnread = usePlatformSupportUnread();
+  const totalUnread = unreadCount + platformUnread;
   const items = visibleNav(me?.permissions ?? [], { aesthetics: settings.data?.aestheticsEnabled ?? false });
   const isActive = (item: NavItem) => pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -51,12 +56,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             href="/plataforma"
             aria-current={pathname.startsWith("/plataforma") ? "page" : undefined}
             title={compact ? "Plataforma" : undefined}
-            aria-label={compact ? "Plataforma" : undefined}
+            aria-label={
+              platformUnread > 0 ? `Plataforma, ${unreadLabel(platformUnread)}` : compact ? "Plataforma" : undefined
+            }
             $compact={compact}
             onClick={() => setMobileOpen(false)}
           >
-            <ShieldCheck size={20} strokeWidth={1.7} aria-hidden="true" />
+            <IconWithBadge>
+              <ShieldCheck size={20} strokeWidth={1.7} aria-hidden="true" />
+              {compact && <UnreadBadge count={platformUnread} floating />}
+            </IconWithBadge>
             {!compact && <span>Plataforma</span>}
+            {!compact && <EndBadge count={platformUnread} />}
           </NavLink>
         </li>
       )}
@@ -65,6 +76,25 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const footer = (compact: boolean) => (
     <Footer>
+      {me?.activeClinic && (
+        <NavLink
+          href="/suporte"
+          aria-current={pathname.startsWith("/suporte") ? "page" : undefined}
+          title={compact ? "Suporte" : undefined}
+          aria-label={
+            unreadCount > 0 ? `Suporte, ${unreadLabel(unreadCount)}` : compact ? "Suporte" : undefined
+          }
+          $compact={compact}
+          onClick={() => setMobileOpen(false)}
+        >
+          <IconWithBadge>
+            <LifeBuoy size={20} strokeWidth={1.7} aria-hidden="true" />
+            {compact && <UnreadBadge count={unreadCount} floating />}
+          </IconWithBadge>
+          {!compact && <span>Suporte</span>}
+          {!compact && <EndBadge count={unreadCount} />}
+        </NavLink>
+      )}
       <NavLink
         href="/perfil"
         aria-current={pathname.startsWith("/perfil") ? "page" : undefined}
@@ -133,8 +163,16 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sidebar>
 
       <MobileBar>
-        <Toggle type="button" onClick={() => setMobileOpen(true)} aria-label="Abrir menu" aria-expanded={mobileOpen}>
-          <Menu size={22} aria-hidden />
+        <Toggle
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label={totalUnread > 0 ? `Abrir menu, ${unreadLabel(totalUnread)}` : "Abrir menu"}
+          aria-expanded={mobileOpen}
+        >
+          <IconWithBadge>
+            <Menu size={22} aria-hidden />
+            <UnreadBadge count={totalUnread} floating />
+          </IconWithBadge>
         </Toggle>
         <MobileTitle>{me?.activeClinic?.name ?? "Odonto SaaS"}</MobileTitle>
       </MobileBar>
@@ -371,6 +409,15 @@ const itemStyles = css<{ $compact: boolean }>`
 
 const NavLink = styled(Link)<{ $compact: boolean }>`
   ${itemStyles}
+`;
+
+const IconWithBadge = styled.span`
+  position: relative;
+  display: inline-flex;
+`;
+
+const EndBadge = styled(UnreadBadge)`
+  margin-left: auto;
 `;
 
 const NavButton = styled.button<{ $compact: boolean }>`

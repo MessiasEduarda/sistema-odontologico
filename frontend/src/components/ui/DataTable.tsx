@@ -49,6 +49,7 @@ interface DataTableProps<T> {
   emptyDescription?: ReactNode;
   emptyAction?: ReactNode;
   onRowClick?: (row: T) => void;
+  rowHighlight?: (row: T) => boolean;
   pageSize?: number;
   serverPagination?: { page: number; totalPages: number; totalItems: number; onChange: (page: number) => void };
 }
@@ -67,6 +68,7 @@ export function DataTable<T>({
   emptyDescription,
   emptyAction,
   onRowClick,
+  rowHighlight,
   pageSize = 10,
   serverPagination,
 }: DataTableProps<T>) {
@@ -119,6 +121,8 @@ export function DataTable<T>({
                     key={rowKey(row)}
                     ref={index === 0 ? measureRow : undefined}
                     $clickable={Boolean(onRowClick)}
+                    $highlight={rowHighlight?.(row) ?? false}
+                    data-highlight={rowHighlight?.(row) || undefined}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     tabIndex={onRowClick ? 0 : undefined}
                     onKeyDown={
@@ -262,12 +266,26 @@ const Th = styled.th`
   }
 `;
 
-const Tr = styled.tr<{ $clickable: boolean }>`
+const Tr = styled.tr<{ $clickable: boolean; $highlight: boolean }>`
   cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
   transition: background ${({ theme }) => theme.transitions.fast};
+  background: ${({ theme, $highlight }) =>
+    $highlight ? `color-mix(in srgb, ${theme.colors.primarySoft} 45%, ${theme.colors.surface})` : "transparent"};
+
+  & > td:first-child {
+    box-shadow: ${({ theme, $highlight }) => ($highlight ? `inset 3px 0 0 ${theme.colors.danger}` : "none")};
+  }
+  & > td {
+    font-weight: ${({ theme, $highlight }) => ($highlight ? theme.fontWeights.semibold : "inherit")};
+  }
 
   &:hover {
-    background: ${({ theme, $clickable }) => ($clickable ? theme.colors.surfaceMuted : "transparent")};
+    background: ${({ theme, $clickable, $highlight }) =>
+      $highlight
+        ? theme.colors.primarySoft
+        : $clickable
+          ? theme.colors.surfaceMuted
+          : "transparent"};
   }
   &:focus-visible {
     outline: 2px solid ${({ theme }) => theme.colors.primary};

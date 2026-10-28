@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
@@ -10,6 +10,7 @@ import styled from "styled-components";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { api } from "@/lib/api/endpoints";
 import { safeRedirectPath } from "@/lib/forms";
 import { authApi } from "./api";
 import { AuthLayout, Form, FormFooter } from "./AuthLayout";
@@ -32,6 +33,12 @@ export function LoginForm() {
   const queryClient = useQueryClient();
   const messageId = useId();
   const [message, setMessage] = useState<string>();
+  const contact = useQuery({
+    queryKey: ["support-contact"],
+    queryFn: api.support.contact,
+    staleTime: 3_600_000,
+    retry: false,
+  });
   const {
     register,
     handleSubmit,
@@ -86,10 +93,27 @@ export function LoginForm() {
         <FormFooter>
           <TextLink href="/esqueci-senha">Esqueci minha senha</TextLink>
         </FormFooter>
+        {contact.data?.email && (
+          <SupportHint>
+            Não consegue entrar? Escreva para <a href={`mailto:${contact.data.email}`}>{contact.data.email}</a>
+          </SupportHint>
+        )}
       </Form>
     </AuthLayout>
   );
 }
+
+const SupportHint = styled.p`
+  margin: 0;
+  font-size: ${({ theme }) => theme.fontSizes.sm};
+  opacity: 0.9;
+
+  a {
+    color: inherit;
+    font-weight: ${({ theme }) => theme.fontWeights.semibold};
+    text-decoration: underline;
+  }
+`;
 
 export const ErrorMessage = styled.p`
   margin: ${({ theme }) => theme.space[2]} 0 -10px;

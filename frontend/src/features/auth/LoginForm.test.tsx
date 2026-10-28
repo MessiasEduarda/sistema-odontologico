@@ -19,10 +19,14 @@ const me = (clinics: number, active: boolean) => ({
   })),
 });
 
-function mockApi(loginResponse: Response) {
+const CONTACT_URL = "/api/v1/public/support/contact";
+const contactResponse = (email: string | null) => jsonResponse({ email, hours: "segunda a sexta, das 8h às 18h" });
+
+function mockApi(loginResponse: Response, supportEmail: string | null = null) {
   vi.stubGlobal(
     "fetch",
     vi.fn().mockImplementation((url: string) => {
+      if (url === CONTACT_URL) return Promise.resolve(contactResponse(supportEmail));
       if (url === "/api/v1/auth/csrf") {
         document.cookie = "XSRF-TOKEN=t; path=/";
         return Promise.resolve(new Response(null, { status: 204 }));
@@ -46,7 +50,7 @@ describe("LoginForm", () => {
   });
 
   it("valida os campos antes de chamar a API", async () => {
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(contactResponse(null)));
     vi.stubGlobal("fetch", fetchMock);
     renderWithProviders(<LoginForm />);
 
@@ -54,7 +58,17 @@ describe("LoginForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Informe o e-mail e a senha.");
     expect(screen.getAllByRole("alert")).toHaveLength(1);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.every(([url]) => url === CONTACT_URL)).toBe(true);
+  });
+
+  it("mostra o e-mail do suporte para quem não consegue entrar", async () => {
+    mockApi(jsonResponse(me(1, true)), "suporte@teste.example");
+    renderWithProviders(<LoginForm />);
+
+    expect(await screen.findByRole("link", { name: "suporte@teste.example" })).toHaveAttribute(
+      "href",
+      "mailto:suporte@teste.example",
+    );
   });
 
   it("mostra a mensagem do servidor quando as credenciais são inválidas", async () => {

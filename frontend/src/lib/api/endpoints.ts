@@ -1,5 +1,14 @@
 import { apiDelete, apiFetch, apiPost, apiPut } from "./client";
 import type {
+  CannedResponse,
+  NewTicketInput,
+  PlatformTicketSummary,
+  SupportContact,
+  SupportMetrics,
+  TicketDetail,
+  TicketPriority,
+  TicketStatus,
+  TicketSummary,
   AestheticInput,
   AestheticRecord,
   AgendaReport,
@@ -384,5 +393,46 @@ export const api = {
     updatePlan: (id: Uuid, body: Omit<PlatformPlan, "id" | "tenants">) =>
       apiPut<PlatformPlan>(`/api/v1/platform/plans/${id}`, body),
     audit: (action?: string) => apiFetch<PlatformEvent[]>(`/api/v1/platform/audit${qs({ action })}`),
+    supportTickets: (filters: { status?: string; priority?: string; tenantId?: Uuid; q?: string; unread?: boolean }) =>
+      apiFetch<PlatformTicketSummary[]>(`/api/v1/platform/support/tickets${qs(filters)}`),
+    supportMetrics: () => apiFetch<SupportMetrics>("/api/v1/platform/support/metrics"),
+    supportUnread: () => apiFetch<{ count: number }>("/api/v1/platform/support/unread"),
+    supportTicket: (id: Uuid) => apiFetch<TicketDetail>(`/api/v1/platform/support/tickets/${id}`),
+    supportReply: (id: Uuid, body: { body: string; internal: boolean; status?: TicketStatus | null }) =>
+      apiPost<TicketDetail>(`/api/v1/platform/support/tickets/${id}/messages`, body),
+    supportStatus: (id: Uuid, status: TicketStatus) =>
+      apiPost<TicketDetail>(`/api/v1/platform/support/tickets/${id}/status`, { status }),
+    supportPriority: (id: Uuid, priority: TicketPriority) =>
+      apiPut<TicketDetail>(`/api/v1/platform/support/tickets/${id}/priority`, { priority }),
+    supportAttach: (id: Uuid, file: File) =>
+      uploadFile<TicketDetail>(`/api/v1/platform/support/tickets/${id}/attachments`, file),
+    supportAttachmentUrl: (id: Uuid, attachmentId: Uuid) =>
+      `/api/v1/platform/support/tickets/${id}/attachments/${attachmentId}/download`,
+    cannedResponses: (active?: boolean) =>
+      apiFetch<CannedResponse[]>(`/api/v1/platform/support/canned-responses${qs({ active })}`),
+    createCannedResponse: (body: { title: string; body: string; active: boolean }) =>
+      apiPost<CannedResponse>("/api/v1/platform/support/canned-responses", body),
+    updateCannedResponse: (id: Uuid, body: { title: string; body: string; active: boolean }) =>
+      apiPut<CannedResponse>(`/api/v1/platform/support/canned-responses/${id}`, body),
+  },
+  support: {
+    contact: () => apiFetch<SupportContact>("/api/v1/public/support/contact"),
+    tickets: (status?: string) => apiFetch<TicketSummary[]>(`/api/v1/support/tickets${qs({ status })}`),
+    open: (body: NewTicketInput) => apiPost<TicketDetail>("/api/v1/support/tickets", body),
+    ticket: (id: Uuid) => apiFetch<TicketDetail>(`/api/v1/support/tickets/${id}`),
+    reply: (id: Uuid, body: string) => apiPost<TicketDetail>(`/api/v1/support/tickets/${id}/messages`, { body }),
+    resolve: (id: Uuid) => apiPost<TicketDetail>(`/api/v1/support/tickets/${id}/resolve`),
+    rate: (id: Uuid, rating: number, comment?: string) =>
+      apiPost<TicketDetail>(`/api/v1/support/tickets/${id}/rating`, { rating, comment }),
+    attach: (id: Uuid, file: File) => uploadFile<TicketDetail>(`/api/v1/support/tickets/${id}/attachments`, file),
+    attachmentUrl: (id: Uuid, attachmentId: Uuid) =>
+      `/api/v1/support/tickets/${id}/attachments/${attachmentId}/download`,
+    unread: () => apiFetch<{ count: number }>("/api/v1/support/unread"),
   },
 };
+
+function uploadFile<T>(path: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  return apiFetch<T>(path, { method: "POST", body: form });
+}

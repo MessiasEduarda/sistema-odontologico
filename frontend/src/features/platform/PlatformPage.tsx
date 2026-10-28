@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Building2, CreditCard, Plus, Users } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import styled from "styled-components";
 import { Alert } from "@/components/ui/Alert";
@@ -15,6 +16,8 @@ import { SearchInput, useRowSearch } from "@/components/ui/SearchInput";
 import { Tabs } from "@/components/ui/Tabs";
 import { TextField } from "@/components/ui/TextField";
 import { useMe } from "@/features/auth/hooks";
+import { PlatformSupportTab } from "@/features/support/PlatformSupportTab";
+import { usePlatformSupportUnread } from "@/features/support/useSupportUnread";
 import { api } from "@/lib/api/endpoints";
 import type { PlatformClinic, PlatformEvent, PlatformPlan } from "@/lib/api/types";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
@@ -30,11 +33,13 @@ const CLINIC_STATUS: Record<string, { label: string; tone: "success" | "danger" 
 
 export function PlatformPage() {
   const { data: me } = useMe();
-  const [tab, setTab] = useState("clinicas");
+  const params = useSearchParams();
+  const [tab, setTab] = useState(params.get("aba") ?? "clinicas");
+  const supportUnread = usePlatformSupportUnread();
   if (me && !me.platformAdmin) return <PermissionDenied description="Área exclusiva da administração da plataforma." />;
   return (
     <Stack>
-      <PageHeader title="Plataforma" description="Clínicas, planos, assinaturas e auditoria administrativa." />
+      <PageHeader title="Plataforma" description="Clínicas, planos, assinaturas, suporte e auditoria administrativa." />
       <Metrics />
       <Tabs
         label="Plataforma"
@@ -43,6 +48,7 @@ export function PlatformPage() {
         items={[
           { id: "clinicas", label: "Clínicas", content: <ClinicsTab /> },
           { id: "planos", label: "Planos", content: <PlansTab /> },
+          { id: "suporte", label: "Suporte", badge: supportUnread, content: <PlatformSupportTab /> },
           { id: "auditoria", label: "Auditoria", content: <AuditTab /> },
         ]}
       />
@@ -601,6 +607,8 @@ const PLATFORM_ACTIONS: Record<string, string> = {
   PASSWORD_CHANGED: "Senha alterada",
   SESSION_REVOKED: "Sessão encerrada",
   PLATFORM_ADMIN_BOOTSTRAPPED: "Administrador inicial criado",
+  SUPPORT_TICKET_UPDATED: "Chamado de suporte atualizado",
+  SUPPORT_ATTACHMENT_VIEWED: "Anexo de chamado aberto",
 };
 
 function AuditTab() {

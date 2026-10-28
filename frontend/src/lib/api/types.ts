@@ -935,3 +935,115 @@ export interface WaitlistInput {
   notes: string | null;
   urgent: boolean;
 }
+
+export type TicketCategory = "BUG" | "HOW_TO" | "ACCESS" | "BILLING" | "SUGGESTION" | "DATA_PRIVACY";
+export type TicketImpact = "BLOCKING" | "DEGRADED" | "QUESTION" | "SUGGESTION";
+export type TicketPriority = "URGENT" | "HIGH" | "NORMAL" | "LOW";
+export type TicketStatus = "OPEN" | "IN_PROGRESS" | "WAITING_CLINIC" | "RESOLVED" | "CLOSED";
+
+export interface TicketSummary {
+  id: Uuid;
+  protocol: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  openedByName: string;
+  createdAt: IsoInstant;
+  lastActivityAt: IsoInstant;
+  firstResponseDueAt: IsoInstant;
+  firstResponseAt: IsoInstant | null;
+  overdue: boolean;
+  unreadCount: number;
+}
+
+export interface PlatformTicketSummary extends TicketSummary {
+  tenantId: Uuid;
+  clinicName: string;
+}
+
+export interface TicketMessage {
+  id: Uuid;
+  authorType: "CLINIC" | "SUPPORT" | "SYSTEM";
+  authorName: string | null;
+  body: string;
+  internal: boolean;
+  createdAt: IsoInstant;
+}
+
+export interface TicketAttachment {
+  id: Uuid;
+  authorType: "CLINIC" | "SUPPORT";
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: IsoInstant;
+  purged: boolean;
+}
+
+export interface TicketDetail {
+  id: Uuid;
+  protocol: string;
+  tenantId: Uuid;
+  clinicName: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  openedByName: string;
+  openedByEmail: string;
+  createdAt: IsoInstant;
+  firstResponseDueAt: IsoInstant;
+  firstResponseAt: IsoInstant | null;
+  overdue: boolean;
+  resolvedAt: IsoInstant | null;
+  closedAt: IsoInstant | null;
+  canReply: boolean;
+  canRate: boolean;
+  rating: number | null;
+  ratingComment: string | null;
+  page: string | null;
+  traceId: string | null;
+  errorMessage: string | null;
+  userAgent: string | null;
+  relatedTicketId: Uuid | null;
+  relatedProtocol: string | null;
+  messages: TicketMessage[];
+  attachments: TicketAttachment[];
+}
+
+export interface NewTicketInput {
+  subject: string;
+  category: TicketCategory;
+  impact: TicketImpact;
+  description: string;
+  page?: string | null;
+  traceId?: string | null;
+  errorMessage?: string | null;
+  relatedTicketId?: Uuid | null;
+}
+
+export interface SupportMetrics {
+  open: number;
+  urgentOpen: number;
+  overdue: number;
+  waitingClinic: number;
+  unread: number;
+  openedLast30Days: number;
+  avgFirstResponseMinutes: number | null;
+  avgRating: number | null;
+  ratedCount: number;
+}
+
+export interface CannedResponse {
+  id: Uuid;
+  title: string;
+  body: string;
+  active: boolean;
+  updatedAt: IsoInstant;
+}
+
+export interface SupportContact {
+  email: string | null;
+  hours: string;
+}

@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import styled, { css } from "styled-components";
+import { REPORT_PATH, saveProblemReport, type ProblemReport } from "@/lib/support-report";
 
 type Kind = "attention" | "success" | "error";
 
@@ -26,12 +27,13 @@ interface ConfirmOptions {
 interface Request extends ConfirmOptions {
   kind: Kind;
   resolve?: (confirmed: boolean) => void;
+  report?: ProblemReport;
 }
 
 export interface FeedbackApi {
   confirm: (options: ConfirmOptions) => Promise<boolean>;
   success: (message: ReactNode, detail?: ReactNode) => void;
-  error: (message: ReactNode, detail?: ReactNode) => void;
+  error: (message: ReactNode, detail?: ReactNode, report?: ProblemReport) => void;
 }
 
 export const DISCARD_CHANGES: ConfirmOptions = {
@@ -56,7 +58,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     () => ({
       confirm: (options) => new Promise<boolean>((resolve) => show({ ...options, kind: "attention", resolve })),
       success: (message, detail) => show({ kind: "success", message, detail }),
-      error: (message, detail) => show({ kind: "error", message, detail }),
+      error: (message, detail, report) => show({ kind: "error", message, detail, report }),
     }),
     [show],
   );
@@ -93,6 +95,15 @@ function FeedbackDialog({ request, onFinish }: { request: Request; onFinish: (co
       danger={request.danger}
       onConfirm={() => onFinish(true)}
       onClose={() => onFinish(false)}
+      onReport={
+        request.report
+          ? () => {
+              saveProblemReport(request.report as ProblemReport);
+              onFinish(false);
+              window.location.assign(REPORT_PATH);
+            }
+          : undefined
+      }
     />
   );
 }
@@ -101,6 +112,7 @@ export interface AlertDialogProps extends ConfirmOptions {
   kind: Kind;
   onConfirm?: () => void;
   onClose: () => void;
+  onReport?: () => void;
   loading?: boolean;
 }
 
@@ -114,6 +126,7 @@ export function AlertDialog({
   loading,
   onConfirm,
   onClose,
+  onReport,
 }: AlertDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -144,7 +157,7 @@ export function AlertDialog({
         <Message>{message}</Message>
         {detail && <Detail>{detail}</Detail>}
       </Body>
-      <Actions $columns={isConfirm ? 2 : 1}>
+      <Actions $columns={isConfirm || onReport ? 2 : 1}>
         {isConfirm ? (
           <>
             <ActionButton type="button" $tone="neutral" disabled={loading} onClick={onClose}>
@@ -162,9 +175,16 @@ export function AlertDialog({
             </ActionButton>
           </>
         ) : (
-          <ActionButton type="button" $tone={kind === "success" ? "success" : "danger"} autoFocus onClick={onClose}>
-            Voltar
-          </ActionButton>
+          <>
+            {onReport && (
+              <ActionButton type="button" $tone="neutral" onClick={onReport}>
+                Relatar ao suporte
+              </ActionButton>
+            )}
+            <ActionButton type="button" $tone={kind === "success" ? "success" : "danger"} autoFocus onClick={onClose}>
+              Voltar
+            </ActionButton>
+          </>
         )}
       </Actions>
     </Dialog>

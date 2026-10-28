@@ -17,6 +17,7 @@ export function useAction<TVars, TResult>(
   const toast = useToast();
   const feedback = useFeedback();
   const queryClient = useQueryClient();
+  const { data: me } = useMe();
   return useMutation({
     mutationFn: fn,
     onSuccess: async (result, vars) => {
@@ -27,8 +28,13 @@ export function useAction<TVars, TResult>(
       options.onSuccess?.(result, vars);
     },
     onError: (error: Error) => {
-      if (isRefusal(error)) feedback.error("Não foi possível concluir a ação", error.message);
-      else toast.error(error.message);
+      if (isRefusal(error)) {
+        const report =
+          me?.activeClinic && error instanceof ApiError && error.status >= 500
+            ? { traceId: error.traceId ?? null, message: error.message, page: window.location.pathname }
+            : undefined;
+        feedback.error("Não foi possível concluir a ação", error.message, report);
+      } else toast.error(error.message);
     },
   });
 }

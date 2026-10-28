@@ -3,11 +3,13 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import styled from "styled-components";
+import { UnreadBadge } from "./UnreadBadge";
 
 export interface TabItem {
   id: string;
   label: string;
   content: ReactNode;
+  badge?: number;
 }
 
 interface TabsProps {
@@ -96,6 +98,7 @@ export function Tabs({ items, active, onChange, label, variant = "primary" }: Ta
                 onKeyDown={(e) => onKey(e, index)}
               >
                 {item.label}
+                <UnreadBadge count={item.badge ?? 0} announce />
               </Tab>
             );
           })}
@@ -161,6 +164,9 @@ const Tab = styled.button<{ $variant: "primary" | "sub" }>`
   border-bottom: 2px solid transparent;
   white-space: nowrap;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 
   &[aria-selected="true"] {
     color: ${({ theme }) => theme.colors.primaryText};
