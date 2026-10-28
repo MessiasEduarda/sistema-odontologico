@@ -258,6 +258,12 @@ const Content = styled.div`
   input + p {
     color: ${P.soft};
   }
+  input[data-password-toggle] {
+    padding-right: 52px;
+  }
+  input[data-password-toggle] + button {
+    color: #8a8178;
+  }
   p[role="alert"] {
     color: #ffd9d2;
     font-weight: ${({ theme }) => theme.fontWeights.semibold};

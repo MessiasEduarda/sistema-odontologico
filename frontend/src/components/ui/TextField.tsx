@@ -1,6 +1,7 @@
 "use client";
 
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import styled from "styled-components";
 
 export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -10,13 +11,29 @@ export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
-  { label, error, hint, id, ...rest },
+  { label, error, hint, id, type, ...rest },
   ref,
 ) {
+  const [visible, setVisible] = useState(false);
+  const isPassword = type === "password";
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const hintId = hint ? `${inputId}-hint` : undefined;
   const errorId = error ? `${inputId}-error` : undefined;
+
+  const input = (
+    <Input
+      ref={ref}
+      id={inputId}
+      type={isPassword && visible ? "text" : type}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
+      $invalid={Boolean(error)}
+      $withToggle={isPassword}
+      data-password-toggle={isPassword || undefined}
+      {...rest}
+    />
+  );
 
   return (
     <Field>
@@ -24,14 +41,24 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
         {label}
         {rest.required && <Required aria-hidden="true"> *</Required>}
       </Label>
-      <Input
-        ref={ref}
-        id={inputId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
-        $invalid={Boolean(error)}
-        {...rest}
-      />
+      {isPassword ? (
+        <InputBox>
+          {input}
+          <Toggle
+            type="button"
+            onClick={() => setVisible((v) => !v)}
+            aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={visible}
+            aria-controls={inputId}
+            title={visible ? "Ocultar senha" : "Mostrar senha"}
+            disabled={rest.disabled}
+          >
+            {visible ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+          </Toggle>
+        </InputBox>
+      ) : (
+        input
+      )}
       {hint && !error && <Hint id={hintId}>{hint}</Hint>}
       {error && (
         <ErrorText id={errorId} role="alert">
@@ -59,10 +86,44 @@ const Required = styled.span`
   color: ${({ theme }) => theme.colors.danger};
 `;
 
-const Input = styled.input<{ $invalid: boolean }>`
+const InputBox = styled.div`
+  position: relative;
+  min-width: 0;
+`;
+
+const Toggle = styled.button`
+  position: absolute;
+  top: 50%;
+  right: ${({ theme }) => theme.space[2]};
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: ${({ theme }) => theme.radii.pill};
+  background: transparent;
+  color: ${({ theme }) => theme.colors.textMuted};
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: ${({ theme }) => theme.colors.text};
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: ${({ theme }) => theme.shadows.focus};
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+`;
+
+const Input = styled.input<{ $invalid: boolean; $withToggle?: boolean }>`
   width: 100%;
   min-height: 44px;
   padding: ${({ theme }) => `${theme.space[2]} ${theme.space[5]}`};
+  padding-right: ${({ theme, $withToggle }) => ($withToggle ? "48px" : theme.space[5])};
   border-radius: ${({ theme }) => theme.radii.pill};
   border: 1px solid ${({ theme, $invalid }) => ($invalid ? theme.colors.danger : theme.colors.border)};
   background: ${({ theme }) => theme.colors.surface};
@@ -72,6 +133,10 @@ const Input = styled.input<{ $invalid: boolean }>`
 
   &::placeholder {
     color: ${({ theme }) => theme.colors.textSubtle};
+  }
+  &::-ms-reveal,
+  &::-ms-clear {
+    display: none;
   }
   &:hover:not(:disabled) {
     border-color: ${({ theme, $invalid }) => ($invalid ? theme.colors.danger : theme.colors.borderStrong)};
