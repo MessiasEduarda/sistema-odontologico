@@ -92,27 +92,21 @@ export function LoginForm() {
         </Button>
         <FormFooter>
           <TextLink href="/esqueci-senha">Esqueci minha senha</TextLink>
+          {contact.data?.email && (
+            <SupportLink href={`mailto:${contact.data.email}`} title={contact.data.email}>
+              Falar com o suporte
+            </SupportLink>
+          )}
         </FormFooter>
-        {contact.data?.email && (
-          <SupportHint>
-            Não consegue entrar? Escreva para <a href={`mailto:${contact.data.email}`}>{contact.data.email}</a>
-          </SupportHint>
-        )}
       </Form>
     </AuthLayout>
   );
 }
 
-const SupportHint = styled.p`
-  margin: 0;
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  opacity: 0.9;
-
-  a {
-    color: inherit;
-    font-weight: ${({ theme }) => theme.fontWeights.semibold};
-    text-decoration: underline;
-  }
+const SupportLink = styled.a`
+  color: ${({ theme }) => theme.colors.primaryText};
+  font-weight: ${({ theme }) => theme.fontWeights.semibold};
+  text-decoration: none;
 `;
 
 export const ErrorMessage = styled.p`
@@ -127,8 +121,4 @@ export const TextLink = styled(Link)`
   color: ${({ theme }) => theme.colors.primaryText};
   font-weight: ${({ theme }) => theme.fontWeights.semibold};
   text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
 `;

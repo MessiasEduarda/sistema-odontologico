@@ -61,11 +61,11 @@ describe("LoginForm", () => {
     expect(fetchMock.mock.calls.every(([url]) => url === CONTACT_URL)).toBe(true);
   });
 
-  it("mostra o e-mail do suporte para quem não consegue entrar", async () => {
+  it("mostra o link de e-mail do suporte para quem não consegue entrar", async () => {
     mockApi(jsonResponse(me(1, true)), "suporte@teste.example");
     renderWithProviders(<LoginForm />);
 
-    expect(await screen.findByRole("link", { name: "suporte@teste.example" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Falar com o suporte" })).toHaveAttribute(
       "href",
       "mailto:suporte@teste.example",
     );
