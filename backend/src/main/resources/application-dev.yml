@@ -27,6 +27,8 @@ app:
   public-url: ${APP_PUBLIC_URL:http://localhost:3000}
   mail:
     from: ${MAIL_FROM:nao-responda@odontosaas.example}
+  support:
+    contact-email: ${SUPPORT_CONTACT_EMAIL:suporte@odontosaas.example}
   # Massa de dados FICTÍCIA para desenvolvimento (usuários e senha documentados em docs/guias/ambiente-local.md).
   seed:
     enabled: ${DEV_SEED_ENABLED:true}

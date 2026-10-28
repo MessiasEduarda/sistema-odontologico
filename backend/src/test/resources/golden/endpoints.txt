@@ -61,12 +61,19 @@
 [GET] [/api/v1/platform/clinics] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | clinics(String) -> List<TenantRow>
 [GET] [/api/v1/platform/metrics] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | metrics() -> Metrics
 [GET] [/api/v1/platform/plans] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | plans() -> List<PlanView>
+[GET] [/api/v1/platform/support/canned-responses] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | cannedResponses(boolean) -> List<CannedResponseView>
+[GET] [/api/v1/platform/support/metrics] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | metrics() -> SupportMetrics
+[GET] [/api/v1/platform/support/tickets/{id}/attachments/{attachmentId}/download] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | download(UUID, UUID) -> ResponseEntity<Resource>
+[GET] [/api/v1/platform/support/tickets/{id}] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | ticket(UUID) -> TicketDetail
+[GET] [/api/v1/platform/support/tickets] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | tickets(String, String, UUID, String, boolean) -> List<PlatformTicketSummary>
+[GET] [/api/v1/platform/support/unread] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | unread() -> UnreadCount
 [GET] [/api/v1/platform/tenants] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | list(int, int) -> PageResponse<TenantView>
 [GET] [/api/v1/public/portal/attachments/{attachmentId}/download] | consumes=[] | produces=[] | auth=- | attachment(String, UUID) -> ResponseEntity<Resource>
 [GET] [/api/v1/public/portal/me] | consumes=[] | produces=[] | auth=- | me(String) -> PortalMe
 [GET] [/api/v1/public/portal/overview] | consumes=[] | produces=[] | auth=- | overview(String) -> PortalOverview
 [GET] [/api/v1/public/portal/records] | consumes=[] | produces=[] | auth=- | records(String) -> PortalRecords
 [GET] [/api/v1/public/status] | consumes=[] | produces=[] | auth=- | status() -> StatusResponse
+[GET] [/api/v1/public/support/contact] | consumes=[] | produces=[] | auth=- | contact() -> SupportContact
 [GET] [/api/v1/reports/agenda] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') | agenda(LocalDate, LocalDate) -> AgendaReport
 [GET] [/api/v1/reports/financial] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') and hasAuthority('finance:read') | financial(LocalDate, LocalDate) -> FinancialReport
 [GET] [/api/v1/reports/patients] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') and hasAuthority('patients:read') | patients() -> PatientsReport
@@ -74,6 +81,10 @@
 [GET] [/api/v1/reports/{type}/export] | consumes=[] | produces=[] | auth=hasAuthority('reports:read') | export(String, LocalDate, LocalDate) -> ResponseEntity<byte[]>
 [GET] [/api/v1/schedule-blocks] | consumes=[] | produces=[] | auth=hasAuthority('schedule:read') | list(Instant, Instant) -> List<ScheduleBlockView>
 [GET] [/api/v1/suppliers] | consumes=[] | produces=[] | auth=hasAnyAuthority('finance:read', 'inventory:read') | suppliers() -> List<SupplierView>
+[GET] [/api/v1/support/tickets/{id}/attachments/{attachmentId}/download] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | download(UUID, UUID, Authentication) -> ResponseEntity<Resource>
+[GET] [/api/v1/support/tickets/{id}] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | ticket(UUID, Authentication) -> TicketDetail
+[GET] [/api/v1/support/tickets] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | tickets(String, Authentication) -> List<TicketSummary>
+[GET] [/api/v1/support/unread] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | unread(Authentication) -> UnreadCount
 [GET] [/api/v1/treatment-plans/{id}] | consumes=[] | produces=[] | auth=hasAuthority('treatments:read') | get(UUID) -> PlanView
 [GET] [/api/v1/treatment-plans] | consumes=[] | produces=[] | auth=hasAuthority('treatments:read') | list(UUID, String) -> List<PlanSummary>
 [GET] [/api/v1/waitlist] | consumes=[] | produces=[] | auth=hasAuthority('schedule:read') | list(String) -> List<WaitlistView>
@@ -134,6 +145,10 @@
 [POST] [/api/v1/patients] | consumes=[] | produces=[] | auth=hasAuthority('patients:write') | create(PatientRequest) -> PatientView
 [POST] [/api/v1/platform/clinics/{id}/status] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | setStatus(UUID, StatusRequest) -> void
 [POST] [/api/v1/platform/plans] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | createPlan(PlanRequest) -> PlanView
+[POST] [/api/v1/platform/support/canned-responses] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | createCannedResponse(CannedResponseRequest) -> CannedResponseView
+[POST] [/api/v1/platform/support/tickets/{id}/attachments] | consumes=[multipart/form-data] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | attach(UUID, MultipartFile) -> TicketDetail
+[POST] [/api/v1/platform/support/tickets/{id}/messages] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | reply(UUID, SupportReplyRequest) -> TicketDetail
+[POST] [/api/v1/platform/support/tickets/{id}/status] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | status(UUID, TicketStatusRequest) -> TicketDetail
 [POST] [/api/v1/platform/tenants/{id}/owner-invitation] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | resendOwnerInvite(UUID, ResendOwnerInviteRequest) -> void
 [POST] [/api/v1/platform/tenants] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | create(CreateTenantRequest) -> TenantView
 [POST] [/api/v1/public/appointments/lookup] | consumes=[] | produces=[] | auth=- | publicLookup(TokenRequest) -> PublicAppointmentView
@@ -155,6 +170,11 @@
 [POST] [/api/v1/public/portal/profile] | consumes=[] | produces=[] | auth=- | profile(String, ProfileBody) -> PortalMe
 [POST] [/api/v1/schedule-blocks] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | create(ScheduleBlockRequest) -> ScheduleBlockView
 [POST] [/api/v1/suppliers] | consumes=[] | produces=[] | auth=hasAnyAuthority('finance:write', 'inventory:write') | createSupplier(SupplierRequest) -> SupplierView
+[POST] [/api/v1/support/tickets/{id}/attachments] | consumes=[multipart/form-data] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | attach(UUID, MultipartFile, Authentication) -> TicketDetail
+[POST] [/api/v1/support/tickets/{id}/messages] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | reply(UUID, TicketMessageRequest, Authentication) -> TicketDetail
+[POST] [/api/v1/support/tickets/{id}/rating] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | rate(UUID, TicketRatingRequest, Authentication) -> TicketDetail
+[POST] [/api/v1/support/tickets/{id}/resolve] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | resolve(UUID, Authentication) -> TicketDetail
+[POST] [/api/v1/support/tickets] | consumes=[] | produces=[] | auth=isAuthenticated() and principal.tenantId() != null | open(NewTicketRequest, Authentication) -> TicketDetail
 [POST] [/api/v1/treatment-plans/{id}/approve] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | approve(UUID, ApproveRequest) -> PlanView
 [POST] [/api/v1/treatment-plans/{id}/cancel] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | cancel(UUID, ReasonRequest) -> PlanView
 [POST] [/api/v1/treatment-plans/{id}/propose] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | propose(UUID) -> PlanView
@@ -183,6 +203,8 @@
 [PUT] [/api/v1/patients/{patientId}/documents/{documentId}] | consumes=[] | produces=[] | auth=hasAuthority('clinical_records:write') | updateDocument(UUID, UUID, DocumentUpdateRequest) -> DocumentView
 [PUT] [/api/v1/platform/clinics/{id}/subscription] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | updateSubscription(UUID, SubscriptionRequest) -> SubscriptionView
 [PUT] [/api/v1/platform/plans/{id}] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | updatePlan(UUID, PlanRequest) -> PlanView
+[PUT] [/api/v1/platform/support/canned-responses/{id}] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | updateCannedResponse(UUID, CannedResponseRequest) -> CannedResponseView
+[PUT] [/api/v1/platform/support/tickets/{id}/priority] | consumes=[] | produces=[] | auth=hasRole('PLATFORM_ADMIN') | priority(UUID, TicketPriorityRequest) -> TicketDetail
 [PUT] [/api/v1/suppliers/{id}] | consumes=[] | produces=[] | auth=hasAnyAuthority('finance:write', 'inventory:write') | updateSupplier(UUID, SupplierRequest) -> SupplierView
 [PUT] [/api/v1/treatment-plans/{id}] | consumes=[] | produces=[] | auth=hasAuthority('treatments:write') | update(UUID, PlanRequest) -> PlanView
 [PUT] [/api/v1/waitlist/{id}] | consumes=[] | produces=[] | auth=hasAuthority('schedule:write') | update(UUID, WaitlistRequest) -> WaitlistView

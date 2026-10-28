@@ -29,6 +29,7 @@ class PlanEnforcement implements WebMvcConfigurer {
             "/api/v1/reports", "REPORTS");
 
     static final String SUBSCRIPTION_PATH = "/api/v1/clinic/subscription";
+    static final String SUPPORT_PATH = "/api/v1/support";
 
     private final SubscriptionService subscriptions;
 
@@ -52,7 +53,7 @@ class PlanEnforcement implements WebMvcConfigurer {
     private boolean check(HttpServletRequest request, HttpServletResponse response) throws Exception {
         Optional<UUID> tenant = TenantContext.tenantId();
         String path = normalizedPath(request);
-        if (tenant.isEmpty() || path.equals(SUBSCRIPTION_PATH)) return true;
+        if (tenant.isEmpty() || path.equals(SUBSCRIPTION_PATH) || isUnder(path, SUPPORT_PATH)) return true;
 
         Optional<SubscriptionView> sub = subscriptions.subscription(tenant.get());
         if (sub.isPresent() && sub.get().billing().blocked()) {

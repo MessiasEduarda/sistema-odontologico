@@ -114,6 +114,12 @@ app:
   # Anexos do prontuário (fora de qualquer pasta pública). Em produção, use um volume persistente com backup.
   storage:
     path: ${STORAGE_PATH:./data/uploads}
+  # Central de suporte: e-mail mostrado a quem não consegue entrar e e-mails extras que recebem os avisos de chamados
+  # (os administradores da plataforma sempre recebem). Prazos contados de segunda a sexta, das 8h às 18h, neste fuso.
+  support:
+    contact-email: ${SUPPORT_CONTACT_EMAIL:}
+    notify-email: ${SUPPORT_NOTIFY_EMAIL:}
+    time-zone: ${SUPPORT_TIME_ZONE:America/Sao_Paulo}
   # Rotinas agendadas (lembretes e envio de e-mails).
   jobs:
     enabled: ${JOBS_ENABLED:true}

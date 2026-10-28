@@ -4333,6 +4333,404 @@
         "tags" : [ "Plataforma: administração" ]
       }
     },
+    "/api/v1/platform/support/canned-responses" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "active",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CannedResponseView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Plataforma: suporte" ]
+      },
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CannedResponseRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CannedResponseView"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/canned-responses/{id}" : {
+      "put" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CannedResponseRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CannedResponseView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/metrics" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SupportMetrics"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/tickets" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "priority",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "tenantId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "unread",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PlatformTicketSummary"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Fila de chamados de todas as clínicas",
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/tickets/{id}" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/tickets/{id}/attachments" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "file" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "file" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/tickets/{id}/attachments/{attachmentId}/download" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "attachmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Baixa o anexo (auditado)",
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/tickets/{id}/messages" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SupportReplyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Responde à clínica ou registra nota interna (a clínica não vê)",
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/tickets/{id}/priority" : {
+      "put" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketPriorityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Muda a prioridade (o prazo de primeira resposta é recalculado)",
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/tickets/{id}/status" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
+    "/api/v1/platform/support/unread" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnreadCount"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Quantidade de mensagens das clínicas ainda não lidas pelo suporte",
+        "tags" : [ "Plataforma: suporte" ]
+      }
+    },
     "/api/v1/platform/tenants" : {
       "get" : {
         "parameters" : [ {
@@ -5048,6 +5446,24 @@
         "tags" : [ "Sistema" ]
       }
     },
+    "/api/v1/public/support/contact" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SupportContact"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Contato alternativo do suporte (para quem não consegue entrar)",
+        "tags" : [ "Suporte" ]
+      }
+    },
     "/api/v1/reports/agenda" : {
       "get" : {
         "parameters" : [ {
@@ -5377,6 +5793,284 @@
           }
         },
         "tags" : [ "Financeiro" ]
+      }
+    },
+    "/api/v1/support/tickets" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TicketSummary"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Chamados da pessoa (ou de toda a clínica, para quem administra a clínica)",
+        "tags" : [ "Suporte" ]
+      },
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NewTicketRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Abre um chamado (até 10 por clínica a cada 24 horas)",
+        "tags" : [ "Suporte" ]
+      }
+    },
+    "/api/v1/support/tickets/{id}" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Suporte" ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/attachments" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "file" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "file" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Anexa print ou PDF (até 5 MB, até 6 por chamado)",
+        "tags" : [ "Suporte" ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/attachments/{attachmentId}/download" : {
+      "get" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "attachmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "Suporte" ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/messages" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketMessageRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Responde no chamado (reabre se estava resolvido)",
+        "tags" : [ "Suporte" ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/rating" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketRatingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Avalia o atendimento (1 a 5) depois de resolvido",
+        "tags" : [ "Suporte" ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/resolve" : {
+      "post" : {
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TicketDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A clínica informa que o problema foi resolvido",
+        "tags" : [ "Suporte" ]
+      }
+    },
+    "/api/v1/support/unread" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnreadCount"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Quantidade de mensagens do suporte ainda não lidas",
+        "tags" : [ "Suporte" ]
       }
     },
     "/api/v1/treatment-plans" : {
@@ -6462,6 +7156,47 @@
           "type" : "string"
         },
         "mobile" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "CannedResponseRequest" : {
+      "properties" : {
+        "active" : {
+          "type" : "boolean"
+        },
+        "body" : {
+          "maxLength" : 5000,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "title" : {
+          "maxLength" : 120,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "body", "title" ],
+      "type" : "object"
+    },
+    "CannedResponseView" : {
+      "properties" : {
+        "active" : {
+          "type" : "boolean"
+        },
+        "body" : {
+          "type" : "string"
+        },
+        "id" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "title" : {
+          "type" : "string"
+        },
+        "updatedAt" : {
+          "format" : "date-time",
           "type" : "string"
         }
       },
@@ -7992,6 +8727,51 @@
       },
       "type" : "object"
     },
+    "NewTicketRequest" : {
+      "properties" : {
+        "category" : {
+          "minLength" : 1,
+          "pattern" : "BUG|HOW_TO|ACCESS|BILLING|SUGGESTION|DATA_PRIVACY",
+          "type" : "string"
+        },
+        "description" : {
+          "maxLength" : 5000,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "errorMessage" : {
+          "maxLength" : 500,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "impact" : {
+          "minLength" : 1,
+          "pattern" : "BLOCKING|DEGRADED|QUESTION|SUGGESTION",
+          "type" : "string"
+        },
+        "page" : {
+          "maxLength" : 300,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "relatedTicketId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "subject" : {
+          "maxLength" : 160,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "traceId" : {
+          "maxLength" : 64,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "category", "description", "impact", "subject" ],
+      "type" : "object"
+    },
     "NoteRequest" : {
       "properties" : {
         "amendsNoteId" : {
@@ -8847,6 +9627,63 @@
         },
         "resourceType" : {
           "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "PlatformTicketSummary" : {
+      "properties" : {
+        "category" : {
+          "type" : "string"
+        },
+        "clinicName" : {
+          "type" : "string"
+        },
+        "createdAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "firstResponseAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "firstResponseDueAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "id" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "lastActivityAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "openedByName" : {
+          "type" : "string"
+        },
+        "overdue" : {
+          "type" : "boolean"
+        },
+        "priority" : {
+          "type" : "string"
+        },
+        "protocol" : {
+          "type" : "string"
+        },
+        "status" : {
+          "type" : "string"
+        },
+        "subject" : {
+          "type" : "string"
+        },
+        "tenantId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "unreadCount" : {
+          "format" : "int32",
+          "type" : "integer"
         }
       },
       "type" : "object"
@@ -10488,6 +11325,75 @@
       },
       "type" : "object"
     },
+    "SupportContact" : {
+      "properties" : {
+        "email" : {
+          "type" : "string"
+        },
+        "hours" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "SupportMetrics" : {
+      "properties" : {
+        "avgFirstResponseMinutes" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "avgRating" : {
+          "type" : "number"
+        },
+        "open" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "openedLast30Days" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "overdue" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "ratedCount" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "unread" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "urgentOpen" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "waitingClinic" : {
+          "format" : "int32",
+          "type" : "integer"
+        }
+      },
+      "type" : "object"
+    },
+    "SupportReplyRequest" : {
+      "properties" : {
+        "body" : {
+          "maxLength" : 5000,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "internal" : {
+          "type" : "boolean"
+        },
+        "status" : {
+          "pattern" : "IN_PROGRESS|WAITING_CLINIC|RESOLVED",
+          "type" : "string"
+        }
+      },
+      "required" : [ "body" ],
+      "type" : "object"
+    },
     "SwitchClinicRequest" : {
       "properties" : {
         "clinicId" : {
@@ -10597,6 +11503,264 @@
       },
       "type" : "object"
     },
+    "TicketAttachmentView" : {
+      "properties" : {
+        "authorType" : {
+          "type" : "string"
+        },
+        "contentType" : {
+          "type" : "string"
+        },
+        "createdAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "filename" : {
+          "type" : "string"
+        },
+        "id" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "purged" : {
+          "type" : "boolean"
+        },
+        "sizeBytes" : {
+          "format" : "int64",
+          "type" : "integer"
+        }
+      },
+      "type" : "object"
+    },
+    "TicketDetail" : {
+      "properties" : {
+        "attachments" : {
+          "items" : {
+            "$ref" : "#/components/schemas/TicketAttachmentView"
+          },
+          "type" : "array"
+        },
+        "canRate" : {
+          "type" : "boolean"
+        },
+        "canReply" : {
+          "type" : "boolean"
+        },
+        "category" : {
+          "type" : "string"
+        },
+        "clinicName" : {
+          "type" : "string"
+        },
+        "closedAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "createdAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "errorMessage" : {
+          "type" : "string"
+        },
+        "firstResponseAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "firstResponseDueAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "id" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "messages" : {
+          "items" : {
+            "$ref" : "#/components/schemas/TicketMessageView"
+          },
+          "type" : "array"
+        },
+        "openedByEmail" : {
+          "type" : "string"
+        },
+        "openedByName" : {
+          "type" : "string"
+        },
+        "overdue" : {
+          "type" : "boolean"
+        },
+        "page" : {
+          "type" : "string"
+        },
+        "priority" : {
+          "type" : "string"
+        },
+        "protocol" : {
+          "type" : "string"
+        },
+        "rating" : {
+          "format" : "int32",
+          "type" : "integer"
+        },
+        "ratingComment" : {
+          "type" : "string"
+        },
+        "relatedProtocol" : {
+          "type" : "string"
+        },
+        "relatedTicketId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "resolvedAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "status" : {
+          "type" : "string"
+        },
+        "subject" : {
+          "type" : "string"
+        },
+        "tenantId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "traceId" : {
+          "type" : "string"
+        },
+        "userAgent" : {
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "TicketMessageRequest" : {
+      "properties" : {
+        "body" : {
+          "maxLength" : 5000,
+          "minLength" : 0,
+          "type" : "string"
+        }
+      },
+      "required" : [ "body" ],
+      "type" : "object"
+    },
+    "TicketMessageView" : {
+      "properties" : {
+        "authorName" : {
+          "type" : "string"
+        },
+        "authorType" : {
+          "type" : "string"
+        },
+        "body" : {
+          "type" : "string"
+        },
+        "createdAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "id" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "internal" : {
+          "type" : "boolean"
+        }
+      },
+      "type" : "object"
+    },
+    "TicketPriorityRequest" : {
+      "properties" : {
+        "priority" : {
+          "minLength" : 1,
+          "pattern" : "URGENT|HIGH|NORMAL|LOW",
+          "type" : "string"
+        }
+      },
+      "required" : [ "priority" ],
+      "type" : "object"
+    },
+    "TicketRatingRequest" : {
+      "properties" : {
+        "comment" : {
+          "maxLength" : 500,
+          "minLength" : 0,
+          "type" : "string"
+        },
+        "rating" : {
+          "format" : "int32",
+          "maximum" : 5,
+          "minimum" : 1,
+          "type" : "integer"
+        }
+      },
+      "required" : [ "rating" ],
+      "type" : "object"
+    },
+    "TicketStatusRequest" : {
+      "properties" : {
+        "status" : {
+          "minLength" : 1,
+          "pattern" : "IN_PROGRESS|WAITING_CLINIC|RESOLVED|CLOSED",
+          "type" : "string"
+        }
+      },
+      "required" : [ "status" ],
+      "type" : "object"
+    },
+    "TicketSummary" : {
+      "properties" : {
+        "category" : {
+          "type" : "string"
+        },
+        "createdAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "firstResponseAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "firstResponseDueAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "id" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "lastActivityAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "openedByName" : {
+          "type" : "string"
+        },
+        "overdue" : {
+          "type" : "boolean"
+        },
+        "priority" : {
+          "type" : "string"
+        },
+        "protocol" : {
+          "type" : "string"
+        },
+        "status" : {
+          "type" : "string"
+        },
+        "subject" : {
+          "type" : "string"
+        },
+        "unreadCount" : {
+          "format" : "int32",
+          "type" : "integer"
+        }
+      },
+      "type" : "object"
+    },
     "TodayAppointment" : {
       "properties" : {
         "endsAt" : {
@@ -10653,6 +11817,15 @@
         }
       },
       "required" : [ "token" ],
+      "type" : "object"
+    },
+    "UnreadCount" : {
+      "properties" : {
+        "count" : {
+          "format" : "int32",
+          "type" : "integer"
+        }
+      },
       "type" : "object"
     },
     "UpdateMemberRolesRequest" : {
@@ -10843,7 +12016,13 @@
     "description" : "Somente administradores da plataforma",
     "name" : "Plataforma: clínicas"
   }, {
+    "description" : "Fila de chamados, respostas, notas internas e respostas prontas",
+    "name" : "Plataforma: suporte"
+  }, {
     "description" : "Informações públicas de funcionamento",
     "name" : "Sistema"
+  }, {
+    "description" : "Chamados da clínica para a equipe da plataforma",
+    "name" : "Suporte"
   } ]
 }

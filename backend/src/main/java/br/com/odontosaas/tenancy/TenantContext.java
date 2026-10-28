@@ -60,6 +60,10 @@ public final class TenantContext {
         return runWith(new State(tenantId, userId, null, false), action);
     }
 
+    public static <T> T runAsPlatform(Supplier<T> action) {
+        return runWith(new State(null, null, null, true), action);
+    }
+
     public static <T> T runAsPortalAccount(UUID accountId, Supplier<T> action) {
         return runWith(new State(null, null, null, false, accountId), action);
     }
