@@ -1,11 +1,11 @@
 package br.com.odontosaas.identity.service;
 
 import br.com.odontosaas.identity.config.AppProperties;
+import br.com.odontosaas.shared.mail.MailDelivery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,10 +13,10 @@ public class IdentityMailer {
 
     private static final Logger log = LoggerFactory.getLogger(IdentityMailer.class);
 
-    private final JavaMailSender sender;
+    private final MailDelivery sender;
     private final AppProperties app;
 
-    public IdentityMailer(JavaMailSender sender, AppProperties app) {
+    public IdentityMailer(MailDelivery sender, AppProperties app) {
         this.sender = sender;
         this.app = app;
     }

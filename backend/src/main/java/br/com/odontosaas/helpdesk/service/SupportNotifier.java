@@ -5,6 +5,7 @@ import br.com.odontosaas.helpdesk.repository.SupportRepository.JobTicket;
 import br.com.odontosaas.helpdesk.repository.SupportRepository.PendingNotification;
 import br.com.odontosaas.helpdesk.repository.SupportRepository.TicketRow;
 import br.com.odontosaas.shared.Ids;
+import br.com.odontosaas.shared.mail.MailDelivery;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -15,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -25,14 +25,14 @@ public class SupportNotifier {
     private static final Logger log = LoggerFactory.getLogger(SupportNotifier.class);
 
     private final SupportRepository repository;
-    private final JavaMailSender mail;
+    private final MailDelivery mail;
     private final String from;
     private final String publicUrl;
     private final List<String> extraRecipients;
 
     public SupportNotifier(
             SupportRepository repository,
-            JavaMailSender mail,
+            MailDelivery mail,
             @Value("${app.mail.from}") String from,
             @Value("${app.public-url}") String publicUrl,
             @Value("${app.support.notify-email:}") String notifyEmail) {

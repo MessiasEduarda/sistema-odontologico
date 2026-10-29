@@ -1,10 +1,10 @@
 package br.com.odontosaas.support;
 
+import br.com.odontosaas.shared.mail.MailDelivery;
 import java.nio.file.Path;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -25,7 +25,7 @@ public abstract class PostgresIntegrationTest {
 
     /** E-mails não são enviados nos testes; o mock permite capturar tokens de convite/redefinição. */
     @MockitoBean
-    protected JavaMailSender mailSender;
+    protected MailDelivery mailSender;
 
     @Autowired
     protected MockMvcTester mvc;

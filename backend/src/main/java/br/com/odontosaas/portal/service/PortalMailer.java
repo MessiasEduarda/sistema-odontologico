@@ -1,11 +1,11 @@
 package br.com.odontosaas.portal.service;
 
+import br.com.odontosaas.shared.mail.MailDelivery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -15,14 +15,12 @@ public class PortalMailer {
 
     private static final Logger log = LoggerFactory.getLogger(PortalMailer.class);
 
-    private final JavaMailSender sender;
+    private final MailDelivery sender;
     private final String from;
     private final String publicUrl;
 
     public PortalMailer(
-            JavaMailSender sender,
-            @Value("${app.mail.from}") String from,
-            @Value("${app.public-url}") String publicUrl) {
+            MailDelivery sender, @Value("${app.mail.from}") String from, @Value("${app.public-url}") String publicUrl) {
         this.sender = sender;
         this.from = from;
         this.publicUrl = publicUrl;

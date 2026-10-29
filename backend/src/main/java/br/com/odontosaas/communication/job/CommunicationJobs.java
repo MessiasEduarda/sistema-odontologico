@@ -5,6 +5,7 @@ import br.com.odontosaas.communication.repository.MessageRepository.DueReminderR
 import br.com.odontosaas.communication.repository.MessageRepository.PendingMessageRow;
 import br.com.odontosaas.communication.service.CommunicationService;
 import br.com.odontosaas.scheduling.service.AppointmentLinks;
+import br.com.odontosaas.shared.mail.MailDelivery;
 import br.com.odontosaas.tenancy.TenantContext;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -29,7 +29,7 @@ public class CommunicationJobs {
     private final MessageRepository messages;
     private final CommunicationService communication;
     private final AppointmentLinks links;
-    private final JavaMailSender mail;
+    private final MailDelivery mail;
     private final TransactionTemplate tx;
     private final String from;
     private final String publicUrl;
@@ -38,7 +38,7 @@ public class CommunicationJobs {
             MessageRepository messages,
             CommunicationService communication,
             AppointmentLinks links,
-            JavaMailSender mail,
+            MailDelivery mail,
             TransactionTemplate tx,
             @Value("${app.mail.from}") String from,
             @Value("${app.public-url}") String publicUrl) {
