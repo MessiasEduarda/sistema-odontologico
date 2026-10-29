@@ -167,7 +167,7 @@ public class SupportRepository {
                         from support_tickets t join users u on u.id = t.opened_by
                         where t.tenant_id = ? and (? or t.opened_by = ?)
                           and (cast(? as text) is null or t.status = ?)
-                        order by t.last_activity_at desc
+                        order by (t.clinic_unread = 0), t.last_activity_at desc
                         """)
                 .params(tenantId, allOfClinic, userId, status, status)
                 .query(TicketSummary.class)
@@ -191,7 +191,9 @@ public class SupportRepository {
                           and (cast(? as text) is null or lower(t.protocol) like ? or lower(t.subject) like ?
                                or lower(tn.name) like ?)
                           and (not ? or t.support_unread > 0)
-                        order by (t.status in ('RESOLVED', 'CLOSED')),
+                        order by (t.support_unread = 0),
+                                 case when t.support_unread > 0 then t.last_activity_at end desc nulls last,
+                                 (t.status in ('RESOLVED', 'CLOSED')),
                                  case t.priority when 'URGENT' then 0 when 'HIGH' then 1 when 'NORMAL' then 2 else 3 end,
                                  t.last_activity_at desc
                         limit 500
