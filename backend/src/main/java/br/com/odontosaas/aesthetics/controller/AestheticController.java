@@ -5,6 +5,7 @@ import br.com.odontosaas.aesthetics.dto.response.AestheticView;
 import br.com.odontosaas.aesthetics.service.AestheticService;
 import br.com.odontosaas.shared.VoidRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -61,8 +62,9 @@ public class AestheticController {
     @Operation(summary = "Aplicações da clínica: busca por lote (rastreabilidade), paciente/produto e retornos")
     public List<AestheticView> searchAesthetics(
             @RequestParam(required = false) String batch,
-            @RequestParam(required = false) String q,
+            @Parameter(description = "Texto contido no nome do paciente ou do produto") @RequestParam(required = false)
+                    String searchTerm,
             @RequestParam(required = false) LocalDate returnsUntil) {
-        return aesthetic.search(batch, q, returnsUntil);
+        return aesthetic.search(batch, searchTerm, returnsUntil);
     }
 }

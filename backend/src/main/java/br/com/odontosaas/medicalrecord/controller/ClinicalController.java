@@ -22,6 +22,7 @@ import br.com.odontosaas.medicalrecord.service.ClinicalService;
 import br.com.odontosaas.shared.Access;
 import br.com.odontosaas.shared.VoidRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -94,8 +95,9 @@ public class ClinicalController {
     public List<RecentAnamnesis> recentAnamneses(
             @RequestParam(required = false) String kind,
             @RequestParam(defaultValue = "false") boolean alertsOnly,
-            @RequestParam(required = false) String q) {
-        return clinical.recentAnamneses(kind, alertsOnly, q);
+            @Parameter(description = "Texto contido no nome do paciente") @RequestParam(required = false)
+                    String searchTerm) {
+        return clinical.recentAnamneses(kind, alertsOnly, searchTerm);
     }
 
     @GetMapping(BASE + "/anamneses")

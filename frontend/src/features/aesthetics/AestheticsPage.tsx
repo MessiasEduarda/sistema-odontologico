@@ -91,7 +91,7 @@ function ApplicationsTab() {
   const [q, setQ] = useState("");
   const list = useQuery({
     queryKey: ["aesthetics-search", "all", q],
-    queryFn: () => api.clinical.searchAesthetics({ q }),
+    queryFn: () => api.clinical.searchAesthetics({ searchTerm: q }),
   });
   return (
     <Stack $gap={4}>

@@ -266,7 +266,7 @@ function ReceivablesTab({ onOpen }: { onOpen: (id: string) => void }) {
   const [creating, setCreating] = useState(false);
   const { data, isPending, error, refetch } = useQuery({
     queryKey: ["receivables", "list", q, status],
-    queryFn: () => api.finance.receivables({ q, status: status || undefined }),
+    queryFn: () => api.finance.receivables({ searchTerm: q, status: status || undefined }),
   });
   return (
     <Stack $gap={4}>

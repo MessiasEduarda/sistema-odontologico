@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="API (dev)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
-    <option name="ACTIVE_PROFILES" value="dev" />
+  <configuration default="false" name="API (dev)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="br.com.odontosaas.OdontoApiApplication" />
     <module name="odonto-api" />
-    <option name="SPRING_BOOT_MAIN_CLASS" value="br.com.odontosaas.OdontoApiApplication" />
+    <option name="VM_PARAMETERS" value="-Dspring.profiles.active=dev" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

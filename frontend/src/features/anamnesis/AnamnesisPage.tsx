@@ -111,7 +111,7 @@ function RecentTab() {
   const [q, setQ] = useState("");
   const list = useQuery({
     queryKey: ["recent-anamneses", kind, alertsOnly, q],
-    queryFn: () => api.clinical.recentAnamneses({ kind, alertsOnly, q }),
+    queryFn: () => api.clinical.recentAnamneses({ kind, alertsOnly, searchTerm: q }),
   });
   return (
     <Stack $gap={4}>

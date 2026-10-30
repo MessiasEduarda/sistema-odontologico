@@ -105,7 +105,7 @@ function Queue() {
       api.platform.supportTickets({
         status: status || undefined,
         priority: priority || undefined,
-        q: q || undefined,
+        searchTerm: q || undefined,
         unread: onlyUnread || undefined,
       }),
     refetchInterval: 60_000,

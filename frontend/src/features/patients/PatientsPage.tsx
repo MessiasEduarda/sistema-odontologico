@@ -30,7 +30,8 @@ export function PatientsPage() {
 
   const { data, isPending, error, refetch } = useQuery({
     queryKey: ["patients", "list", q, status, page],
-    queryFn: () => api.patients.search({ q, active: status === "" ? undefined : status === "true", page, size: 10 }),
+    queryFn: () =>
+      api.patients.search({ searchTerm: q, active: status === "" ? undefined : status === "true", page, size: 10 }),
     placeholderData: keepPreviousData,
   });
 

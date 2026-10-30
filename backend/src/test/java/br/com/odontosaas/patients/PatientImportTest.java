@@ -64,13 +64,13 @@ class PatientImportTest extends PostgresIntegrationTest {
         assertThat((List<Integer>) json(preview, "$.issues[*].line")).containsExactly(4, 5, 6, 7, 8);
         assertThat((List<String>) json(preview, "$.issues[?(@.line == 5)].kind"))
                 .containsExactly("DUPLICATE");
-        assertThat((Integer) json(owner.get("/api/v1/patients?q=importad"), "$.totalItems"))
+        assertThat((Integer) json(owner.get("/api/v1/patients?searchTerm=importad"), "$.totalItems"))
                 .isZero();
 
         MvcTestResult imported = owner.post("/api/v1/patients/import", body(false, rows));
         assertThat((Integer) json(imported, "$.created")).isEqualTo(2);
 
-        MvcTestResult found = owner.get("/api/v1/patients?q=ana importada");
+        MvcTestResult found = owner.get("/api/v1/patients?searchTerm=ana importada");
         assertThat((Integer) json(found, "$.totalItems")).isEqualTo(1);
         String id = json(found, "$.items[0].id");
         MvcTestResult ana = owner.get("/api/v1/patients/" + id);
@@ -93,7 +93,7 @@ class PatientImportTest extends PostgresIntegrationTest {
         owner.post("/api/v1/patients/import", body(false, row(2, "Só Desta Clínica", null, null, "")));
         UUID other = data.clinic();
         Browser otherOwner = browser().login(data.member(other, "OWNER").email(), TestData.PASSWORD);
-        assertThat((Integer) json(otherOwner.get("/api/v1/patients?q=desta clínica"), "$.totalItems"))
+        assertThat((Integer) json(otherOwner.get("/api/v1/patients?searchTerm=desta clínica"), "$.totalItems"))
                 .isZero();
     }
 }

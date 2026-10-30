@@ -14,6 +14,7 @@ import br.com.odontosaas.consent.service.ConsentService;
 import br.com.odontosaas.shared.Access;
 import br.com.odontosaas.shared.VoidRequest;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -88,8 +89,9 @@ public class ConsentController {
     public List<ConsentListItem> allConsents(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String q) {
-        return consents.listAll(status, category, q);
+            @Parameter(description = "Texto contido no nome do paciente") @RequestParam(required = false)
+                    String searchTerm) {
+        return consents.listAll(status, category, searchTerm);
     }
 
     @GetMapping(BASE + "/consents")

@@ -7,6 +7,7 @@ import br.com.odontosaas.inventory.dto.response.MovementView;
 import br.com.odontosaas.inventory.dto.response.ProductView;
 import br.com.odontosaas.inventory.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -40,8 +41,10 @@ public class InventoryController {
     @GetMapping("/products")
     @PreAuthorize(READ)
     public List<ProductView> products(
-            @RequestParam(required = false) String q, @RequestParam(defaultValue = "false") boolean lowStock) {
-        return service.products(q, lowStock);
+            @Parameter(description = "Texto contido no nome ou na categoria do produto") @RequestParam(required = false)
+                    String searchTerm,
+            @RequestParam(defaultValue = "false") boolean lowStock) {
+        return service.products(searchTerm, lowStock);
     }
 
     @GetMapping("/products/{id}")

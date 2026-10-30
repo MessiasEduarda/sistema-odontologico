@@ -1,6 +1,3 @@
-# Configuração comum a todos os perfis. O que depende do ambiente (banco, e-mail, URLs, seed) fica no arquivo do
-# perfil: application-dev.yml (local), application-prod.yml (produção) e application-test.yml (testes).
-# Defina o perfil com SPRING_PROFILES_ACTIVE (ou --spring.profiles.active=...).
 spring:
   application:
     name: odonto-api
@@ -44,10 +41,8 @@ spring:
 
   jackson:
     deserialization:
-      # Jackson 3 rejeita por padrão campos primitivos ausentes; aqui um booleano omitido vale false.
       fail-on-null-for-primitives: false
 
-  # E-mail (SMTP): servidor e autenticação são definidos no perfil (dev: Mailpit local; prod: provedor real).
   mail:
     default-encoding: UTF-8
     properties:
@@ -58,7 +53,6 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
-  # Confia em X-Forwarded-For apenas de proxies internos (ex.: o servidor do Next.js).
   forward-headers-strategy: native
   error:
     include-stacktrace: never

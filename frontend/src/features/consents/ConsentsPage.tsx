@@ -53,7 +53,7 @@ function IssuedTab() {
   const [issueFor, setIssueFor] = useState<{ id: string; name: string } | null>(null);
   const list = useQuery({
     queryKey: ["all-consents", status, category, q],
-    queryFn: () => api.clinical.allConsents({ status, category, q }),
+    queryFn: () => api.clinical.allConsents({ status, category, searchTerm: q }),
   });
   const all = useQuery({ queryKey: ["all-consents", "", "", ""], queryFn: () => api.clinical.allConsents({}) });
   const count = (s: string) => (all.data ?? []).filter((c) => c.status === s).length;

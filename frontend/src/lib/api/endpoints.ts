@@ -106,8 +106,8 @@ export const api = {
     rooms: () => apiFetch<Room[]>("/api/v1/clinic/rooms"),
     createRoom: (body: { name: string; active: boolean }) => apiPost<Room>("/api/v1/clinic/rooms", body),
     updateRoom: (id: Uuid, body: { name: string; active: boolean }) => apiPut<Room>(`/api/v1/clinic/rooms/${id}`, body),
-    procedures: (q?: string, active?: boolean) =>
-      apiFetch<Procedure[]>(`/api/v1/clinic/procedures${qs({ q, active })}`),
+    procedures: (searchTerm?: string, active?: boolean) =>
+      apiFetch<Procedure[]>(`/api/v1/clinic/procedures${qs({ searchTerm, active })}`),
     createProcedure: (body: Omit<Procedure, "id">) => apiPost<Procedure>("/api/v1/clinic/procedures", body),
     updateProcedure: (id: Uuid, body: Omit<Procedure, "id">) =>
       apiPut<Procedure>(`/api/v1/clinic/procedures/${id}`, body),
@@ -146,7 +146,7 @@ export const api = {
   },
 
   patients: {
-    search: (params: { q?: string; active?: boolean; page?: number; size?: number }) =>
+    search: (params: { searchTerm?: string; active?: boolean; page?: number; size?: number }) =>
       apiFetch<Page<PatientSummary>>(`/api/v1/patients${qs(params)}`),
     get: (id: Uuid) => apiFetch<Patient>(`/api/v1/patients/${id}`),
     exportData: (id: Uuid) => apiFetch<Record<string, unknown>>(`/api/v1/patients/${id}/export`),
@@ -199,9 +199,9 @@ export const api = {
       patientId: Uuid,
       body: { formId?: Uuid | null; answers: Record<string, Answer>; notes?: string; filledBy?: string },
     ) => apiPost<Anamnesis>(`/api/v1/patients/${patientId}/anamneses`, body),
-    recentAnamneses: (params: { kind?: string; alertsOnly?: boolean; q?: string }) =>
+    recentAnamneses: (params: { kind?: string; alertsOnly?: boolean; searchTerm?: string }) =>
       apiFetch<RecentAnamnesis[]>(`/api/v1/anamneses${qs(params)}`),
-    allConsents: (params: { status?: string; category?: string; q?: string }) =>
+    allConsents: (params: { status?: string; category?: string; searchTerm?: string }) =>
       apiFetch<ConsentListItem[]>(`/api/v1/consents${qs(params)}`),
     recentDocuments: (type?: string) => apiFetch<IssuedDocument[]>(`/api/v1/clinical-documents${qs({ type })}`),
     issueCare: (
@@ -213,7 +213,7 @@ export const api = {
       apiPost<AestheticRecord>(`/api/v1/patients/${patientId}/aesthetic-procedures`, body),
     voidAesthetic: (patientId: Uuid, id: Uuid, reason: string) =>
       apiPost<void>(`/api/v1/patients/${patientId}/aesthetic-procedures/${id}/void`, { reason }),
-    searchAesthetics: (params: { batch?: string; q?: string; returnsUntil?: string }) =>
+    searchAesthetics: (params: { batch?: string; searchTerm?: string; returnsUntil?: string }) =>
       apiFetch<AestheticRecord[]>(`/api/v1/aesthetic-procedures${qs(params)}`),
     chart: (patientId: Uuid) => apiFetch<ChartEntry[]>(`/api/v1/patients/${patientId}/dental-chart`),
     addChart: (
@@ -294,7 +294,7 @@ export const api = {
   finance: {
     summary: () => apiFetch<FinanceSummary>("/api/v1/finance/summary"),
     cashFlow: (from: string, to: string) => apiFetch<CashFlow>(`/api/v1/finance/cash-flow${qs({ from, to })}`),
-    receivables: (params: { status?: string; patientId?: Uuid; q?: string }) =>
+    receivables: (params: { status?: string; patientId?: Uuid; searchTerm?: string }) =>
       apiFetch<ReceivableSummary[]>(`/api/v1/finance/receivables${qs(params)}`),
     receivable: (id: Uuid) => apiFetch<Receivable>(`/api/v1/finance/receivables/${id}`),
     createReceivable: (body: {
@@ -324,8 +324,8 @@ export const api = {
   },
 
   inventory: {
-    products: (q?: string, lowStock?: boolean) =>
-      apiFetch<Product[]>(`/api/v1/inventory/products${qs({ q, lowStock })}`),
+    products: (searchTerm?: string, lowStock?: boolean) =>
+      apiFetch<Product[]>(`/api/v1/inventory/products${qs({ searchTerm, lowStock })}`),
     create: (body: Partial<Product>) => apiPost<Product>("/api/v1/inventory/products", body),
     update: (id: Uuid, body: Partial<Product>) => apiPut<Product>(`/api/v1/inventory/products/${id}`, body),
     movements: (id: Uuid) => apiFetch<StockMovement[]>(`/api/v1/inventory/products/${id}/movements`),
@@ -370,7 +370,7 @@ export const api = {
 
   platform: {
     metrics: () => apiFetch<PlatformMetrics>("/api/v1/platform/metrics"),
-    clinics: (q?: string) => apiFetch<PlatformClinic[]>(`/api/v1/platform/clinics${qs({ q })}`),
+    clinics: (searchTerm?: string) => apiFetch<PlatformClinic[]>(`/api/v1/platform/clinics${qs({ searchTerm })}`),
     createClinic: (body: { name: string; slug: string; ownerEmail: string; planCode?: string }) =>
       apiPost<unknown>("/api/v1/platform/tenants", body),
     resendOwnerInvite: (id: Uuid, ownerEmail: string) =>
@@ -393,8 +393,13 @@ export const api = {
     updatePlan: (id: Uuid, body: Omit<PlatformPlan, "id" | "tenants">) =>
       apiPut<PlatformPlan>(`/api/v1/platform/plans/${id}`, body),
     audit: (action?: string) => apiFetch<PlatformEvent[]>(`/api/v1/platform/audit${qs({ action })}`),
-    supportTickets: (filters: { status?: string; priority?: string; tenantId?: Uuid; q?: string; unread?: boolean }) =>
-      apiFetch<PlatformTicketSummary[]>(`/api/v1/platform/support/tickets${qs(filters)}`),
+    supportTickets: (filters: {
+      status?: string;
+      priority?: string;
+      tenantId?: Uuid;
+      searchTerm?: string;
+      unread?: boolean;
+    }) => apiFetch<PlatformTicketSummary[]>(`/api/v1/platform/support/tickets${qs(filters)}`),
     supportMetrics: () => apiFetch<SupportMetrics>("/api/v1/platform/support/metrics"),
     supportUnread: () => apiFetch<{ count: number }>("/api/v1/platform/support/unread"),
     supportTicket: (id: Uuid) => apiFetch<TicketDetail>(`/api/v1/platform/support/tickets/${id}`),

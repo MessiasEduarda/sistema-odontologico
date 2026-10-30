@@ -47,7 +47,7 @@ class SupportFlowTest extends PostgresIntegrationTest {
         assertThat((String) json(opened, "$.traceId")).isEqualTo("abc123trace");
         assertThat(pendingNotifications(id)).isPositive();
 
-        assertThat(body(admin.get("/api/v1/platform/support/tickets?q=" + json(opened, "$.protocol"))))
+        assertThat(body(admin.get("/api/v1/platform/support/tickets?searchTerm=" + json(opened, "$.protocol"))))
                 .contains(id);
         assertThat(admin.post(
                         "/api/v1/platform/support/tickets/" + id + "/messages",

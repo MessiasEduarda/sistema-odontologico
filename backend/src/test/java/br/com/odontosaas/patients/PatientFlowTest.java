@@ -42,11 +42,11 @@ class PatientFlowTest extends PostgresIntegrationTest {
         String id = json(created, "$.id");
         assertThat((String) json(created, "$.cpf")).isEqualTo("52998224725");
 
-        assertThat((List<String>) json(owner.get("/api/v1/patients?q=joana"), "$.items[*].id"))
+        assertThat((List<String>) json(owner.get("/api/v1/patients?searchTerm=joana"), "$.items[*].id"))
                 .containsExactly(id);
-        assertThat((List<String>) json(owner.get("/api/v1/patients?q=52998"), "$.items[*].id"))
+        assertThat((List<String>) json(owner.get("/api/v1/patients?searchTerm=52998"), "$.items[*].id"))
                 .containsExactly(id);
-        assertThat((List<String>) json(owner.get("/api/v1/patients?q=98888"), "$.items[*].id"))
+        assertThat((List<String>) json(owner.get("/api/v1/patients?searchTerm=98888"), "$.items[*].id"))
                 .containsExactly(id);
 
         String update = patientJson("Joana Fictícia Silva", "529.982.247-25", "1985-03-02")

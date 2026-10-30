@@ -14,6 +14,7 @@ import br.com.odontosaas.clinic.dto.response.SettingsView;
 import br.com.odontosaas.clinic.service.ClinicLogoService;
 import br.com.odontosaas.clinic.service.ClinicService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -156,10 +157,15 @@ public class ClinicController {
 
     @GetMapping("/procedures")
     @PreAuthorize(MEMBER)
-    @Operation(summary = "Catálogo de procedimentos", description = "Filtros opcionais: q (nome/código), active")
+    @Operation(
+            summary = "Catálogo de procedimentos",
+            description = "Filtros opcionais: searchTerm (nome/código), active")
     public List<ProcedureView> procedures(
-            @RequestParam(required = false) String q, @RequestParam(required = false) Boolean active) {
-        return service.procedures(q, active);
+            @Parameter(description = "Texto contido no nome ou no código do procedimento")
+                    @RequestParam(required = false)
+                    String searchTerm,
+            @RequestParam(required = false) Boolean active) {
+        return service.procedures(searchTerm, active);
     }
 
     @PostMapping("/procedures")

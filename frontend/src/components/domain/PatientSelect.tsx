@@ -35,7 +35,7 @@ export function PatientSelect({ label = "Paciente", value, onChange, error, requ
 
   const { data, isFetching } = useQuery({
     queryKey: ["patients", "select", debounced],
-    queryFn: () => api.patients.search({ q: debounced, active: true, size: 8 }),
+    queryFn: () => api.patients.search({ searchTerm: debounced, active: true, size: 8 }),
     enabled: open && debounced.trim().length >= 2,
   });
   const options = data?.items ?? [];

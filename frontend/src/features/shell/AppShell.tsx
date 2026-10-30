@@ -81,9 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           href="/suporte"
           aria-current={pathname.startsWith("/suporte") ? "page" : undefined}
           title={compact ? "Suporte" : undefined}
-          aria-label={
-            unreadCount > 0 ? `Suporte, ${unreadLabel(unreadCount)}` : compact ? "Suporte" : undefined
-          }
+          aria-label={unreadCount > 0 ? `Suporte, ${unreadLabel(unreadCount)}` : compact ? "Suporte" : undefined}
           $compact={compact}
           onClick={() => setMobileOpen(false)}
         >

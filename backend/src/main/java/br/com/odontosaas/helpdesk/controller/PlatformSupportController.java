@@ -12,6 +12,7 @@ import br.com.odontosaas.helpdesk.dto.response.UnreadCount;
 import br.com.odontosaas.helpdesk.service.SupportService;
 import br.com.odontosaas.tenancy.TenantContext;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -51,9 +52,11 @@ public class PlatformSupportController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) UUID tenantId,
-            @RequestParam(required = false) String q,
+            @Parameter(description = "Texto contido no protocolo, no assunto ou no nome da clínica")
+                    @RequestParam(required = false)
+                    String searchTerm,
             @RequestParam(defaultValue = "false") boolean unread) {
-        return support.platformTickets(status, priority, tenantId, q, unread);
+        return support.platformTickets(status, priority, tenantId, searchTerm, unread);
     }
 
     @GetMapping(BASE + "/metrics")

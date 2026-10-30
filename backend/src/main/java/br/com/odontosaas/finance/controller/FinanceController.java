@@ -17,6 +17,7 @@ import br.com.odontosaas.finance.dto.response.SupplierView;
 import br.com.odontosaas.finance.service.FinanceService;
 import br.com.odontosaas.finance.service.PayableService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -72,8 +73,10 @@ public class FinanceController {
     public List<ReceivableSummary> receivables(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) UUID patientId,
-            @RequestParam(required = false) String q) {
-        return finance.receivables(status, patientId, q);
+            @Parameter(description = "Texto contido no nome do paciente ou na descrição da conta")
+                    @RequestParam(required = false)
+                    String searchTerm) {
+        return finance.receivables(status, patientId, searchTerm);
     }
 
     @GetMapping("/api/v1/finance/receivables/{id}")

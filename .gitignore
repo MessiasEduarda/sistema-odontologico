@@ -41,3 +41,7 @@ frontend/scripts/gerar-documentacao.mjs
 # Saidas das ferramentas de IA (mapa do Graphify e relatorios do Strix)
 graphify-out/
 strix_runs/
+
+# Configuração local da API (perfil dev automático na sua máquina)
+/config/
+/backend/config/

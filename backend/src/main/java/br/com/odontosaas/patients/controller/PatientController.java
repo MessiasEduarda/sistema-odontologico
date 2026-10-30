@@ -9,6 +9,7 @@ import br.com.odontosaas.patients.service.PatientExportService;
 import br.com.odontosaas.patients.service.PatientService;
 import br.com.odontosaas.shared.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -41,13 +42,17 @@ public class PatientController {
     @PreAuthorize("hasAuthority('patients:read')")
     @Operation(
             summary = "Busca pacientes",
-            description = "q: nome, CPF, telefone ou e-mail; active; page/size. Permissão: patients:read")
+            description = "searchTerm: nome, CPF, telefone ou e-mail; active; page/size. Permissão: patients:read")
     public PageResponse<PatientSummary> search(
-            @RequestParam(required = false) String q,
+            @Parameter(
+                            description =
+                                    "Nome, nome social ou e-mail (contém); CPF (começa com); telefone (contém). CPF e telefone exigem ao menos 3 dígitos")
+                    @RequestParam(required = false)
+                    String searchTerm,
             @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return service.search(q, active, page, size);
+        return service.search(searchTerm, active, page, size);
     }
 
     @GetMapping("/{id}")

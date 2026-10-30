@@ -11,17 +11,18 @@
           }
         }, {
           "in" : "query",
-          "name" : "q",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "in" : "query",
           "name" : "returnsUntil",
           "required" : false,
           "schema" : {
             "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Texto contido no nome do paciente ou do produto",
+          "in" : "query",
+          "name" : "searchTerm",
+          "required" : false,
+          "schema" : {
             "type" : "string"
           }
         } ],
@@ -62,8 +63,9 @@
             "type" : "string"
           }
         }, {
+          "description" : "Texto contido no nome do paciente",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -1238,7 +1240,7 @@
     },
     "/api/v1/clinic/procedures" : {
       "get" : {
-        "description" : "Filtros opcionais: q (nome/código), active",
+        "description" : "Filtros opcionais: searchTerm (nome/código), active",
         "parameters" : [ {
           "in" : "query",
           "name" : "active",
@@ -1247,8 +1249,9 @@
             "type" : "boolean"
           }
         }, {
+          "description" : "Texto contido no nome ou no código do procedimento",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -1832,8 +1835,9 @@
             "type" : "string"
           }
         }, {
+          "description" : "Texto contido no nome do paciente",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2226,8 +2230,9 @@
             "type" : "string"
           }
         }, {
+          "description" : "Texto contido no nome do paciente ou na descrição da conta",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2395,8 +2400,9 @@
             "type" : "boolean"
           }
         }, {
+          "description" : "Texto contido no nome ou na categoria do produto",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -2572,7 +2578,7 @@
     },
     "/api/v1/patients" : {
       "get" : {
-        "description" : "q: nome, CPF, telefone ou e-mail; active; page/size. Permissão: patients:read",
+        "description" : "searchTerm: nome, CPF, telefone ou e-mail; active; page/size. Permissão: patients:read",
         "parameters" : [ {
           "in" : "query",
           "name" : "active",
@@ -2590,8 +2596,9 @@
             "type" : "integer"
           }
         }, {
+          "description" : "Nome, nome social ou e-mail (contém); CPF (começa com); telefone (contém). CPF e telefone exigem ao menos 3 dígitos",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4117,8 +4124,9 @@
     "/api/v1/platform/clinics" : {
       "get" : {
         "parameters" : [ {
+          "description" : "Texto contido no nome ou no identificador (slug) da clínica",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -4450,8 +4458,9 @@
             "type" : "string"
           }
         }, {
+          "description" : "Texto contido no protocolo, no assunto ou no nome da clínica",
           "in" : "query",
-          "name" : "q",
+          "name" : "searchTerm",
           "required" : false,
           "schema" : {
             "type" : "string"

@@ -6,6 +6,7 @@ import br.com.odontosaas.platformadmin.dto.response.PlatformEvent;
 import br.com.odontosaas.platformadmin.dto.response.TenantRow;
 import br.com.odontosaas.platformadmin.service.PlatformAdminService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -42,8 +43,11 @@ public class PlatformAdminController {
     @GetMapping("/api/v1/platform/clinics")
     @PreAuthorize(ADMIN)
     @Operation(summary = "Clínicas com plano e situação da assinatura")
-    public List<TenantRow> clinics(@RequestParam(required = false) String q) {
-        return admin.tenants(q);
+    public List<TenantRow> clinics(
+            @Parameter(description = "Texto contido no nome ou no identificador (slug) da clínica")
+                    @RequestParam(required = false)
+                    String searchTerm) {
+        return admin.tenants(searchTerm);
     }
 
     @PostMapping("/api/v1/platform/clinics/{id}/status")
